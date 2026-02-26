@@ -11,6 +11,7 @@ function loadLauncherSettings() {
       gunCoords: parsed.gunCoords ?? {},
       observerBindings: parsed.observerBindings ?? {},
       mission: parsed.mission ?? {},
+      mapTools: parsed.mapTools ?? {},
     };
   } catch {
     return {
@@ -21,6 +22,7 @@ function loadLauncherSettings() {
       gunCoords: {},
       observerBindings: {},
       mission: {},
+      mapTools: {},
     };
   }
 }
@@ -53,7 +55,10 @@ const i18n = {
     allGuns: 'Все орудия батареи', gunProfile: 'Профиль орудия', projectileProfile: 'Профиль снаряда',
     calcDone: 'Расчёт выполнен', mtoHeader: 'MTO: расход по выбранным орудиям', missionSaved: 'Миссия сохранена', noMissions: 'Сохранённых миссий нет',
     logsError: 'Не удалось загрузить логи', exportReady: 'Экспорт данных подготовлен', noLogsYet: 'Логи пока не найдены',
-    target: 'Цель', openedExternalMap: 'Открыта внешняя карта'
+    target: 'Цель', openedExternalMap: 'Открыта внешняя карта',
+    rolesTitle: 'Роли и рабочие места', rolesHint: 'Быстрые переходы к интерфейсам по ролям.', roleCommander: 'Командир (Карта)', roleGunner: 'Наводчик (Огневые задачи)', roleObserver: 'Наблюдатель (Корректировки)', roleLogistics: 'Логистика и данные',
+    mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту',
+    calibrationHint: 'Калибровка по двум контрольным точкам (коорд. карты → lat/lng).', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки'
   },
   en: {
     appVersion: 'Calc v1', appTitle: 'Ballistics Calculator', appSubtitle: 'Unified shell for fire mission planning and operational data.',
@@ -75,7 +80,10 @@ const i18n = {
     allGuns: 'All guns in battery', gunProfile: 'Gun profile', projectileProfile: 'Projectile profile',
     calcDone: 'Calculation complete', mtoHeader: 'MTO: ammo usage for selected guns', missionSaved: 'Mission saved', noMissions: 'No saved missions',
     logsError: 'Failed to load logs', exportReady: 'Data export ready', noLogsYet: 'No logs found yet',
-    target: 'Target', openedExternalMap: 'Opened external map'
+    target: 'Target', openedExternalMap: 'Opened external map',
+    rolesTitle: 'Roles & workspaces', rolesHint: 'Quick jump to interfaces by role.', roleCommander: 'Commander (Map)', roleGunner: 'Gunner (Fire missions)', roleObserver: 'Observer (Corrections)', roleLogistics: 'Logistics & data',
+    mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image',
+    calibrationHint: 'Two-point calibration (map coordinates → lat/lng).', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points'
   },
 };
 
@@ -96,14 +104,26 @@ const missionGunSelect = document.querySelector('#mission-gun');
 const fireOutput = document.querySelector('#fire-output');
 const safetyOutput = document.querySelector('#safety-output');
 const mapLegend = document.querySelector('#map-legend');
+const mapToolsOutput = document.querySelector('#map-tools-output');
+const mapImageUploadInput = document.querySelector('#map-image-upload');
 
 const t = (key) => i18n[state.lang][key] ?? key;
 
 const gunProfiles = ['mortar-120-standard', 'm777-howitzer', 'd30-standard'];
 const projectileProfiles = ['he-charge-3', 'smoke-charge-2', 'illum'];
 
+function getMapToolsSettings() {
+  const defaults = {
+    calibration: { xScale: 0.01, xBias: 0, yScale: 0.01, yBias: 0 },
+    imageBounds: { minX: 0, minY: 0, maxX: 4000, maxY: 4000 },
+    imageDataUrl: '',
+  };
+  return { ...defaults, ...state.settings.mapTools, calibration: { ...defaults.calibration, ...(state.settings.mapTools?.calibration ?? {}) }, imageBounds: { ...defaults.imageBounds, ...(state.settings.mapTools?.imageBounds ?? {}) } };
+}
+
 let leafletMap;
 let targetMarker;
+let mapImageOverlay;
 const gunMarkers = [];
 
 function persistLauncherSettings() {
@@ -141,6 +161,10 @@ function persistLauncherSettings() {
     };
   });
 
+  state.settings.mapTools = {
+    ...getMapToolsSettings(),
+  };
+
   state.settings.mission = {
     name: document.querySelector('#mission-name')?.value ?? '',
     targetX: document.querySelector('#target-x')?.value ?? '',
@@ -166,6 +190,7 @@ function applyI18n() {
   renderGunsGrid();
   renderObservers();
   renderMissionSelectors();
+  hydrateMapToolsForm();
   refreshMapOverlay();
 }
 
@@ -351,14 +376,95 @@ function initializeMap() {
   setTimeout(() => leafletMap.invalidateSize(), 0);
 }
 
+function hydrateMapToolsForm() {
+  const { imageBounds } = getMapToolsSettings();
+  const fill = (id, val) => { const el = document.querySelector(id); if (el) el.value = String(val ?? ''); };
+  fill('#map-min-x', imageBounds.minX);
+  fill('#map-min-y', imageBounds.minY);
+  fill('#map-max-x', imageBounds.maxX);
+  fill('#map-max-y', imageBounds.maxY);
+}
+
+function upsertMapOverlay() {
+  if (!leafletMap) return;
+  const tools = getMapToolsSettings();
+  if (mapImageOverlay) {
+    mapImageOverlay.remove();
+    mapImageOverlay = null;
+  }
+  if (!tools.imageDataUrl) return;
+  const { minX, minY, maxX, maxY } = tools.imageBounds;
+  const southWest = mapPointToLatLng(Number(minX), Number(minY));
+  const northEast = mapPointToLatLng(Number(maxX), Number(maxY));
+  mapImageOverlay = window.L.imageOverlay(tools.imageDataUrl, [southWest, northEast], { opacity: 0.75 });
+  mapImageOverlay.addTo(leafletMap);
+}
+
+function applyCalibration() {
+  const p1x = Number(document.querySelector('#cal-p1-x')?.value);
+  const p1y = Number(document.querySelector('#cal-p1-y')?.value);
+  const p1lat = Number(document.querySelector('#cal-p1-lat')?.value);
+  const p1lng = Number(document.querySelector('#cal-p1-lng')?.value);
+  const p2x = Number(document.querySelector('#cal-p2-x')?.value);
+  const p2y = Number(document.querySelector('#cal-p2-y')?.value);
+  const p2lat = Number(document.querySelector('#cal-p2-lat')?.value);
+  const p2lng = Number(document.querySelector('#cal-p2-lng')?.value);
+  if (![p1x,p1y,p1lat,p1lng,p2x,p2y,p2lat,p2lng].every(Number.isFinite) || p1x === p2x || p1y === p2y) {
+    if (mapToolsOutput) mapToolsOutput.textContent = t('invalidCalibration');
+    return;
+  }
+  const xScale = (p2lng - p1lng) / (p2x - p1x);
+  const xBias = p1lng - xScale * p1x;
+  const yScale = (p2lat - p1lat) / (p2y - p1y);
+  const yBias = p1lat - yScale * p1y;
+  state.settings.mapTools = { ...getMapToolsSettings(), calibration: { xScale, xBias, yScale, yBias } };
+  persistLauncherSettings();
+  refreshMapOverlay();
+  if (mapToolsOutput) mapToolsOutput.textContent = t('calibrationApplied');
+}
+
+function resetCalibration() {
+  state.settings.mapTools = { ...getMapToolsSettings(), calibration: { xScale: 0.01, xBias: 0, yScale: 0.01, yBias: 0 } };
+  persistLauncherSettings();
+  refreshMapOverlay();
+  if (mapToolsOutput) mapToolsOutput.textContent = t('calibrationResetDone');
+}
+
+function applyMapImage() {
+  const tools = getMapToolsSettings();
+  const minX = Number(document.querySelector('#map-min-x')?.value || 0);
+  const minY = Number(document.querySelector('#map-min-y')?.value || 0);
+  const maxX = Number(document.querySelector('#map-max-x')?.value || 0);
+  const maxY = Number(document.querySelector('#map-max-y')?.value || 0);
+  state.settings.mapTools = { ...tools, imageBounds: { minX, minY, maxX, maxY } };
+  persistLauncherSettings();
+  refreshMapOverlay();
+  if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageApplied');
+}
+
+function clearMapImage() {
+  state.settings.mapTools = { ...getMapToolsSettings(), imageDataUrl: '' };
+  if (mapImageUploadInput) mapImageUploadInput.value = '';
+  persistLauncherSettings();
+  refreshMapOverlay();
+  if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageCleared');
+}
+
+function openRoleWorkspace(role) {
+  const actionMap = { commander: () => switchTab('map'), gunner: () => switchTab('fire'), observer: () => switchTab('global'), logistics: () => switchTab('safety') };
+  actionMap[role]?.();
+}
+
 function mapPointToLatLng(x, y) {
-  const lat = y / 100;
-  const lng = x / 100;
+  const { calibration } = getMapToolsSettings();
+  const lat = y * Number(calibration.yScale) + Number(calibration.yBias);
+  const lng = x * Number(calibration.xScale) + Number(calibration.xBias);
   return [lat, lng];
 }
 
 function refreshMapOverlay() {
   if (!leafletMap) return;
+  upsertMapOverlay();
 
   gunMarkers.forEach((marker) => marker.remove());
   gunMarkers.length = 0;
@@ -513,6 +619,26 @@ themeSelect?.addEventListener('change', (event) => {
   state.theme = event.target.value;
   localStorage.setItem('calc.theme', state.theme);
   document.body.dataset.theme = state.theme;
+});
+
+
+document.querySelectorAll('[data-role-link]').forEach((button) => button.addEventListener('click', () => openRoleWorkspace(button.dataset.roleLink)));
+document.querySelector('#apply-calibration')?.addEventListener('click', applyCalibration);
+document.querySelector('#reset-calibration')?.addEventListener('click', resetCalibration);
+document.querySelector('#apply-map-image')?.addEventListener('click', applyMapImage);
+document.querySelector('#clear-map-image')?.addEventListener('click', clearMapImage);
+mapImageUploadInput?.addEventListener('change', async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('file-read-failed'));
+    reader.readAsDataURL(file);
+  });
+  state.settings.mapTools = { ...getMapToolsSettings(), imageDataUrl: String(dataUrl) };
+  persistLauncherSettings();
+  refreshMapOverlay();
 });
 
 document.body.dataset.theme = state.theme;

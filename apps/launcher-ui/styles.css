@@ -273,3 +273,32 @@ select,
     grid-template-columns: 1fr;
   }
 }
+
+
+.panel-grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.top-gap {
+  margin-top: 16px;
+}
+
+.role-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.pair-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .panel-grid-3,
+  .section-layout,
+  .role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -54,6 +54,20 @@
           </article>
         </div>
 
+
+
+        <div class="panel-grid panel-grid-1 top-gap">
+          <article class="card">
+            <h2 data-i18n="rolesTitle">Роли и рабочие места</h2>
+            <p class="hint" data-i18n="rolesHint">Быстрые переходы к интерфейсам по ролям.</p>
+            <div class="card-actions role-grid">
+              <button class="btn ghost" data-role-link="commander" data-i18n="roleCommander">Командир</button>
+              <button class="btn ghost" data-role-link="gunner" data-i18n="roleGunner">Наводчик</button>
+              <button class="btn ghost" data-role-link="observer" data-i18n="roleObserver">Наблюдатель</button>
+              <button class="btn ghost" data-role-link="logistics" data-i18n="roleLogistics">Логистика</button>
+            </div>
+          </article>
+        </div>
         <div class="status-line">
           <p class="status" data-service="ballistics"></p>
           <p class="status" data-service="gateway"></p>
@@ -124,6 +138,41 @@
             <h2 data-i18n="mapLegendTitle">Легенда</h2>
             <p class="hint" data-i18n="mapLegendHint">Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».</p>
             <div id="map-legend" class="stack"></div>
+
+            <h2 data-i18n="mapToolsTitle">Инструменты карты и калибровки</h2>
+            <label for="map-image-upload" data-i18n="mapImageUpload">Загрузить свою карту (PNG/JPG)</label>
+            <input id="map-image-upload" type="file" accept="image/png,image/jpeg,image/webp" />
+            <div class="pair pair-2">
+              <input id="map-min-x" type="number" placeholder="Min X" />
+              <input id="map-min-y" type="number" placeholder="Min Y" />
+              <input id="map-max-x" type="number" placeholder="Max X" />
+              <input id="map-max-y" type="number" placeholder="Max Y" />
+            </div>
+            <div class="card-actions inline-actions">
+              <button class="btn ghost" id="apply-map-image" data-i18n="applyMapImage">Применить карту</button>
+              <button class="btn ghost" id="clear-map-image" data-i18n="clearMapImage">Убрать карту</button>
+            </div>
+
+            <p class="hint" data-i18n="calibrationHint">Калибровка по двум контрольным точкам (коорд. карты → lat/lng).</p>
+            <div class="stack">
+              <div class="pair pair-4">
+                <input id="cal-p1-x" type="number" placeholder="P1 X" />
+                <input id="cal-p1-y" type="number" placeholder="P1 Y" />
+                <input id="cal-p1-lat" type="number" step="0.000001" placeholder="P1 Lat" />
+                <input id="cal-p1-lng" type="number" step="0.000001" placeholder="P1 Lng" />
+              </div>
+              <div class="pair pair-4">
+                <input id="cal-p2-x" type="number" placeholder="P2 X" />
+                <input id="cal-p2-y" type="number" placeholder="P2 Y" />
+                <input id="cal-p2-lat" type="number" step="0.000001" placeholder="P2 Lat" />
+                <input id="cal-p2-lng" type="number" step="0.000001" placeholder="P2 Lng" />
+              </div>
+            </div>
+            <div class="card-actions inline-actions">
+              <button class="btn ghost" id="apply-calibration" data-i18n="applyCalibration">Применить калибровку</button>
+              <button class="btn ghost" id="reset-calibration" data-i18n="resetCalibration">Сбросить калибровку</button>
+            </div>
+            <pre id="map-tools-output" class="output compact-output"></pre>
           </article>
         </div>
       </section>
