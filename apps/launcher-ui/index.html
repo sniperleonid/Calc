@@ -18,7 +18,7 @@
 
       <nav class="tabs" aria-label="Sections">
         <button class="tab active" data-tab="home" data-i18n="tabHome">Главная</button>
-        <button class="tab" data-tab="configuration" data-i18n="tabConfiguration">Конфигурация</button>
+        <button class="tab" data-tab="global" data-i18n="tabGlobal">Глобальные настройки</button>
         <button class="tab" data-tab="fire" data-i18n="tabFire">Огневые задачи</button>
         <button class="tab" data-tab="safety" data-i18n="tabSafety">Безопасность и данные</button>
         <button class="tab" data-tab="settings" data-i18n="tabSettings">Настройки</button>
@@ -27,26 +27,27 @@
       <section class="tab-panel active" data-panel="home">
         <div class="panel-grid panel-grid-3">
           <article class="card">
-            <h2 data-i18n="homeConfiguration">Конфигурация</h2>
+            <h2 data-i18n="homeConfiguration">Глобальные настройки</h2>
             <div class="card-actions">
-              <a class="btn" href="http://localhost:8000/docs" target="_blank" rel="noreferrer" data-i18n="openApi">Открыть API</a>
-              <button class="btn ghost" data-open-tab="configuration" data-i18n="editGlobalData">Редактировать общие данные</button>
+              <button class="btn" data-open-tab="global" data-i18n="editGlobalData">Настроить орудия, батареи и наблюдателей</button>
+              <a class="btn ghost" href="http://localhost:8000/docs" target="_blank" rel="noreferrer" data-i18n="openApi">Открыть API</a>
             </div>
           </article>
 
           <article class="card">
             <h2 data-i18n="homeFire">Огневые задачи</h2>
             <div class="card-actions">
-              <button class="btn" data-open-tab="fire" data-i18n="openMissionPlanner">Открыть планировщик</button>
+              <button class="btn" data-open-tab="fire" data-i18n="openMissionPlanner">Открыть вкладку задач</button>
               <button class="btn ghost" id="health-check" data-i18n="checkServices">Проверить сервисы</button>
             </div>
           </article>
 
           <article class="card">
-            <h2 data-i18n="homeSafety">Безопасность и данные</h2>
+            <h2 data-i18n="homeMap">Карта и интеграции</h2>
+            <label for="map-url" data-i18n="mapUrl">URL карты</label>
+            <input id="map-url" type="url" value="http://localhost:4173" />
             <div class="card-actions">
-              <button class="btn" data-open-tab="safety" data-i18n="openSecurity">Открыть раздел</button>
-              <button class="btn danger" id="clear-data" data-i18n="clearAllData">Очистить данные</button>
+              <button class="btn" id="open-map" data-i18n="openMap">Открыть карту</button>
             </div>
           </article>
         </div>
@@ -57,21 +58,24 @@
         </div>
       </section>
 
-      <section class="tab-panel" data-panel="configuration">
+      <section class="tab-panel" data-panel="global">
         <div class="section-layout">
           <article class="card">
-            <h2 data-i18n="sectionConfigTitle">Общие орудийные расчёты</h2>
+            <h2 data-i18n="sectionConfigTitle">Параметры батарей и орудий</h2>
             <label for="battery-count" data-i18n="batteryCount">Количество батарей</label>
             <input id="battery-count" type="number" min="1" max="5" value="2" />
-            <label for="battery-height" data-i18n="batteryHeight">Высота батарей для поправок (м)</label>
-            <input id="battery-height" type="number" value="0" />
             <label for="guns-per-battery" data-i18n="gunsPerBattery">Орудий в батарее</label>
             <input id="guns-per-battery" type="number" min="1" max="5" value="2" />
+            <p class="hint" data-i18n="batteryHeightHint">Высота задаётся отдельно для каждой батареи и применяется ко всем орудиям этой батареи.</p>
+            <div id="battery-config" class="stack"></div>
           </article>
           <article class="card">
-            <h2 data-i18n="coordinatesTitle">Координаты орудий</h2>
+            <h2 data-i18n="coordinatesTitle">Координаты и наблюдатели</h2>
             <p class="hint" data-i18n="gunsHint">Для каждого орудия укажите координаты карты.</p>
             <div id="guns-coordinates" class="stack"></div>
+            <label for="observer-count" data-i18n="observerCount">Количество наблюдателей (до 10)</label>
+            <input id="observer-count" type="number" min="1" max="10" value="2" />
+            <div id="observer-bindings" class="stack"></div>
           </article>
         </div>
       </section>
@@ -79,24 +83,27 @@
       <section class="tab-panel" data-panel="fire">
         <div class="section-layout">
           <article class="card">
-            <h2 data-i18n="observerTitle">Наблюдатели и привязки</h2>
-            <label for="observer-count" data-i18n="observerCount">Количество наблюдателей (до 10)</label>
-            <input id="observer-count" type="number" min="1" max="10" value="2" />
-            <div id="observer-bindings" class="stack"></div>
+            <h2 data-i18n="missionTitle">Калькулятор огневой задачи</h2>
+            <label for="mission-name" data-i18n="missionName">Название задачи</label>
+            <input id="mission-name" value="Mission-1" />
+            <label for="target-x" data-i18n="targetX">Координата цели X</label>
+            <input id="target-x" type="number" value="1500" />
+            <label for="target-y" data-i18n="targetY">Координата цели Y</label>
+            <input id="target-y" type="number" value="1800" />
+            <label for="mission-battery" data-i18n="missionBattery">Батарея</label>
+            <select id="mission-battery"></select>
+            <label for="mission-gun" data-i18n="missionGun">Орудие (или все в батарее)</label>
+            <select id="mission-gun"></select>
           </article>
           <article class="card">
             <h2 data-i18n="actionsTitle">Действия</h2>
-            <label for="gunner-mode" data-i18n="gunnerMode">Режим наводчика</label>
-            <select id="gunner-mode">
-              <option value="guns" data-i18n="gunnerModeGuns">Привязка к орудиям</option>
-              <option value="battery" data-i18n="gunnerModeBattery">Командир батареи</option>
-            </select>
-            <p class="hint" data-i18n="gunnerHint">Командир батареи получает в HUD решения огня по всем орудиям батареи.</p>
+            <p class="hint" data-i18n="gunnerHint">Все расчёты выполняются на основе глобальных настроек.</p>
             <div class="card-actions">
-              <button class="btn" data-i18n="calculate">Рассчитать</button>
-              <button class="btn ghost" data-i18n="showMto">Показать MTO</button>
-              <button class="btn ghost" data-i18n="logMission">Сохранить миссию</button>
+              <button class="btn" id="calculate-btn" data-i18n="calculate">Рассчитать</button>
+              <button class="btn ghost" id="show-mto" data-i18n="showMto">Показать MTO</button>
+              <button class="btn ghost" id="save-mission" data-i18n="logMission">Сохранить миссию</button>
             </div>
+            <pre id="fire-output" class="output"></pre>
           </article>
         </div>
       </section>
@@ -109,6 +116,7 @@
             <div class="card-actions">
               <button class="btn ghost" data-i18n="openLogs">Открыть логи</button>
               <button class="btn ghost" data-i18n="exportData">Экспорт данных</button>
+              <button class="btn danger" id="clear-data" data-i18n="clearAllData">Очистить данные</button>
             </div>
           </article>
           <article class="card">
