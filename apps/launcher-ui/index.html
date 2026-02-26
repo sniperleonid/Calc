@@ -60,18 +60,18 @@
       <section class="tab-panel" data-panel="configuration">
         <div class="section-layout">
           <article class="card">
-            <h2 data-i18n="sectionConfigTitle">Секционная конфигурация</h2>
-            <label data-i18n="sectionCount">Количество секций</label>
-            <input type="number" min="1" max="8" value="4" />
-            <label data-i18n="gunsCount">Количество орудий</label>
-            <input type="number" min="1" max="16" value="4" />
+            <h2 data-i18n="sectionConfigTitle">Общие орудийные расчёты</h2>
+            <label for="battery-count" data-i18n="batteryCount">Количество батарей</label>
+            <input id="battery-count" type="number" min="1" max="5" value="2" />
+            <label for="battery-height" data-i18n="batteryHeight">Высота батарей для поправок (м)</label>
+            <input id="battery-height" type="number" value="0" />
+            <label for="guns-per-battery" data-i18n="gunsPerBattery">Орудий в батарее</label>
+            <input id="guns-per-battery" type="number" min="1" max="5" value="2" />
           </article>
           <article class="card">
-            <h2 data-i18n="coordinatesTitle">Координаты миномётов</h2>
-            <label>X</label>
-            <input type="text" placeholder="123456" />
-            <label>Y</label>
-            <input type="text" placeholder="654321" />
+            <h2 data-i18n="coordinatesTitle">Координаты орудий</h2>
+            <p class="hint" data-i18n="gunsHint">Для каждого орудия укажите координаты карты.</p>
+            <div id="guns-coordinates" class="stack"></div>
           </article>
         </div>
       </section>
@@ -79,16 +79,19 @@
       <section class="tab-panel" data-panel="fire">
         <div class="section-layout">
           <article class="card">
-            <h2 data-i18n="observerTitle">Данные наблюдателя</h2>
-            <label data-i18n="distanceToTarget">Дистанция до цели (м)</label>
-            <input type="number" />
-            <label data-i18n="directionToTarget">Направление на цель (градусы)</label>
-            <input type="number" />
-            <label data-i18n="targetAltitude">Высота цели (м)</label>
-            <input type="number" />
+            <h2 data-i18n="observerTitle">Наблюдатели и привязки</h2>
+            <label for="observer-count" data-i18n="observerCount">Количество наблюдателей (до 10)</label>
+            <input id="observer-count" type="number" min="1" max="10" value="2" />
+            <div id="observer-bindings" class="stack"></div>
           </article>
           <article class="card">
             <h2 data-i18n="actionsTitle">Действия</h2>
+            <label for="gunner-mode" data-i18n="gunnerMode">Режим наводчика</label>
+            <select id="gunner-mode">
+              <option value="guns" data-i18n="gunnerModeGuns">Привязка к орудиям</option>
+              <option value="battery" data-i18n="gunnerModeBattery">Командир батареи</option>
+            </select>
+            <p class="hint" data-i18n="gunnerHint">Командир батареи получает в HUD решения огня по всем орудиям батареи.</p>
             <div class="card-actions">
               <button class="btn" data-i18n="calculate">Рассчитать</button>
               <button class="btn ghost" data-i18n="showMto">Показать MTO</button>
