@@ -386,7 +386,9 @@ class MapModule {
     }
 
     const rulerDx = p2.mapX - p1.mapX;
-    const rulerDy = p2.mapY - p1.mapY;
+    // Web maps typically use Y+ downward, while Reforger coordinates use Y+ northward.
+    // Invert map Y delta to keep calibration angle in world-aligned (north-up) space.
+    const rulerDy = -(p2.mapY - p1.mapY);
     const rulerPixels = Math.hypot(rulerDx, rulerDy);
     if (!Number.isFinite(rulerPixels) || rulerPixels === 0) {
       throw new Error('P1/P2 ruler points must have non-zero distance');
