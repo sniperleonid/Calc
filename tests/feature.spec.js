@@ -8,6 +8,7 @@ import { PinnedGunnerPanel } from '../apps/fire-control/src/pinned-gunner-panel.
 import { CorrectionPanel } from '../apps/observer-console/src/correction-panel.js';
 import { HudOverlay } from '../apps/hud/src/hud-overlay.js';
 import { LobbyService, MAX_BATTERIES, MAX_GUNS_PER_BATTERY, MAX_OBSERVERS, ROLES } from '../services/realtime-gateway/src/lobby-service.js';
+import { TacticalWorkspace } from '../apps/web-map/src/tactical-workspace.js';
 
 test('mission journal stores events by mission', () => {
   const journal = new MissionJournal();
@@ -113,4 +114,57 @@ test('lobby service supports password protected online room and role assignments
   assert.equal(state.observers.length, 1);
   assert.equal(state.limits.observers, MAX_OBSERVERS);
   assert.equal(state.batteries[0].guns[0].operatorUserId, 'gunner-1');
+});
+
+test('tactical workspace keeps modules isolated and supports map workflows', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-21' });
+
+  workspace.getModule('ballistics').upsertManual({
+    name: 'Gun Alpha',
+    type: 'howitzer',
+    position: { x: 110, y: 420 },
+  });
+  workspace.getModule('observers').placeOnMap({
+    id: 'obs-2',
+    name: 'Observer East',
+    position: { x: 300, y: 80 },
+  });
+  workspace.getModule('map').loadMap({
+    assetId: 'field-01',
+    fileName: 'field.png',
+    width: 4096,
+    height: 4096,
+  });
+
+  workspace.getModule('map').setCalibration({
+    controlPoints: [
+      { mapX: 100, mapY: 100, gameX: 1200, gameY: 5400 },
+      { mapX: 3500, mapY: 3500, gameX: 8800, gameY: 1200 },
+    ],
+    model: { scaleX: 2.235, scaleY: -1.235, offsetX: 300, offsetY: 5520 },
+  });
+
+  workspace.getModule('map').addMarker({
+    id: 'target-1',
+    title: 'Основная цель',
+    category: 'target',
+    position: { x: 500, y: 620 },
+  });
+
+  const missionSnapshot = workspace.saveMission();
+  assert.equal(missionSnapshot.modules.ballistics.length, 1);
+  assert.equal(missionSnapshot.modules.observers.length, 1);
+  assert.equal(missionSnapshot.modules.map.markers.length, 1);
+
+  const calibrationPreset = workspace.saveCalibrationPreset();
+  const cleanWorkspace = new TacticalWorkspace({ missionId: 'm-clean' });
+  cleanWorkspace.loadMission(missionSnapshot);
+  cleanWorkspace.loadCalibrationPreset(calibrationPreset);
+
+  assert.equal(cleanWorkspace.getModule('observers').list()[0].id, 'obs-2');
+  assert.equal(cleanWorkspace.getModule('map').getCalibration().model.offsetY, 5520);
+
+  const uiSchema = cleanWorkspace.buildUiSchema();
+  assert.equal(uiSchema.panels.length, 5);
+  assert.equal(uiSchema.panels.find((panel) => panel.module === 'map').supports.includes('mission-save-load'), true);
 });
