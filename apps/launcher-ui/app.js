@@ -4,6 +4,8 @@ const LIMITS = {
   gunsPerBattery: { min: 1, max: 5 },
   observers: { min: 1, max: 5 },
 };
+const COORD_LIMITS = { min: 0, max: 999999 };
+const HEIGHT_LIMITS = { min: 0, max: 10000 };
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -76,14 +78,14 @@ const i18n = {
     syncMap: 'Синхронизировать с координатами', centerTarget: 'Центр на цели',
     safeDataTitle: 'Контроль данных', safeDataDescription: 'Проверка журналов и экспорт служебных данных.', openLogs: 'Открыть логи', exportData: 'Экспорт данных', clearAllData: 'Очистить данные',
     serviceState: 'Состояние сервисов', generalSettings: 'Общие настройки', language: 'Язык', theme: 'Тема', themeTerminal: 'Terminal Green', themeMidnight: 'Midnight Blue',
-    ballisticsOk: '✅ Ballistics Core: запущен', ballisticsWarn: '⚠️ Ballistics Core: не отвечает. Проверьте Python и uvicorn.', gatewayOk: '✅ Realtime Gateway: запущен', gatewayWarn: '⚠️ Realtime Gateway: не отвечает.',
+    ballisticsOk: '✅ Ballistics Core: запущен', ballisticsWarn: '⚠️ Ballistics Core: не отвечает. Проверьте Python и uvicorn.',
     dataCleared: 'Локальные данные очищены', battery: 'Батарея', batteryShort: 'Б', gun: 'Орудие', gunShort: 'О', observer: 'Наблюдатель', x: 'X', y: 'Y',
     observerHeight: 'Высота наблюдателя (м)',
     allGuns: 'Все орудия батареи', gunProfile: 'Профиль орудия', projectileProfile: 'Профиль снаряда',
     calcDone: 'Расчёт выполнен', mtoHeader: 'MTO: расход по выбранным орудиям', missionSaved: 'Миссия сохранена', noMissions: 'Сохранённых миссий нет',
     logsError: 'Не удалось загрузить логи', exportReady: 'Экспорт данных подготовлен', noLogsYet: 'Логи пока не найдены',
     target: 'Цель', openedExternalMap: 'Открыта внешняя карта',
-    rolesTitle: 'Роли и рабочие места', rolesHint: 'Быстрые переходы к интерфейсам по ролям.', roleCommander: 'Командир (Карта)', roleGunner: 'Наводчик (Огневые задачи)', roleObserver: 'Наблюдатель (Корректировки)', roleLogistics: 'Логистика и данные',
+    invalidCoordinates: 'Ошибка координат: разрешены только цифры и допустимые пределы',
     mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту',
     calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
     markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolBattery: 'Активная батарея', markerToolObserver: 'Наблюдатель', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
@@ -104,14 +106,14 @@ const i18n = {
     syncMap: 'Sync with coordinates', centerTarget: 'Center on target',
     safeDataTitle: 'Data control', safeDataDescription: 'Check logs and export service data.', openLogs: 'Open logs', exportData: 'Export data', clearAllData: 'Clear data',
     serviceState: 'Service status', generalSettings: 'General settings', language: 'Language', theme: 'Theme', themeTerminal: 'Terminal Green', themeMidnight: 'Midnight Blue',
-    ballisticsOk: '✅ Ballistics Core: online', ballisticsWarn: '⚠️ Ballistics Core: unavailable. Check Python and uvicorn.', gatewayOk: '✅ Realtime Gateway: online', gatewayWarn: '⚠️ Realtime Gateway: unavailable.',
+    ballisticsOk: '✅ Ballistics Core: online', ballisticsWarn: '⚠️ Ballistics Core: unavailable. Check Python and uvicorn.',
     dataCleared: 'Local data has been cleared', battery: 'Battery', batteryShort: 'B', gun: 'Gun', gunShort: 'G', observer: 'Observer', x: 'X', y: 'Y',
     observerHeight: 'Observer altitude (m)',
     allGuns: 'All guns in battery', gunProfile: 'Gun profile', projectileProfile: 'Projectile profile',
     calcDone: 'Calculation complete', mtoHeader: 'MTO: ammo usage for selected guns', missionSaved: 'Mission saved', noMissions: 'No saved missions',
     logsError: 'Failed to load logs', exportReady: 'Data export ready', noLogsYet: 'No logs found yet',
     target: 'Target', openedExternalMap: 'Opened external map',
-    rolesTitle: 'Roles & workspaces', rolesHint: 'Quick jump to interfaces by role.', roleCommander: 'Commander (Map)', roleGunner: 'Gunner (Fire missions)', roleObserver: 'Observer (Corrections)', roleLogistics: 'Logistics & data',
+    invalidCoordinates: 'Coordinate error: only digits and allowed limits are accepted',
     mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image',
     calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
     markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolBattery: 'Active battery', markerToolObserver: 'Observer', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
@@ -175,18 +177,11 @@ let lastOverlayBoundsKey = '';
 function parseCoordinateValue(rawValue) {
   const text = String(rawValue ?? '').trim();
   if (!text) return null;
-
-  const numeric = Number(text.replace(',', '.'));
-  if (Number.isFinite(numeric)) return numeric;
-
-  const normalized = text.replace(/\s+/g, '');
-  const gridMatch = normalized.match(/^(\d{3,6})-(\d{3,6})$/);
-  if (!gridMatch) return null;
-
-  const [, xPart, yPart] = gridMatch;
-  if (xPart.length !== yPart.length) return null;
-  const multiplier = 10 ** (6 - xPart.length);
-  return { x: Number(xPart) * multiplier, y: Number(yPart) * multiplier };
+  if (!/^\d+$/.test(text)) return null;
+  const numeric = Number(text);
+  if (!Number.isInteger(numeric)) return null;
+  if (numeric < COORD_LIMITS.min || numeric > COORD_LIMITS.max) return null;
+  return numeric;
 }
 
 function readXYFromInputs(xInput, yInput) {
@@ -197,10 +192,28 @@ function readXYFromInputs(xInput, yInput) {
 
   const xParsed = parseCoordinateValue(xRaw);
   const yParsed = parseCoordinateValue(yRaw);
-  if (typeof xParsed === 'object') return xParsed;
-  if (typeof yParsed === 'object') return yParsed;
   if (!Number.isFinite(xParsed) || !Number.isFinite(yParsed)) return null;
   return { x: xParsed, y: yParsed };
+}
+
+function parseHeightValue(rawValue) {
+  const text = String(rawValue ?? '').trim();
+  if (!text) return 0;
+  if (!/^\d+$/.test(text)) return null;
+  const numeric = Number(text);
+  if (!Number.isInteger(numeric)) return null;
+  if (numeric < HEIGHT_LIMITS.min || numeric > HEIGHT_LIMITS.max) return null;
+  return numeric;
+}
+
+function sanitizeIntegerInput(input, limits) {
+  if (!input) return;
+  const normalized = String(input.value ?? '').replace(/\D+/g, '');
+  if (!normalized) {
+    input.value = '';
+    return;
+  }
+  input.value = normalized;
 }
 
 function clearBoundMarkerCoordinates(marker) {
@@ -347,10 +360,8 @@ async function checkService(url, okKey, warnKey, selector) {
 async function runHealthCheck() {
   await Promise.all([
     checkService('http://localhost:8000/docs', 'ballisticsOk', 'ballisticsWarn', 'ballistics'),
-    checkService('http://localhost:3001/health', 'gatewayOk', 'gatewayWarn', 'gateway'),
   ]);
   document.querySelector('[data-service="ballistics-copy"]').textContent = document.querySelector('[data-service="ballistics"]')?.textContent || '';
-  document.querySelector('[data-service="gateway-copy"]').textContent = document.querySelector('[data-service="gateway"]')?.textContent || '';
 }
 
 function clearLocalData() {
@@ -375,7 +386,7 @@ function renderGlobalConfig() {
     row.innerHTML = `
       <h3>${t('battery')} ${b}</h3>
       <div class="pair pair-5">
-        <input type="number" data-battery-height="${b}" placeholder="${t('batteryHeight')}" value="${saved.height ?? 0}" />
+        <input type="text" inputmode="numeric" data-height data-battery-height="${b}" placeholder="${t('batteryHeight')}" value="${saved.height ?? 0}" />
         <input type="number" min="1" max="5" data-battery-guns-count="${b}" placeholder="${t('gunsPerBattery')}" value="${getGunCountForBattery(b)}" />
         <select data-battery-gun-profile="${b}">${gunProfileOptions}</select>
         <select data-battery-projectile-profile="${b}">${projectileOptions}</select>
@@ -405,7 +416,7 @@ function renderGunsGrid() {
       const saved = state.settings.gunCoords[key] ?? {};
       const row = document.createElement('div');
       row.className = 'pair';
-      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="decimal" placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="decimal" placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" />`;
+      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" />`;
       container.append(row);
     }
   }
@@ -444,7 +455,7 @@ function renderObservers() {
       return `<option value="${id}">${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}</option>`;
     }).join('');
     row.className = 'observer-row';
-    row.innerHTML = `<label data-observer-index="${i}">${t('observer')} ${i}: ${t('observerBinding')}</label><div class="pair"><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><select data-observer-gun="${i}">${gunOptionMarkup}</select><select data-observer-battery="${i}">${batteryOptions}</select></div><div class="pair"><input data-observer-x="${i}" type="text" inputmode="decimal" placeholder="${t('x')}" value="${savedCoords.x ?? ''}" /><input data-observer-y="${i}" type="text" inputmode="decimal" placeholder="${t('y')}" value="${savedCoords.y ?? ''}" /><input data-observer-height="${i}" type="number" placeholder="${t('observerHeight')}" value="${savedCoords.height ?? 0}" /></div>`;
+    row.innerHTML = `<label data-observer-index="${i}">${t('observer')} ${i}: ${t('observerBinding')}</label><div class="pair"><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><select data-observer-gun="${i}">${gunOptionMarkup}</select><select data-observer-battery="${i}">${batteryOptions}</select></div><div class="pair"><input data-observer-x="${i}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${savedCoords.x ?? ''}" /><input data-observer-y="${i}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${savedCoords.y ?? ''}" /><input data-observer-height="${i}" type="text" inputmode="numeric" data-height placeholder="${t('observerHeight')}" value="${savedCoords.height ?? 0}" /></div>`;
     container.append(row);
     row.querySelector(`[data-observer-mode="${i}"]`).value = saved.mode ?? 'gun';
     row.querySelector(`[data-observer-gun="${i}"]`).value = saved.gunId ?? gunOptions[0];
@@ -471,7 +482,8 @@ function renderMissionSelectors() {
 }
 
 function getBatteryHeight(batteryId) {
-  return Number(document.querySelector(`[data-battery-height="${batteryId}"]`)?.value || 0);
+  const parsed = parseHeightValue(document.querySelector(`[data-battery-height="${batteryId}"]`)?.value);
+  return parsed ?? Number.NaN;
 }
 
 function getObserverCorrections(batteryId, gunIds, batteryHeight) {
@@ -481,7 +493,8 @@ function getObserverCorrections(batteryId, gunIds, batteryHeight) {
     const mode = document.querySelector(`[data-observer-mode="${observerId}"]`)?.value ?? 'gun';
     const linkedGun = document.querySelector(`[data-observer-gun="${observerId}"]`)?.value ?? '';
     const linkedBattery = document.querySelector(`[data-observer-battery="${observerId}"]`)?.value ?? '';
-    const observerHeight = Number(document.querySelector(`[data-observer-height="${observerId}"]`)?.value || 0);
+    const observerHeight = parseHeightValue(document.querySelector(`[data-observer-height="${observerId}"]`)?.value);
+    if (!Number.isFinite(observerHeight)) return;
     const batteryLinkMatch = mode === 'battery' && linkedBattery === `battery-${batteryId}`;
     const gunLinkMatch = mode === 'gun' && gunIds.some((gunId) => linkedGun === `gun-${batteryId}-${gunId}`);
     if (!batteryLinkMatch && !gunLinkMatch) return;
@@ -491,7 +504,11 @@ function getObserverCorrections(batteryId, gunIds, batteryHeight) {
 }
 
 function calculateFire() {
-  const targetInput = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y')) ?? { x: 0, y: 0 };
+  const targetInput = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
+  if (!targetInput) {
+    fireOutput.textContent = t('invalidCoordinates');
+    return;
+  }
   const targetX = targetInput.x;
   const targetY = targetInput.y;
   const battery = Number(missionBatterySelect.value || 1);
@@ -499,12 +516,17 @@ function calculateFire() {
   const gunsPerBattery = getGunCountForBattery(battery);
   const gunIds = selectedGun === 'all' ? Array.from({ length: gunsPerBattery }, (_, idx) => idx + 1) : [Number(selectedGun)];
   const batteryHeight = getBatteryHeight(battery);
+  if (!Number.isFinite(batteryHeight)) {
+    fireOutput.textContent = t('invalidCoordinates');
+    return;
+  }
 
   const results = gunIds.map((gunId) => {
     const gunPoint = readXYFromInputs(
       document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
       document.querySelector(`[data-gun-y="${battery}-${gunId}"]`),
-    ) ?? { x: 0, y: 0 };
+    );
+    if (!gunPoint) return null;
     const gunX = gunPoint.x;
     const gunY = gunPoint.y;
     const dx = targetX - gunX;
@@ -515,6 +537,11 @@ function calculateFire() {
     const elevationMils = ((Math.atan2(batteryHeight, distance || 1) * 1000) / Math.PI) * 17.7778;
     return { gunId, distance: distance.toFixed(1), azimuth: azimuth.toFixed(2), azimuthMils: azimuthMils.toFixed(1), elevation: elevationMils.toFixed(1) };
   });
+
+  if (results.some((row) => row === null)) {
+    fireOutput.textContent = t('invalidCoordinates');
+    return;
+  }
 
   const output = [`${t('calcDone')}: ${document.querySelector('#mission-name')?.value || 'Mission'}`,
     ...results.map((row) => `${t('gun')} ${row.gunId}: D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil`)].join('\n');
@@ -788,11 +815,6 @@ function clearManualMarkers() {
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = t('clearManualMarkers');
-}
-
-function openRoleWorkspace(role) {
-  const actionMap = { commander: () => switchTab('map'), gunner: () => switchTab('fire'), observer: () => switchTab('global'), logistics: () => switchTab('safety') };
-  actionMap[role]?.();
 }
 
 function mapPointToLatLng(x, y) {
@@ -1075,6 +1097,10 @@ document.addEventListener('keydown', (event) => {
 
 
 document.addEventListener('input', (event) => {
+  if (event.target instanceof HTMLInputElement) {
+    if (event.target.matches('[data-coordinate]')) sanitizeIntegerInput(event.target, COORD_LIMITS);
+    if (event.target.matches('[data-height]')) sanitizeIntegerInput(event.target, HEIGHT_LIMITS);
+  }
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) {
     persistLauncherSettings();
   }
@@ -1094,7 +1120,6 @@ themeSelect?.addEventListener('change', (event) => {
 });
 
 
-document.querySelectorAll('[data-role-link]').forEach((button) => button.addEventListener('click', () => openRoleWorkspace(button.dataset.roleLink)));
 calibrationModeButton?.addEventListener('click', () => {
   const tools = getMapToolsSettings();
   setCalibrationMode(!tools.calibrationMode);
