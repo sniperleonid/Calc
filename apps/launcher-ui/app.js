@@ -223,6 +223,44 @@ function sanitizeIntegerInput(input, limits) {
   input.value = normalized;
 }
 
+function parseCoordinatePairValue(rawValue) {
+  const text = String(rawValue ?? '').trim();
+  if (!text) return null;
+  const match = text.match(/^(\d{3,5})\s*[-,;:\/\\|]\s*(\d{3,5})$/);
+  if (!match) return null;
+  const x = parseCoordinateValue(match[1]);
+  const y = parseCoordinateValue(match[2]);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return { x, y };
+}
+
+function getCoordinatePairBinding(input) {
+  if (!input) return null;
+  if (input.id === 'target-x') return { axis: 'x', mate: document.querySelector('#target-y') };
+  if (input.id === 'target-y') return { axis: 'y', mate: document.querySelector('#target-x') };
+  if (input.dataset.gunX) return { axis: 'x', mate: document.querySelector(`[data-gun-y="${input.dataset.gunX}"]`) };
+  if (input.dataset.gunY) return { axis: 'y', mate: document.querySelector(`[data-gun-x="${input.dataset.gunY}"]`) };
+  if (input.dataset.observerX) return { axis: 'x', mate: document.querySelector(`[data-observer-y="${input.dataset.observerX}"]`) };
+  if (input.dataset.observerY) return { axis: 'y', mate: document.querySelector(`[data-observer-x="${input.dataset.observerY}"]`) };
+  return null;
+}
+
+function applyCoordinatePairInput(input) {
+  if (!input) return false;
+  const parsedPair = parseCoordinatePairValue(input.value);
+  if (!parsedPair) return false;
+  const binding = getCoordinatePairBinding(input);
+  if (!binding?.mate) return false;
+  if (binding.axis === 'x') {
+    input.value = String(parsedPair.x);
+    binding.mate.value = String(parsedPair.y);
+  } else {
+    binding.mate.value = String(parsedPair.x);
+    input.value = String(parsedPair.y);
+  }
+  return true;
+}
+
 function clearBoundMarkerCoordinates(marker) {
   if (marker.type === 'gun' && marker.targetId) {
     const gunXInput = document.querySelector(`[data-gun-x="${marker.targetId}"]`);
@@ -1314,6 +1352,7 @@ document.addEventListener('input', (event) => {
   let shouldRefreshMap = false;
   if (event.target instanceof HTMLInputElement) {
     if (event.target.matches('[data-coordinate]')) {
+      applyCoordinatePairInput(event.target);
       sanitizeIntegerInput(event.target, COORD_LIMITS);
       shouldRefreshMap = true;
     }
