@@ -236,6 +236,13 @@ test('map module supports three-point calibration and map profile save/load in m
   workspace.getModule('batteries').placeOnMap({ id: 'battery-1', name: 'Battery 1', position: { x: 260, y: 140 } });
   workspace.getModule('targets').placeOnMap({ id: 'target-1', name: 'Target 1', position: { x: 500, y: 500 } });
   workspace.getModule('observers').placeOnMap({ id: 'observer-1', name: 'Observer 1', position: { x: 450, y: 300 } });
+  workspace.getModule('fireMissions').upsertMission({
+    id: 'fm-profile-1',
+    title: 'Map profile mission',
+    spreadMode: 'linear',
+    cffSettings: { missionType: 'observer', observerMode: 'ground' },
+  });
+  workspace.getModule('fireMissions').recordDecision({ missionId: 'fm-profile-1', summary: 'Shot #1' });
 
   await workspace.saveMapProfile('mission-profile');
   const list = await profileStorage.listProfiles();
@@ -246,6 +253,8 @@ test('map module supports three-point calibration and map profile save/load in m
   assert.equal(clean.getModule('map').getCalibration().controlPoints.length, 3);
   assert.equal(clean.getModule('targets').list().length, 1);
   assert.equal(clean.getModule('batteries').list().length, 1);
+  assert.equal(clean.getModule('fireMissions').listMissions().length, 1);
+  assert.equal(clean.getModule('fireMissions').listHistory().length, 1);
 });
 
 test('safety data module supports NFA checks, settings and reset', () => {
