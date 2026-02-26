@@ -1,0 +1,6 @@
+{
+  "ammo_type": "SMOKE",
+  "charge": 2,
+  "muzzle_velocity_ms": 320,
+  "drag_model": "G1"
+}

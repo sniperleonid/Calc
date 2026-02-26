@@ -1,0 +1,2 @@
+# Optional runtime dependency when deploying HTTP API
+fastapi>=0.100
