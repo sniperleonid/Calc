@@ -214,8 +214,9 @@ test('tactical workspace keeps modules isolated and supports map workflows', () 
   assert.equal(cleanWorkspace.getModule('map').getCalibration().model.offsetY, 5520);
 
   const uiSchema = cleanWorkspace.buildUiSchema();
-  assert.equal(uiSchema.panels.length, 7);
+  assert.equal(uiSchema.panels.length, 10);
   assert.equal(uiSchema.panels.find((panel) => panel.module === 'map').supports.includes('mission-save-load'), true);
+  assert.equal(uiSchema.panels.find((panel) => panel.module === 'safetyData').supports.includes('nfa-management'), true);
 });
 
 test('map module supports three-point calibration and map profile save/load in maps folder', async () => {
@@ -245,6 +246,77 @@ test('map module supports three-point calibration and map profile save/load in m
   assert.equal(clean.getModule('map').getCalibration().controlPoints.length, 3);
   assert.equal(clean.getModule('targets').list().length, 1);
   assert.equal(clean.getModule('batteries').list().length, 1);
+});
+
+test('safety data module supports NFA checks, settings and reset', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-safety' });
+  const safety = workspace.getModule('safetyData');
+
+  safety.addNoFireArea({
+    id: 'nfa-1',
+    name: 'Village',
+    center: { x: 100, y: 100 },
+    radius: 30,
+  });
+  safety.configure({ cancelFireOnNfaHit: false, skipNfaInLinearPattern: true });
+
+  const decision = safety.assessTrajectory({
+    start: { x: 50, y: 100 },
+    end: { x: 150, y: 100 },
+    patternMode: 'linear',
+  });
+
+  assert.equal(decision.hasViolation, true);
+  assert.equal(decision.action, 'skip-nfa-segment');
+  assert.equal(decision.impactedZones[0].id, 'nfa-1');
+
+  const reset = safety.resetAllData({ keepBallisticTables: true });
+  assert.equal(reset.keepBallisticTables, true);
+  assert.equal(safety.listNoFireAreas().length, 0);
+});
+
+test('fire missions keep only last 10 history entries', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-fire' });
+  const fireMissions = workspace.getModule('fireMissions');
+
+  fireMissions.upsertMission({
+    id: 'fm-1',
+    title: 'Suppression',
+    spreadMode: 'linear',
+    cffSettings: { missionType: 'observer', observerMode: 'drone' },
+  });
+
+  for (let i = 0; i < 12; i += 1) {
+    fireMissions.recordDecision({ missionId: 'fm-1', summary: `Decision ${i}` });
+  }
+
+  assert.equal(fireMissions.listHistory().length, 10);
+  fireMissions.clearHistory();
+  assert.equal(fireMissions.listHistory().length, 0);
+});
+
+test('observer polar-plot and gun drag azimuth helpers are available', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-tools' });
+  const observers = workspace.getModule('observers');
+  const ballistics = workspace.getModule('ballistics');
+
+  observers.placeOnMap({ id: 'obs-1', position: { x: 500, y: 500 } });
+  const los = observers.setLineOfSight({ observerId: 'obs-1', azimuth: 70, maxDistance: 4000 });
+  assert.equal(los.azimuth, 70);
+
+  const polar = observers.solvePolarPlotMission({
+    observer: { x: 500, y: 500 },
+    azimuth: 90,
+    distance: 1000,
+    droneAltitude: 300,
+  });
+  assert.equal(polar.target.x > 1400, true);
+  assert.equal(polar.mode, 'polar-plot');
+
+  ballistics.upsertManual({ id: 'gun-1', position: { x: 0, y: 0 } });
+  const drag = ballistics.rotateGunByDrag({ gunId: 'gun-1', marker: { x: 0, y: 0 }, mousePoint: { x: 100, y: 0 } });
+  assert.equal(Math.round(drag.azimuthDeg), 90);
+  assert.equal(Math.round(drag.azimuthMilNato), 1600);
 });
 
 test('three-point calibration treats map Y axis as inverted versus world north axis', () => {

@@ -109,6 +109,193 @@ function buildTrajectory({ distance, heightDifference, elevationMil, steps = 12 
   return results;
 }
 
+function segmentCircleIntersection({ start, end, center, radius }) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) {
+    return Math.hypot(start.x - center.x, start.y - center.y) <= radius;
+  }
+
+  const t = Math.max(0, Math.min(1, ((center.x - start.x) * dx + (center.y - start.y) * dy) / lengthSquared));
+  const closestX = start.x + dx * t;
+  const closestY = start.y + dy * t;
+  return Math.hypot(closestX - center.x, closestY - center.y) <= radius;
+}
+
+class SafetyDataModule {
+  constructor({ createId }) {
+    this.createId = createId;
+    this.noFireAreas = new Map();
+    this.settings = {
+      cancelFireOnNfaHit: true,
+      skipNfaInLinearPattern: true,
+    };
+  }
+
+  addNoFireArea(input) {
+    if (!input?.center || !Number.isFinite(input.radius) || input.radius <= 0) {
+      throw new Error('NFA requires center and positive radius');
+    }
+
+    const id = input.id ?? this.createId();
+    const zone = {
+      id,
+      name: input.name ?? `NFA ${id}`,
+      center: { ...input.center },
+      radius: input.radius,
+      notes: input.notes ?? '',
+      createdAt: input.createdAt ?? new Date().toISOString(),
+    };
+    this.noFireAreas.set(id, zone);
+    return { ...zone, center: { ...zone.center } };
+  }
+
+  removeNoFireArea(id) {
+    return this.noFireAreas.delete(id);
+  }
+
+  listNoFireAreas() {
+    return [...this.noFireAreas.values()].map((zone) => ({ ...zone, center: { ...zone.center } }));
+  }
+
+  configure(settings = {}) {
+    this.settings = {
+      ...this.settings,
+      ...settings,
+      updatedAt: new Date().toISOString(),
+    };
+    return this.getSettings();
+  }
+
+  getSettings() {
+    return { ...this.settings };
+  }
+
+  assessTrajectory({ start, end, patternMode = 'single' }) {
+    const impacted = this.listNoFireAreas().filter((zone) =>
+      segmentCircleIntersection({ start, end, center: zone.center, radius: zone.radius })
+    );
+
+    const hasViolation = impacted.length > 0;
+    return {
+      hasViolation,
+      warning: hasViolation ? 'Trajectory intersects No Fire Area (NFA)' : null,
+      action: !hasViolation
+        ? 'allow'
+        : this.settings.cancelFireOnNfaHit
+          ? 'cancel-fire'
+          : patternMode === 'linear' && this.settings.skipNfaInLinearPattern
+            ? 'skip-nfa-segment'
+            : 'warn-only',
+      impactedZones: impacted,
+    };
+  }
+
+  resetAllData({ keepBallisticTables = true }) {
+    this.noFireAreas.clear();
+    this.settings = {
+      cancelFireOnNfaHit: true,
+      skipNfaInLinearPattern: true,
+      keepBallisticTables,
+      resetAt: new Date().toISOString(),
+    };
+    return this.getSettings();
+  }
+
+  toSnapshot() {
+    return {
+      noFireAreas: this.listNoFireAreas(),
+      settings: this.getSettings(),
+    };
+  }
+
+  restore(snapshot = {}) {
+    this.noFireAreas.clear();
+    for (const zone of snapshot.noFireAreas ?? []) {
+      this.noFireAreas.set(zone.id, { ...zone, center: { ...zone.center } });
+    }
+    this.settings = {
+      cancelFireOnNfaHit: true,
+      skipNfaInLinearPattern: true,
+      ...(snapshot.settings ?? {}),
+    };
+  }
+}
+
+class FireMissionsModule {
+  constructor() {
+    this.missions = new Map();
+    this.history = [];
+  }
+
+  upsertMission(input) {
+    if (!input?.id) {
+      throw new Error('Fire mission id is required');
+    }
+    const mission = {
+      id: input.id,
+      title: input.title ?? input.id,
+      targetId: input.targetId ?? null,
+      knownPointId: input.knownPointId ?? null,
+      assignments: input.assignments ?? [],
+      spreadMode: input.spreadMode ?? 'open',
+      cffSettings: {
+        missionType: input.cffSettings?.missionType ?? 'grid',
+        observerMode: input.cffSettings?.observerMode ?? 'single-observer',
+        useKnownPoints: input.cffSettings?.useKnownPoints ?? false,
+        gridRef: input.cffSettings?.gridRef ?? null,
+      },
+      createdAt: input.createdAt ?? new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...input,
+    };
+    this.missions.set(mission.id, mission);
+    return { ...mission, assignments: mission.assignments.map((item) => ({ ...item })) };
+  }
+
+  recordDecision(decision) {
+    const entry = {
+      id: decision.id ?? `decision-${Date.now()}`,
+      missionId: decision.missionId,
+      summary: decision.summary ?? '',
+      solution: decision.solution ?? {},
+      timestamp: new Date().toISOString(),
+    };
+    this.history.unshift(entry);
+    this.history = this.history.slice(0, 10);
+    return { ...entry, solution: { ...entry.solution } };
+  }
+
+  clearHistory() {
+    this.history = [];
+    return true;
+  }
+
+  listHistory() {
+    return this.history.map((item) => ({ ...item, solution: { ...item.solution } }));
+  }
+
+  listMissions() {
+    return [...this.missions.values()].map((mission) => ({ ...mission, assignments: mission.assignments.map((item) => ({ ...item })) }));
+  }
+
+  toSnapshot() {
+    return {
+      missions: this.listMissions(),
+      history: this.listHistory(),
+    };
+  }
+
+  restore(snapshot = {}) {
+    this.missions.clear();
+    for (const mission of snapshot.missions ?? []) {
+      this.missions.set(mission.id, { ...mission, assignments: (mission.assignments ?? []).map((item) => ({ ...item })) });
+    }
+    this.history = (snapshot.history ?? []).map((item) => ({ ...item, solution: { ...(item.solution ?? {}) } })).slice(0, 10);
+  }
+}
+
 class UnitModule {
   constructor({ moduleId, createId }) {
     this.moduleId = moduleId;
@@ -332,6 +519,37 @@ class BallisticsModule extends UnitModule {
     }));
   }
 
+  rotateGunByDrag({ gunId, marker, mousePoint }) {
+    const gun = this.entities.get(gunId);
+    if (!gun) {
+      throw new Error(`Gun not found: ${gunId}`);
+    }
+
+    const dx = mousePoint.x - marker.x;
+    const dy = mousePoint.y - marker.y;
+    const azimuthDeg = clampAngle((Math.atan2(dx, dy) * 180) / Math.PI);
+    const distance = Math.hypot(dx, dy);
+    gun.heading = azimuthDeg;
+    this.entities.set(gunId, gun);
+
+    return {
+      gunId,
+      azimuthDeg,
+      azimuthMilNato: azimuthDeg * (6400 / 360),
+      distance,
+    };
+  }
+
+  buildEngagementSector({ gunId, projectileId, chargeLevel }) {
+    const gun = this.entities.get(gunId);
+    const projectile = this.projectiles.get(projectileId);
+    const charge = projectile?.charges?.find((item) => item.level === chargeLevel);
+    if (!gun || !charge) {
+      throw new Error('Gun or charge not found');
+    }
+    return buildSectorEnvelope({ gun, charge, bearing: gun.heading });
+  }
+
   listProjectiles() {
     return [...this.projectiles.values()].map((projectile) => ({
       ...projectile,
@@ -369,6 +587,42 @@ class BallisticsModule extends UnitModule {
           updatedAt: snapshot.calibration.updatedAt ?? null,
         }
       : { defaultElevationOffsetMil: 0, byGunId: {} };
+  }
+}
+
+class ObserverModule extends UnitModule {
+  constructor(options) {
+    super({ ...options, moduleId: 'observers' });
+  }
+
+  setLineOfSight({ observerId, azimuth, maxDistance = 5000 }) {
+    const observer = this.entities.get(observerId);
+    if (!observer) {
+      throw new Error(`Observer not found: ${observerId}`);
+    }
+
+    observer.lineOfSight = {
+      azimuth: clampAngle(azimuth),
+      maxDistance,
+    };
+    this.entities.set(observerId, observer);
+    return { ...observer.lineOfSight };
+  }
+
+  solvePolarPlotMission({ observer, azimuth, distance, droneAltitude = 0 }) {
+    const radians = (clampAngle(azimuth) * Math.PI) / 180;
+    const groundDistance = Math.max(0, Math.sqrt(Math.max(0, distance * distance - droneAltitude * droneAltitude)));
+    return {
+      observer,
+      target: {
+        x: observer.x + Math.sin(radians) * groundDistance,
+        y: observer.y + Math.cos(radians) * groundDistance,
+      },
+      azimuth: clampAngle(azimuth),
+      distance,
+      droneAltitude,
+      mode: 'polar-plot',
+    };
   }
 }
 
@@ -526,9 +780,12 @@ export class TacticalWorkspace {
       ballistics: new BallisticsModule({ createId: idGenerator }),
       batteries: new UnitModule({ moduleId: 'batteries', createId: idGenerator }),
       targets: new UnitModule({ moduleId: 'targets', createId: idGenerator }),
-      observers: new UnitModule({ moduleId: 'observers', createId: idGenerator }),
+      observers: new ObserverModule({ createId: idGenerator }),
       logistics: new UnitModule({ moduleId: 'logistics', createId: idGenerator }),
       infantry: new UnitModule({ moduleId: 'infantry', createId: idGenerator }),
+      knownPoints: new UnitModule({ moduleId: 'knownPoints', createId: idGenerator }),
+      safetyData: new SafetyDataModule({ createId: idGenerator }),
+      fireMissions: new FireMissionsModule(),
       map: new MapModule(),
     };
   }
@@ -553,6 +810,9 @@ export class TacticalWorkspace {
         observers: this.modules.observers.list(),
         logistics: this.modules.logistics.list(),
         infantry: this.modules.infantry.list(),
+        knownPoints: this.modules.knownPoints.list(),
+        safetyData: this.modules.safetyData.toSnapshot(),
+        fireMissions: this.modules.fireMissions.toSnapshot(),
         map: this.modules.map.toSnapshot(),
       },
     };
@@ -570,6 +830,9 @@ export class TacticalWorkspace {
     this.modules.observers.restore(snapshot.modules.observers);
     this.modules.logistics.restore(snapshot.modules.logistics);
     this.modules.infantry.restore(snapshot.modules.infantry);
+    this.modules.knownPoints.restore(snapshot.modules.knownPoints);
+    this.modules.safetyData.restore(snapshot.modules.safetyData);
+    this.modules.fireMissions.restore(snapshot.modules.fireMissions);
     this.modules.map.restore(snapshot.modules.map);
     return this.saveMission();
   }
@@ -612,6 +875,8 @@ export class TacticalWorkspace {
       batteries: this.modules.batteries.list(),
       targets: this.modules.targets.list(),
       observers: this.modules.observers.list(),
+      knownPoints: this.modules.knownPoints.list(),
+      safetyData: this.modules.safetyData.toSnapshot(),
       savedAt: new Date().toISOString(),
     };
     return this.profileStorage.saveProfile(profileName, payload);
@@ -627,6 +892,8 @@ export class TacticalWorkspace {
     this.modules.batteries.restore(payload.batteries ?? []);
     this.modules.targets.restore(payload.targets ?? []);
     this.modules.observers.restore(payload.observers ?? []);
+    this.modules.knownPoints.restore(payload.knownPoints ?? []);
+    this.modules.safetyData.restore(payload.safetyData ?? {});
     return payload;
   }
 
@@ -650,6 +917,24 @@ export class TacticalWorkspace {
         { id: 'battery-input', title: 'Батареи', module: 'batteries', supports: ['manual', 'map-placement'] },
         { id: 'target-input', title: 'Цели', module: 'targets', supports: ['manual', 'map-placement'] },
         { id: 'observer-input', title: 'Наблюдатели', module: 'observers', supports: ['manual', 'map-placement'] },
+        {
+          id: 'known-points-input',
+          title: 'Known Points',
+          module: 'knownPoints',
+          supports: ['manual', 'map-placement', 'mission-reference', 'save-load'],
+        },
+        {
+          id: 'safety-data',
+          title: 'Safety & Data',
+          module: 'safetyData',
+          supports: ['nfa-management', 'trajectory-warning', 'cancel-or-skip-fire', 'data-reset-with-confirmation', 'save-load'],
+        },
+        {
+          id: 'fire-missions',
+          title: 'Fire Missions',
+          module: 'fireMissions',
+          supports: ['cff-settings', 'observer-grid-known-points', 'spread-modes', 'history-save-last-10', 'history-clear', 'pinned-solution-window'],
+        },
         { id: 'logistics-input', title: 'Логистика', module: 'logistics', supports: ['manual', 'map-placement'] },
         { id: 'infantry-input', title: 'Пехота', module: 'infantry', supports: ['manual', 'map-placement'] },
         {
