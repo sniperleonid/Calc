@@ -58,7 +58,9 @@ const i18n = {
     target: 'Цель', openedExternalMap: 'Открыта внешняя карта',
     rolesTitle: 'Роли и рабочие места', rolesHint: 'Быстрые переходы к интерфейсам по ролям.', roleCommander: 'Командир (Карта)', roleGunner: 'Наводчик (Огневые задачи)', roleObserver: 'Наблюдатель (Корректировки)', roleLogistics: 'Логистика и данные',
     mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту',
-    calibrationHint: 'Калибровка по двум контрольным точкам (коорд. карты → lat/lng).', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки'
+    calibrationHint: 'Калибровка: включите режим, двойным щелчком поставьте P0/P1/P2, задайте координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
+    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolObserver: 'Наблюдатель', markerToolBattery: 'Батарея', markerToolCalibration: 'Калибровочная точка', markerPlaced: 'Метка добавлена',
+    calibrationMode: 'Режим калибровки', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', clearManualMarkers: 'Очистить ручные метки'
   },
   en: {
     appVersion: 'Calc v1', appTitle: 'Ballistics Calculator', appSubtitle: 'Unified shell for fire mission planning and operational data.',
@@ -83,7 +85,9 @@ const i18n = {
     target: 'Target', openedExternalMap: 'Opened external map',
     rolesTitle: 'Roles & workspaces', rolesHint: 'Quick jump to interfaces by role.', roleCommander: 'Commander (Map)', roleGunner: 'Gunner (Fire missions)', roleObserver: 'Observer (Corrections)', roleLogistics: 'Logistics & data',
     mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image',
-    calibrationHint: 'Two-point calibration (map coordinates → lat/lng).', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points'
+    calibrationHint: 'Calibration: enable mode, double-click to set P0/P1/P2, then enter known P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
+    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolObserver: 'Observer', markerToolBattery: 'Battery', markerToolCalibration: 'Calibration point', markerPlaced: 'Marker added',
+    calibrationMode: 'Calibration mode', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', clearManualMarkers: 'Clear manual markers'
   },
 };
 
@@ -106,6 +110,8 @@ const safetyOutput = document.querySelector('#safety-output');
 const mapLegend = document.querySelector('#map-legend');
 const mapToolsOutput = document.querySelector('#map-tools-output');
 const mapImageUploadInput = document.querySelector('#map-image-upload');
+const markerToolSelect = document.querySelector('#marker-tool');
+const calibrationModeInput = document.querySelector('#calibration-mode');
 
 const t = (key) => i18n[state.lang][key] ?? key;
 
@@ -114,9 +120,11 @@ const projectileProfiles = ['he-charge-3', 'smoke-charge-2', 'illum'];
 
 function getMapToolsSettings() {
   const defaults = {
-    calibration: { xScale: 0.01, xBias: 0, yScale: 0.01, yBias: 0 },
+    calibration: { scale: 1, originMapX: 0, originMapY: 0, originWorldX: 0, originWorldY: 0 },
     imageBounds: { minX: 0, minY: 0, maxX: 4000, maxY: 4000 },
     imageDataUrl: '',
+    manualMarkers: [],
+    calibrationPoints: [],
   };
   return { ...defaults, ...state.settings.mapTools, calibration: { ...defaults.calibration, ...(state.settings.mapTools?.calibration ?? {}) }, imageBounds: { ...defaults.imageBounds, ...(state.settings.mapTools?.imageBounds ?? {}) } };
 }
@@ -125,6 +133,9 @@ let leafletMap;
 let targetMarker;
 let mapImageOverlay;
 const gunMarkers = [];
+const manualMarkers = [];
+const calibrationMarkers = [];
+let calibrationLine;
 
 function persistLauncherSettings() {
   state.settings.batteryCount = Number(batteryCountInput?.value || 1);
@@ -368,12 +379,48 @@ function saveMission() {
 
 function initializeMap() {
   if (leafletMap || !window.L) return;
-  leafletMap = window.L.map('leaflet-map', { zoomControl: true }).setView([49.0, 32.0], 8);
-  window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors',
-  }).addTo(leafletMap);
+  leafletMap = window.L.map('leaflet-map', { zoomControl: true, doubleClickZoom: false }).setView([0, 0], 2);
+  leafletMap.on('click', onMapClick);
+  leafletMap.on('dblclick', onMapDoubleClick);
   setTimeout(() => leafletMap.invalidateSize(), 0);
+}
+
+function getNextCalibrationPointLabel() {
+  const points = getMapToolsSettings().calibrationPoints ?? [];
+  return ['P0', 'P1', 'P2'][Math.min(points.length, 2)];
+}
+
+function addManualMarker(type, latlng) {
+  const point = latLngToMapPoint(latlng.lat, latlng.lng);
+  const tools = getMapToolsSettings();
+  const marker = { id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`, type, x: point.x, y: point.y };
+  state.settings.mapTools = { ...tools, manualMarkers: [...(tools.manualMarkers ?? []), marker] };
+  persistLauncherSettings();
+  refreshMapOverlay();
+  if (mapToolsOutput) mapToolsOutput.textContent = `${t('markerPlaced')}: ${type} (${marker.x.toFixed(1)}, ${marker.y.toFixed(1)})`;
+}
+
+function onMapClick(event) {
+  if (calibrationModeInput?.checked) return;
+  addManualMarker(markerToolSelect?.value || 'gun', event.latlng);
+}
+
+function onMapDoubleClick(event) {
+  if (!calibrationModeInput?.checked) return;
+  const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+  const tools = getMapToolsSettings();
+  const current = [...(tools.calibrationPoints ?? [])];
+  const label = getNextCalibrationPointLabel();
+  if (current.length >= 3) current.length = 0;
+  current.push({ label, mapX: point.x, mapY: point.y });
+  state.settings.mapTools = { ...tools, calibrationPoints: current };
+  const xInput = document.querySelector(`#cal-${label.toLowerCase()}-x`);
+  const yInput = document.querySelector(`#cal-${label.toLowerCase()}-y`);
+  if (xInput) xInput.value = point.x.toFixed(2);
+  if (yInput) yInput.value = point.y.toFixed(2);
+  persistLauncherSettings();
+  refreshMapOverlay();
+  if (mapToolsOutput) mapToolsOutput.textContent = `${t('calibrationPointSet')}: ${label}`;
 }
 
 function hydrateMapToolsForm() {
@@ -396,35 +443,48 @@ function upsertMapOverlay() {
   const { minX, minY, maxX, maxY } = tools.imageBounds;
   const southWest = mapPointToLatLng(Number(minX), Number(minY));
   const northEast = mapPointToLatLng(Number(maxX), Number(maxY));
-  mapImageOverlay = window.L.imageOverlay(tools.imageDataUrl, [southWest, northEast], { opacity: 0.75 });
+  mapImageOverlay = window.L.imageOverlay(tools.imageDataUrl, [southWest, northEast], { opacity: 0.85 });
   mapImageOverlay.addTo(leafletMap);
 }
 
 function applyCalibration() {
+  const p0x = Number(document.querySelector('#cal-p0-x')?.value);
+  const p0y = Number(document.querySelector('#cal-p0-y')?.value);
   const p1x = Number(document.querySelector('#cal-p1-x')?.value);
   const p1y = Number(document.querySelector('#cal-p1-y')?.value);
-  const p1lat = Number(document.querySelector('#cal-p1-lat')?.value);
-  const p1lng = Number(document.querySelector('#cal-p1-lng')?.value);
   const p2x = Number(document.querySelector('#cal-p2-x')?.value);
   const p2y = Number(document.querySelector('#cal-p2-y')?.value);
-  const p2lat = Number(document.querySelector('#cal-p2-lat')?.value);
-  const p2lng = Number(document.querySelector('#cal-p2-lng')?.value);
-  if (![p1x,p1y,p1lat,p1lng,p2x,p2y,p2lat,p2lng].every(Number.isFinite) || p1x === p2x || p1y === p2y) {
+  const knownP0X = Number(document.querySelector('#cal-known-p0-x')?.value);
+  const knownP0Y = Number(document.querySelector('#cal-known-p0-y')?.value);
+  const scaleMeters = Number(document.querySelector('#cal-scale-meters')?.value);
+
+  if (![p0x, p0y, p1x, p1y, p2x, p2y, knownP0X, knownP0Y, scaleMeters].every(Number.isFinite)) {
     if (mapToolsOutput) mapToolsOutput.textContent = t('invalidCalibration');
     return;
   }
-  const xScale = (p2lng - p1lng) / (p2x - p1x);
-  const xBias = p1lng - xScale * p1x;
-  const yScale = (p2lat - p1lat) / (p2y - p1y);
-  const yBias = p1lat - yScale * p1y;
-  state.settings.mapTools = { ...getMapToolsSettings(), calibration: { xScale, xBias, yScale, yBias } };
+
+  const mapDistance = Math.hypot(p2x - p1x, p2y - p1y);
+  if (mapDistance <= 0 || scaleMeters <= 0) {
+    if (mapToolsOutput) mapToolsOutput.textContent = t('invalidCalibration');
+    return;
+  }
+
+  const scale = scaleMeters / mapDistance;
+  state.settings.mapTools = {
+    ...getMapToolsSettings(),
+    calibration: { scale, originMapX: p0x, originMapY: p0y, originWorldX: knownP0X, originWorldY: knownP0Y },
+  };
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = t('calibrationApplied');
 }
 
 function resetCalibration() {
-  state.settings.mapTools = { ...getMapToolsSettings(), calibration: { xScale: 0.01, xBias: 0, yScale: 0.01, yBias: 0 } };
+  state.settings.mapTools = {
+    ...getMapToolsSettings(),
+    calibration: { scale: 1, originMapX: 0, originMapY: 0, originWorldX: 0, originWorldY: 0 },
+    calibrationPoints: [],
+  };
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = t('calibrationResetDone');
@@ -450,6 +510,13 @@ function clearMapImage() {
   if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageCleared');
 }
 
+function clearManualMarkers() {
+  state.settings.mapTools = { ...getMapToolsSettings(), manualMarkers: [], calibrationPoints: [] };
+  persistLauncherSettings();
+  refreshMapOverlay();
+  if (mapToolsOutput) mapToolsOutput.textContent = t('clearManualMarkers');
+}
+
 function openRoleWorkspace(role) {
   const actionMap = { commander: () => switchTab('map'), gunner: () => switchTab('fire'), observer: () => switchTab('global'), logistics: () => switchTab('safety') };
   actionMap[role]?.();
@@ -457,9 +524,18 @@ function openRoleWorkspace(role) {
 
 function mapPointToLatLng(x, y) {
   const { calibration } = getMapToolsSettings();
-  const lat = y * Number(calibration.yScale) + Number(calibration.yBias);
-  const lng = x * Number(calibration.xScale) + Number(calibration.xBias);
+  const lat = (y - Number(calibration.originMapY)) * Number(calibration.scale) + Number(calibration.originWorldY);
+  const lng = (x - Number(calibration.originMapX)) * Number(calibration.scale) + Number(calibration.originWorldX);
   return [lat, lng];
+}
+
+function latLngToMapPoint(lat, lng) {
+  const { calibration } = getMapToolsSettings();
+  const scale = Number(calibration.scale) || 1;
+  return {
+    x: (Number(lng) - Number(calibration.originWorldX)) / scale + Number(calibration.originMapX),
+    y: (Number(lat) - Number(calibration.originWorldY)) / scale + Number(calibration.originMapY),
+  };
 }
 
 function refreshMapOverlay() {
@@ -468,6 +544,14 @@ function refreshMapOverlay() {
 
   gunMarkers.forEach((marker) => marker.remove());
   gunMarkers.length = 0;
+  manualMarkers.forEach((marker) => marker.remove());
+  manualMarkers.length = 0;
+  calibrationMarkers.forEach((marker) => marker.remove());
+  calibrationMarkers.length = 0;
+  if (calibrationLine) {
+    calibrationLine.remove();
+    calibrationLine = null;
+  }
 
   const battery = Number(missionBatterySelect?.value || 1);
   const selectedGun = missionGunSelect?.value || 'all';
@@ -479,10 +563,11 @@ function refreshMapOverlay() {
     const gunX = Number(document.querySelector(`[data-gun-x="${battery}-${gunId}"]`)?.value || 0);
     const gunY = Number(document.querySelector(`[data-gun-y="${battery}-${gunId}"]`)?.value || 0);
     const marker = window.L.circleMarker(mapPointToLatLng(gunX, gunY), {
-      radius: 6,
+      radius: 8,
       color: '#00ff57',
       fillColor: '#00ff57',
-      fillOpacity: 0.85,
+      fillOpacity: 0.9,
+      weight: 2,
     }).addTo(leafletMap);
     marker.bindPopup(`${t('gun')} ${gunId}<br>X: ${gunX}, Y: ${gunY}`);
     gunMarkers.push(marker);
@@ -498,8 +583,43 @@ function refreshMapOverlay() {
   }
   targetMarker.bindPopup(`${t('target')}: X=${targetX}, Y=${targetY}`);
 
+  const markerStyle = {
+    gun: '#ff4f4f',
+    observer: '#00d4ff',
+    battery: '#ffc107',
+    calibration: '#ff66ff',
+  };
+
+  (getMapToolsSettings().manualMarkers ?? []).forEach((item) => {
+    const color = markerStyle[item.type] ?? '#ffffff';
+    const marker = window.L.circleMarker(mapPointToLatLng(Number(item.x), Number(item.y)), {
+      radius: 8,
+      color,
+      fillColor: color,
+      fillOpacity: 0.9,
+      weight: 2,
+    }).addTo(leafletMap);
+    marker.bindPopup(`${item.type}<br>X: ${Number(item.x).toFixed(1)}, Y: ${Number(item.y).toFixed(1)}`);
+    manualMarkers.push(marker);
+  });
+
+  const calPoints = getMapToolsSettings().calibrationPoints ?? [];
+  calPoints.forEach((point) => {
+    const marker = window.L.marker(mapPointToLatLng(point.mapX, point.mapY), {
+      icon: window.L.divIcon({ className: 'calibration-cross', html: `<span>✚ ${point.label}</span>` }),
+    }).addTo(leafletMap);
+    calibrationMarkers.push(marker);
+  });
+
+  const p1 = calPoints.find((point) => point.label === 'P1');
+  const p2 = calPoints.find((point) => point.label === 'P2');
+  if (p1 && p2) {
+    calibrationLine = window.L.polyline([mapPointToLatLng(p1.mapX, p1.mapY), mapPointToLatLng(p2.mapX, p2.mapY)], { color: '#ff66ff', dashArray: '10 8' }).addTo(leafletMap);
+  }
+
   if (mapLegend) {
-    mapLegend.innerHTML = [...legendRows, `<p>${t('target')}: X=${targetX}, Y=${targetY}</p>`].join('');
+    const markerLegendRows = (getMapToolsSettings().manualMarkers ?? []).map((item) => `<p>${item.type}: X=${Number(item.x).toFixed(1)}, Y=${Number(item.y).toFixed(1)}</p>`);
+    mapLegend.innerHTML = [...legendRows, `<p>${t('target')}: X=${targetX}, Y=${targetY}</p>`, ...markerLegendRows].join('');
   }
 }
 
@@ -627,6 +747,7 @@ document.querySelector('#apply-calibration')?.addEventListener('click', applyCal
 document.querySelector('#reset-calibration')?.addEventListener('click', resetCalibration);
 document.querySelector('#apply-map-image')?.addEventListener('click', applyMapImage);
 document.querySelector('#clear-map-image')?.addEventListener('click', clearMapImage);
+document.querySelector('#clear-manual-markers')?.addEventListener('click', clearManualMarkers);
 mapImageUploadInput?.addEventListener('change', async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;

@@ -140,6 +140,17 @@
             <div id="map-legend" class="stack"></div>
 
             <h2 data-i18n="mapToolsTitle">Инструменты карты и калибровки</h2>
+            <label for="marker-tool" data-i18n="markerToolLabel">Тип метки</label>
+            <select id="marker-tool">
+              <option value="gun" data-i18n="markerToolGun">Активное орудие</option>
+              <option value="observer" data-i18n="markerToolObserver">Наблюдатель</option>
+              <option value="battery" data-i18n="markerToolBattery">Батарея</option>
+              <option value="calibration" data-i18n="markerToolCalibration">Калибровочная точка</option>
+            </select>
+            <label for="calibration-mode">
+              <input id="calibration-mode" type="checkbox" />
+              <span data-i18n="calibrationMode">Режим калибровки</span>
+            </label>
             <label for="map-image-upload" data-i18n="mapImageUpload">Загрузить свою карту (PNG/JPG)</label>
             <input id="map-image-upload" type="file" accept="image/png,image/jpeg,image/webp" />
             <div class="pair pair-2">
@@ -152,21 +163,25 @@
               <button class="btn ghost" id="apply-map-image" data-i18n="applyMapImage">Применить карту</button>
               <button class="btn ghost" id="clear-map-image" data-i18n="clearMapImage">Убрать карту</button>
             </div>
+            <div class="card-actions">
+              <button class="btn ghost" id="clear-manual-markers" data-i18n="clearManualMarkers">Очистить ручные метки</button>
+            </div>
 
-            <p class="hint" data-i18n="calibrationHint">Калибровка по двум контрольным точкам (коорд. карты → lat/lng).</p>
+            <p class="hint" data-i18n="calibrationHint">Калибровка: включите режим, двойным щелчком поставьте P0/P1/P2, задайте координаты P0 и длину P1-P2 в метрах.</p>
             <div class="stack">
               <div class="pair pair-4">
+                <input id="cal-p0-x" type="number" placeholder="P0 X" />
+                <input id="cal-p0-y" type="number" placeholder="P0 Y" />
                 <input id="cal-p1-x" type="number" placeholder="P1 X" />
                 <input id="cal-p1-y" type="number" placeholder="P1 Y" />
-                <input id="cal-p1-lat" type="number" step="0.000001" placeholder="P1 Lat" />
-                <input id="cal-p1-lng" type="number" step="0.000001" placeholder="P1 Lng" />
               </div>
               <div class="pair pair-4">
                 <input id="cal-p2-x" type="number" placeholder="P2 X" />
                 <input id="cal-p2-y" type="number" placeholder="P2 Y" />
-                <input id="cal-p2-lat" type="number" step="0.000001" placeholder="P2 Lat" />
-                <input id="cal-p2-lng" type="number" step="0.000001" placeholder="P2 Lng" />
+                <input id="cal-known-p0-x" type="number" placeholder="Known P0 X" />
+                <input id="cal-known-p0-y" type="number" placeholder="Known P0 Y" />
               </div>
+              <input id="cal-scale-meters" type="number" min="0" step="0.1" placeholder="P1-P2 scale (m)" />
             </div>
             <div class="card-actions inline-actions">
               <button class="btn ghost" id="apply-calibration" data-i18n="applyCalibration">Применить калибровку</button>
