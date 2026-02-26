@@ -28,46 +28,54 @@ function loadLauncherSettings() {
 const state = {
   lang: localStorage.getItem('calc.lang') || 'ru',
   theme: localStorage.getItem('calc.theme') || 'terminal',
-  mapUrl: localStorage.getItem('calc.mapUrl') || 'http://localhost:4173',
+  mapUrl: localStorage.getItem('calc.mapUrl') || '',
   settings: loadLauncherSettings(),
 };
 
 const i18n = {
   ru: {
     appVersion: 'Calc v1', appTitle: 'Баллистический калькулятор', appSubtitle: 'Единая оболочка для планирования огневых задач и оперативных данных.',
-    tabHome: 'Главная', tabGlobal: 'Глобальные настройки', tabFire: 'Огневые задачи', tabSafety: 'Безопасность и данные', tabSettings: 'Настройки',
+    tabHome: 'Главная', tabGlobal: 'Глобальные настройки', tabFire: 'Огневые задачи', tabMap: 'Карта', tabSafety: 'Безопасность и данные', tabSettings: 'Настройки',
     homeConfiguration: 'Глобальные настройки', homeFire: 'Огневые задачи', homeMap: 'Карта и интеграции', openApi: 'Открыть API', editGlobalData: 'Настроить орудия, батареи и наблюдателей',
-    openMissionPlanner: 'Открыть вкладку задач', checkServices: 'Проверить сервисы', openMap: 'Открыть карту', mapUrl: 'URL карты',
+    openMissionPlanner: 'Открыть вкладку задач', checkServices: 'Проверить сервисы', openMap: 'Открыть карту', mapUrl: 'URL внешней карты (необязательно)',
     sectionConfigTitle: 'Параметры батарей и орудий', batteryCount: 'Количество батарей', batteryHeightHint: 'Высота задаётся отдельно для каждой батареи и применяется ко всем орудиям этой батареи.',
     batteryHeight: 'Высота батареи (м)', gunsPerBattery: 'Орудий в батарее', coordinatesTitle: 'Координаты и наблюдатели', gunsHint: 'Для каждого орудия укажите координаты карты.',
     observerTitle: 'Наблюдатели и привязки', observerCount: 'Количество наблюдателей (до 10)', observerBinding: 'Привязка наблюдателя',
     bindToGun: 'К орудию', bindToBattery: 'К батарее', gunnerHint: 'Все расчёты выполняются на основе глобальных настроек.',
     actionsTitle: 'Действия', calculate: 'Рассчитать', showMto: 'Показать MTO', logMission: 'Сохранить миссию',
     missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', targetX: 'Координата цели X', targetY: 'Координата цели Y',
+    mapPanelTitle: 'Тактическая карта (Leaflet)', mapLegendTitle: 'Легенда', mapLegendHint: 'Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».',
+    syncMap: 'Синхронизировать с координатами', centerTarget: 'Центр на цели',
     safeDataTitle: 'Контроль данных', safeDataDescription: 'Проверка журналов и экспорт служебных данных.', openLogs: 'Открыть логи', exportData: 'Экспорт данных', clearAllData: 'Очистить данные',
     serviceState: 'Состояние сервисов', generalSettings: 'Общие настройки', language: 'Язык', theme: 'Тема', themeTerminal: 'Terminal Green', themeMidnight: 'Midnight Blue',
     ballisticsOk: '✅ Ballistics Core: запущен', ballisticsWarn: '⚠️ Ballistics Core: не отвечает. Проверьте Python и uvicorn.', gatewayOk: '✅ Realtime Gateway: запущен', gatewayWarn: '⚠️ Realtime Gateway: не отвечает.',
     dataCleared: 'Локальные данные очищены', battery: 'Батарея', gun: 'Орудие', observer: 'Наблюдатель', x: 'X', y: 'Y',
     allGuns: 'Все орудия батареи', gunProfile: 'Профиль орудия', projectileProfile: 'Профиль снаряда',
-    calcDone: 'Расчёт выполнен', mtoHeader: 'MTO: расход по выбранным орудиям', missionSaved: 'Миссия сохранена', noMissions: 'Сохранённых миссий нет'
+    calcDone: 'Расчёт выполнен', mtoHeader: 'MTO: расход по выбранным орудиям', missionSaved: 'Миссия сохранена', noMissions: 'Сохранённых миссий нет',
+    logsError: 'Не удалось загрузить логи', exportReady: 'Экспорт данных подготовлен', noLogsYet: 'Логи пока не найдены',
+    target: 'Цель', openedExternalMap: 'Открыта внешняя карта'
   },
   en: {
     appVersion: 'Calc v1', appTitle: 'Ballistics Calculator', appSubtitle: 'Unified shell for fire mission planning and operational data.',
-    tabHome: 'Home', tabGlobal: 'Global settings', tabFire: 'Fire Missions', tabSafety: 'Safety & Data', tabSettings: 'Settings',
+    tabHome: 'Home', tabGlobal: 'Global settings', tabFire: 'Fire Missions', tabMap: 'Map', tabSafety: 'Safety & Data', tabSettings: 'Settings',
     homeConfiguration: 'Global settings', homeFire: 'Fire Missions', homeMap: 'Map & integrations', openApi: 'Open API', editGlobalData: 'Configure guns, batteries and observers',
-    openMissionPlanner: 'Open missions tab', checkServices: 'Check services', openMap: 'Open map', mapUrl: 'Map URL',
+    openMissionPlanner: 'Open missions tab', checkServices: 'Check services', openMap: 'Open map', mapUrl: 'External map URL (optional)',
     sectionConfigTitle: 'Battery and gun parameters', batteryCount: 'Battery count', batteryHeightHint: 'Each battery has an independent altitude applied to every gun in that battery.',
     batteryHeight: 'Battery altitude (m)', gunsPerBattery: 'Guns per battery', coordinatesTitle: 'Coordinates and observers', gunsHint: 'Set map coordinates for each gun.',
     observerTitle: 'Observers and bindings', observerCount: 'Observers count (up to 10)', observerBinding: 'Observer binding',
     bindToGun: 'To gun', bindToBattery: 'To battery', gunnerHint: 'All calculations use data from global settings.',
     actionsTitle: 'Actions', calculate: 'Calculate', showMto: 'Show MTO', logMission: 'Save mission',
     missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', targetX: 'Target X coordinate', targetY: 'Target Y coordinate',
+    mapPanelTitle: 'Tactical map (Leaflet)', mapLegendTitle: 'Legend', mapLegendHint: 'The map shows guns in selected battery and the current target from Fire Missions tab.',
+    syncMap: 'Sync with coordinates', centerTarget: 'Center on target',
     safeDataTitle: 'Data control', safeDataDescription: 'Check logs and export service data.', openLogs: 'Open logs', exportData: 'Export data', clearAllData: 'Clear data',
     serviceState: 'Service status', generalSettings: 'General settings', language: 'Language', theme: 'Theme', themeTerminal: 'Terminal Green', themeMidnight: 'Midnight Blue',
     ballisticsOk: '✅ Ballistics Core: online', ballisticsWarn: '⚠️ Ballistics Core: unavailable. Check Python and uvicorn.', gatewayOk: '✅ Realtime Gateway: online', gatewayWarn: '⚠️ Realtime Gateway: unavailable.',
     dataCleared: 'Local data has been cleared', battery: 'Battery', gun: 'Gun', observer: 'Observer', x: 'X', y: 'Y',
     allGuns: 'All guns in battery', gunProfile: 'Gun profile', projectileProfile: 'Projectile profile',
-    calcDone: 'Calculation complete', mtoHeader: 'MTO: ammo usage for selected guns', missionSaved: 'Mission saved', noMissions: 'No saved missions'
+    calcDone: 'Calculation complete', mtoHeader: 'MTO: ammo usage for selected guns', missionSaved: 'Mission saved', noMissions: 'No saved missions',
+    logsError: 'Failed to load logs', exportReady: 'Data export ready', noLogsYet: 'No logs found yet',
+    target: 'Target', openedExternalMap: 'Opened external map'
   },
 };
 
@@ -75,6 +83,8 @@ const tabs = Array.from(document.querySelectorAll('.tab'));
 const panels = Array.from(document.querySelectorAll('.tab-panel'));
 const healthBtn = document.querySelector('#health-check');
 const clearDataBtn = document.querySelector('#clear-data');
+const openLogsBtn = document.querySelector('#open-logs');
+const exportDataBtn = document.querySelector('#export-data');
 const languageSelect = document.querySelector('#language');
 const themeSelect = document.querySelector('#theme');
 const batteryCountInput = document.querySelector('#battery-count');
@@ -84,11 +94,17 @@ const mapUrlInput = document.querySelector('#map-url');
 const missionBatterySelect = document.querySelector('#mission-battery');
 const missionGunSelect = document.querySelector('#mission-gun');
 const fireOutput = document.querySelector('#fire-output');
+const safetyOutput = document.querySelector('#safety-output');
+const mapLegend = document.querySelector('#map-legend');
 
 const t = (key) => i18n[state.lang][key] ?? key;
 
 const gunProfiles = ['mortar-120-standard', 'm777-howitzer', 'd30-standard'];
 const projectileProfiles = ['he-charge-3', 'smoke-charge-2', 'illum'];
+
+let leafletMap;
+let targetMarker;
+const gunMarkers = [];
 
 function persistLauncherSettings() {
   state.settings.batteryCount = Number(batteryCountInput?.value || 1);
@@ -150,11 +166,16 @@ function applyI18n() {
   renderGunsGrid();
   renderObservers();
   renderMissionSelectors();
+  refreshMapOverlay();
 }
 
 function switchTab(tabName) {
   tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.tab === tabName));
   panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === tabName));
+  if (tabName === 'map') {
+    initializeMap();
+    refreshMapOverlay();
+  }
 }
 
 async function checkService(url, okKey, warnKey, selector) {
@@ -181,6 +202,7 @@ async function runHealthCheck() {
 function clearLocalData() {
   localStorage.clear();
   state.settings = loadLauncherSettings();
+  state.mapUrl = '';
   applyI18n();
   alert(t('dataCleared'));
 }
@@ -297,6 +319,7 @@ function calculateFire() {
 
   fireOutput.textContent = output;
   persistLauncherSettings();
+  refreshMapOverlay();
   return { results, battery, selectedGun, targetX, targetY, batteryHeight };
 }
 
@@ -318,17 +341,135 @@ function saveMission() {
   fireOutput.textContent = `${fireOutput.textContent}\n\n${t('missionSaved')} (${missions.length})`;
 }
 
+function initializeMap() {
+  if (leafletMap || !window.L) return;
+  leafletMap = window.L.map('leaflet-map', { zoomControl: true }).setView([49.0, 32.0], 8);
+  window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors',
+  }).addTo(leafletMap);
+  setTimeout(() => leafletMap.invalidateSize(), 0);
+}
+
+function mapPointToLatLng(x, y) {
+  const lat = y / 100;
+  const lng = x / 100;
+  return [lat, lng];
+}
+
+function refreshMapOverlay() {
+  if (!leafletMap) return;
+
+  gunMarkers.forEach((marker) => marker.remove());
+  gunMarkers.length = 0;
+
+  const battery = Number(missionBatterySelect?.value || 1);
+  const selectedGun = missionGunSelect?.value || 'all';
+  const gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
+  const gunIds = selectedGun === 'all' ? Array.from({ length: gunsPerBattery }, (_, idx) => idx + 1) : [Number(selectedGun)];
+
+  const legendRows = [];
+  gunIds.forEach((gunId) => {
+    const gunX = Number(document.querySelector(`[data-gun-x="${battery}-${gunId}"]`)?.value || 0);
+    const gunY = Number(document.querySelector(`[data-gun-y="${battery}-${gunId}"]`)?.value || 0);
+    const marker = window.L.circleMarker(mapPointToLatLng(gunX, gunY), {
+      radius: 6,
+      color: '#00ff57',
+      fillColor: '#00ff57',
+      fillOpacity: 0.85,
+    }).addTo(leafletMap);
+    marker.bindPopup(`${t('gun')} ${gunId}<br>X: ${gunX}, Y: ${gunY}`);
+    gunMarkers.push(marker);
+    legendRows.push(`<p>${t('gun')} ${gunId}: X=${gunX}, Y=${gunY}</p>`);
+  });
+
+  const targetX = Number(document.querySelector('#target-x')?.value || 0);
+  const targetY = Number(document.querySelector('#target-y')?.value || 0);
+  if (!targetMarker) {
+    targetMarker = window.L.marker(mapPointToLatLng(targetX, targetY)).addTo(leafletMap);
+  } else {
+    targetMarker.setLatLng(mapPointToLatLng(targetX, targetY));
+  }
+  targetMarker.bindPopup(`${t('target')}: X=${targetX}, Y=${targetY}`);
+
+  if (mapLegend) {
+    mapLegend.innerHTML = [...legendRows, `<p>${t('target')}: X=${targetX}, Y=${targetY}</p>`].join('');
+  }
+}
+
+function centerMapOnTarget() {
+  if (!leafletMap) return;
+  const targetX = Number(document.querySelector('#target-x')?.value || 0);
+  const targetY = Number(document.querySelector('#target-y')?.value || 0);
+  leafletMap.setView(mapPointToLatLng(targetX, targetY), 11);
+}
+
 function openMap() {
-  state.mapUrl = mapUrlInput.value || state.mapUrl;
+  state.mapUrl = mapUrlInput.value || '';
   localStorage.setItem('calc.mapUrl', state.mapUrl);
-  window.open(state.mapUrl, '_blank', 'noopener,noreferrer');
+  switchTab('map');
+  initializeMap();
+  refreshMapOverlay();
+  if (state.mapUrl) {
+    window.open(state.mapUrl, '_blank', 'noopener,noreferrer');
+    safetyOutput.textContent = t('openedExternalMap');
+  }
+}
+
+async function openLogs() {
+  try {
+    const response = await fetch('/api/logs');
+    if (!response.ok) throw new Error('failed');
+    const payload = await response.json();
+    if (!payload.files.length) {
+      safetyOutput.textContent = t('noLogsYet');
+      return;
+    }
+    const lines = payload.files.map((file) => `${file.name} (${file.size} B)`);
+    safetyOutput.textContent = lines.join('\n');
+  } catch {
+    safetyOutput.textContent = t('logsError');
+  }
+}
+
+async function exportData() {
+  const local = {
+    settings: JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'),
+    missions: JSON.parse(localStorage.getItem('calc.missions') || '[]'),
+    lang: localStorage.getItem('calc.lang') || 'ru',
+    theme: localStorage.getItem('calc.theme') || 'terminal',
+  };
+
+  let logs = [];
+  try {
+    const response = await fetch('/api/logs');
+    if (response.ok) {
+      const payload = await response.json();
+      logs = payload.files;
+    }
+  } catch {}
+
+  const blob = new Blob([JSON.stringify({ generatedAt: new Date().toISOString(), local, logs }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `calc-export-${Date.now()}.json`;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+  safetyOutput.textContent = t('exportReady');
 }
 
 tabs.forEach((tab) => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
 document.querySelectorAll('[data-open-tab]').forEach((button) => button.addEventListener('click', () => switchTab(button.dataset.openTab)));
 healthBtn?.addEventListener('click', runHealthCheck);
 clearDataBtn?.addEventListener('click', clearLocalData);
+openLogsBtn?.addEventListener('click', openLogs);
+exportDataBtn?.addEventListener('click', exportData);
 document.querySelector('#open-map')?.addEventListener('click', openMap);
+document.querySelector('#map-sync')?.addEventListener('click', refreshMapOverlay);
+document.querySelector('#map-center-target')?.addEventListener('click', centerMapOnTarget);
 document.querySelector('#calculate-btn')?.addEventListener('click', calculateFire);
 document.querySelector('#show-mto')?.addEventListener('click', showMto);
 document.querySelector('#save-mission')?.addEventListener('click', saveMission);
@@ -340,14 +481,21 @@ document.querySelector('#save-mission')?.addEventListener('click', saveMission);
   renderObservers();
   renderMissionSelectors();
   persistLauncherSettings();
+  refreshMapOverlay();
 }));
 observerCountInput?.addEventListener('change', () => {
   state.settings.observerCount = Number(observerCountInput?.value || 1);
   renderObservers();
   persistLauncherSettings();
 });
-missionBatterySelect?.addEventListener('change', persistLauncherSettings);
-missionGunSelect?.addEventListener('change', persistLauncherSettings);
+missionBatterySelect?.addEventListener('change', () => {
+  persistLauncherSettings();
+  refreshMapOverlay();
+});
+missionGunSelect?.addEventListener('change', () => {
+  persistLauncherSettings();
+  refreshMapOverlay();
+});
 document.addEventListener('input', (event) => {
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) {
     persistLauncherSettings();
