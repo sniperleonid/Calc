@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calc · Баллистический калькулятор</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <p class="badge">Calc v1</p>
+        <h1>Баллистический калькулятор</h1>
+        <p class="subtitle">Единая точка входа для расчётов, журнала миссий и оперативных данных.</p>
+        <div class="actions">
+          <a class="btn primary" href="http://localhost:8000/docs" target="_blank" rel="noreferrer">Открыть API</a>
+          <button id="health-check" class="btn ghost">Проверить сервисы</button>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Ballistics Core</h2>
+          <p>Расчёт азимута, угла возвышения и корректировок огня.</p>
+          <p class="status" data-service="ballistics">⏳ Проверка...</p>
+        </article>
+        <article class="card">
+          <h2>Realtime Gateway</h2>
+          <p>Маршрутизация событий и журнал миссий в реальном времени.</p>
+          <p class="status" data-service="gateway">✅ Запущен</p>
+        </article>
+        <article class="card">
+          <h2>Логи</h2>
+          <p>Все события и ошибки сохраняются в папке <code>logs/</code>.</p>
+          <p class="status info">Файлы: <code>ballistics-core*.log</code>, <code>realtime-gateway*.log</code></p>
+        </article>
+      </section>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

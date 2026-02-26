@@ -20,12 +20,14 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for constrained envir
             return decorator
 
 from ballistics.corrections import apply_correction
+from ballistics.logging_setup import configure_logger
 from ballistics.models import CorrectionRequest, FireMissionRequest, TriangulationRequest
 from ballistics.protocol import save_protocol
 from ballistics.solver import solve_fire_mission
 from ballistics.triangulation import triangulate
 
 app = FastAPI(title="Ballistics Core API")
+logger = configure_logger()
 
 
 @app.post("/solve-fire-mission")
@@ -33,7 +35,11 @@ def solve_fire_mission_endpoint(req: FireMissionRequest):
     try:
         result = solve_fire_mission(req)
     except FileNotFoundError as exc:
+        logger.error("Fire mission failed due to missing data: %s", exc)
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - defensive API guard
+        logger.exception("Unexpected error during fire mission solving")
+        raise HTTPException(status_code=500, detail="internal server error") from exc
 
     protocol = save_protocol(
         mission_id=req.mission_id,
@@ -46,7 +52,11 @@ def solve_fire_mission_endpoint(req: FireMissionRequest):
 
 @app.post("/apply-correction")
 def apply_correction_endpoint(req: CorrectionRequest):
-    result = apply_correction(req)
+    try:
+        result = apply_correction(req)
+    except Exception as exc:  # pragma: no cover - defensive API guard
+        logger.exception("Unexpected error during correction applying")
+        raise HTTPException(status_code=500, detail="internal server error") from exc
     protocol = save_protocol(
         mission_id=req.mission_id,
         operation="apply-correction",
@@ -65,7 +75,11 @@ def triangulation_endpoint(method: str, req: TriangulationRequest):
     try:
         result = triangulate(req)
     except ValueError as exc:
+        logger.error("Triangulation validation error: %s", exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - defensive API guard
+        logger.exception("Unexpected error during triangulation")
+        raise HTTPException(status_code=500, detail="internal server error") from exc
 
     protocol = save_protocol(
         mission_id=req.mission_id,
