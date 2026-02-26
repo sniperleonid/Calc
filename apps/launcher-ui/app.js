@@ -60,9 +60,9 @@ const i18n = {
     target: 'Цель', openedExternalMap: 'Открыта внешняя карта',
     rolesTitle: 'Роли и рабочие места', rolesHint: 'Быстрые переходы к интерфейсам по ролям.', roleCommander: 'Командир (Карта)', roleGunner: 'Наводчик (Огневые задачи)', roleObserver: 'Наблюдатель (Корректировки)', roleLogistics: 'Логистика и данные',
     mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту',
-    calibrationHint: 'Калибровка: включите режим, двойным щелчком поставьте P0/P1/P2. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
+    calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
     markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolObserver: 'Наблюдатель', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
-    calibrationMode: 'Режим калибровки', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', clearManualMarkers: 'Очистить ручные метки'
+    calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', clearManualMarkers: 'Очистить ручные метки'
   },
   en: {
     appVersion: 'Calc v1', appTitle: 'Ballistics Calculator', appSubtitle: 'Unified shell for fire mission planning and operational data.',
@@ -87,9 +87,9 @@ const i18n = {
     target: 'Target', openedExternalMap: 'Opened external map',
     rolesTitle: 'Roles & workspaces', rolesHint: 'Quick jump to interfaces by role.', roleCommander: 'Commander (Map)', roleGunner: 'Gunner (Fire missions)', roleObserver: 'Observer (Corrections)', roleLogistics: 'Logistics & data',
     mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image',
-    calibrationHint: 'Calibration: enable mode, double-click to set P0/P1/P2, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
+    calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
     markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolObserver: 'Observer', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
-    calibrationMode: 'Calibration mode', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', clearManualMarkers: 'Clear manual markers'
+    calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', clearManualMarkers: 'Clear manual markers'
   },
 };
 
@@ -114,7 +114,8 @@ const mapToolsOutput = document.querySelector('#map-tools-output');
 const mapImageUploadInput = document.querySelector('#map-image-upload');
 const markerToolSelect = document.querySelector('#marker-tool');
 const markerTargetSelect = document.querySelector('#marker-target');
-const calibrationModeInput = document.querySelector('#calibration-mode');
+const calibrationModeButton = document.querySelector('#toggle-calibration-mode');
+const calibrationControls = document.querySelector('#calibration-controls');
 
 const t = (key) => i18n[state.lang][key] ?? key;
 
@@ -128,6 +129,8 @@ function getMapToolsSettings() {
     imageDataUrl: '',
     manualMarkers: [],
     calibrationPoints: [],
+    calibrationMode: false,
+    nextCalibrationPointIndex: 0,
   };
   return { ...defaults, ...state.settings.mapTools, calibration: { ...defaults.calibration, ...(state.settings.mapTools?.calibration ?? {}) }, imageBounds: { ...defaults.imageBounds, ...(state.settings.mapTools?.imageBounds ?? {}) } };
 }
@@ -141,6 +144,7 @@ const calibrationMarkers = [];
 let calibrationLine;
 let selectedManualMarkerId = null;
 let rightMousePanState = null;
+let lastOverlayBoundsKey = '';
 
 function persistLauncherSettings() {
   state.settings.batteryCount = Number(batteryCountInput?.value || 1);
@@ -395,9 +399,12 @@ function saveMission() {
 
 function initializeMap() {
   if (leafletMap || !window.L) return;
-  leafletMap = window.L.map('leaflet-map', { zoomControl: true, doubleClickZoom: false, crs: window.L.CRS.Simple }).setView([0, 0], 0);
+  leafletMap = window.L.map('leaflet-map', { zoomControl: true, doubleClickZoom: false, crs: window.L.CRS.Simple, minZoom: -6 }).setView([0, 0], 0);
   leafletMap.dragging.disable();
-  leafletMap.on('dblclick', onMapDoubleClick);
+  leafletMap.on('dblclick', (event) => {
+    window.L.DomEvent.stop(event);
+    onMapDoubleClick(event);
+  });
 
   const container = leafletMap.getContainer();
   container.addEventListener('contextmenu', (event) => event.preventDefault());
@@ -444,8 +451,20 @@ function syncMarkerTargetOptions() {
 }
 
 function getNextCalibrationPointLabel() {
-  const points = getMapToolsSettings().calibrationPoints ?? [];
-  return ['P0', 'P1', 'P2'][Math.min(points.length, 2)];
+  const nextIndex = Number(getMapToolsSettings().nextCalibrationPointIndex ?? 0) % 3;
+  return ['P0', 'P1', 'P2'][nextIndex];
+}
+
+function setCalibrationMode(isEnabled) {
+  const tools = getMapToolsSettings();
+  state.settings.mapTools = { ...tools, calibrationMode: Boolean(isEnabled) };
+  if (calibrationControls) calibrationControls.classList.toggle('hidden', !isEnabled);
+  if (calibrationModeButton) {
+    calibrationModeButton.textContent = isEnabled ? t('calibrationModeToggleActive') : t('calibrationModeToggle');
+    calibrationModeButton.classList.toggle('active', isEnabled);
+  }
+  persistLauncherSettings();
+  refreshMapOverlay();
 }
 
 function addManualMarker(type, latlng) {
@@ -475,33 +494,42 @@ function addManualMarker(type, latlng) {
 }
 
 function onMapDoubleClick(event) {
-  if (!calibrationModeInput?.checked) {
+  event.originalEvent?.preventDefault?.();
+  event.originalEvent?.stopPropagation?.();
+  const tools = getMapToolsSettings();
+  if (!tools.calibrationMode) {
     addManualMarker(markerToolSelect?.value || 'gun', event.latlng);
     return;
   }
+
   const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
-  const tools = getMapToolsSettings();
-  const current = [...(tools.calibrationPoints ?? [])];
   const label = getNextCalibrationPointLabel();
-  if (current.length >= 3) current.length = 0;
+  const current = [...(tools.calibrationPoints ?? [])].filter((item) => item.label !== label);
   current.push({ label, mapX: point.x, mapY: point.y });
-  state.settings.mapTools = { ...tools, calibrationPoints: current };
-  const xInput = document.querySelector(`#cal-${label.toLowerCase()}-x`);
-  const yInput = document.querySelector(`#cal-${label.toLowerCase()}-y`);
-  if (xInput) xInput.value = point.x.toFixed(2);
-  if (yInput) yInput.value = point.y.toFixed(2);
+  state.settings.mapTools = { ...tools, calibrationPoints: current, nextCalibrationPointIndex: (Number(tools.nextCalibrationPointIndex ?? 0) + 1) % 3 };
+  if (label === 'P0') {
+    const xInput = document.querySelector('#cal-p0-x');
+    const yInput = document.querySelector('#cal-p0-y');
+    if (xInput) xInput.value = point.x.toFixed(2);
+    if (yInput) yInput.value = point.y.toFixed(2);
+  }
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = `${t('calibrationPointSet')}: ${label}`;
 }
 
 function hydrateMapToolsForm() {
-  const { imageBounds } = getMapToolsSettings();
+  const { imageBounds, calibration, calibrationMode } = getMapToolsSettings();
   const fill = (id, val) => { const el = document.querySelector(id); if (el) el.value = String(val ?? ''); };
   fill('#map-min-x', imageBounds.minX);
   fill('#map-min-y', imageBounds.minY);
   fill('#map-max-x', imageBounds.maxX);
   fill('#map-max-y', imageBounds.maxY);
+  fill('#cal-p0-x', calibration.originWorldX);
+  fill('#cal-p0-y', calibration.originWorldY);
+  fill('#cal-scale-meters', '');
+  if (calibrationControls) calibrationControls.classList.toggle('hidden', !calibrationMode);
+  if (calibrationModeButton) calibrationModeButton.textContent = calibrationMode ? t('calibrationModeToggleActive') : t('calibrationModeToggle');
 }
 
 function upsertMapOverlay() {
@@ -513,6 +541,7 @@ function upsertMapOverlay() {
   }
   if (!tools.imageDataUrl) {
     leafletMap.setMaxBounds(null);
+    lastOverlayBoundsKey = '';
     return;
   }
   const { minX, minY, maxX, maxY } = tools.imageBounds;
@@ -522,24 +551,27 @@ function upsertMapOverlay() {
   mapImageOverlay = window.L.imageOverlay(tools.imageDataUrl, bounds, { opacity: 0.85 });
   mapImageOverlay.addTo(leafletMap);
   leafletMap.setMaxBounds(bounds.pad(0.05));
-  leafletMap.fitBounds(bounds);
+  const boundsKey = `${tools.imageDataUrl.length}:${minX}:${minY}:${maxX}:${maxY}`;
+  if (lastOverlayBoundsKey !== boundsKey) {
+    leafletMap.fitBounds(bounds);
+    lastOverlayBoundsKey = boundsKey;
+  }
 }
 
 function applyCalibration() {
   const p0x = Number(document.querySelector('#cal-p0-x')?.value);
   const p0y = Number(document.querySelector('#cal-p0-y')?.value);
-  const p1x = Number(document.querySelector('#cal-p1-x')?.value);
-  const p1y = Number(document.querySelector('#cal-p1-y')?.value);
-  const p2x = Number(document.querySelector('#cal-p2-x')?.value);
-  const p2y = Number(document.querySelector('#cal-p2-y')?.value);
+  const tools = getMapToolsSettings();
+  const p1 = (tools.calibrationPoints ?? []).find((point) => point.label === 'P1');
+  const p2 = (tools.calibrationPoints ?? []).find((point) => point.label === 'P2');
   const scaleMeters = Number(document.querySelector('#cal-scale-meters')?.value);
 
-  if (![p0x, p0y, p1x, p1y, p2x, p2y, scaleMeters].every(Number.isFinite)) {
+  if (![p0x, p0y, scaleMeters].every(Number.isFinite) || !p1 || !p2) {
     if (mapToolsOutput) mapToolsOutput.textContent = t('invalidCalibration');
     return;
   }
 
-  const mapDistance = Math.hypot(p2x - p1x, p2y - p1y);
+  const mapDistance = Math.hypot(p2.mapX - p1.mapX, p2.mapY - p1.mapY);
   if (mapDistance <= 0 || scaleMeters <= 0) {
     if (mapToolsOutput) mapToolsOutput.textContent = t('invalidCalibration');
     return;
@@ -547,7 +579,7 @@ function applyCalibration() {
 
   const scale = scaleMeters / mapDistance;
   state.settings.mapTools = {
-    ...getMapToolsSettings(),
+    ...tools,
     calibration: { scale, originMapX: p0x, originMapY: p0y, originWorldX: p0x, originWorldY: p0y },
   };
   persistLauncherSettings();
@@ -560,6 +592,7 @@ function resetCalibration() {
     ...getMapToolsSettings(),
     calibration: { scale: 1, originMapX: 0, originMapY: 0, originWorldX: 0, originWorldY: 0 },
     calibrationPoints: [],
+    nextCalibrationPointIndex: 0,
   };
   persistLauncherSettings();
   refreshMapOverlay();
@@ -588,7 +621,7 @@ function clearMapImage() {
 
 function clearManualMarkers() {
   selectedManualMarkerId = null;
-  state.settings.mapTools = { ...getMapToolsSettings(), manualMarkers: [], calibrationPoints: [] };
+  state.settings.mapTools = { ...getMapToolsSettings(), manualMarkers: [], calibrationPoints: [], nextCalibrationPointIndex: 0 };
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = t('clearManualMarkers');
@@ -709,18 +742,21 @@ function refreshMapOverlay() {
     manualMarkers.push(marker);
   });
 
-  const calPoints = getMapToolsSettings().calibrationPoints ?? [];
-  calPoints.forEach((point) => {
-    const marker = window.L.marker(mapPointToLatLng(point.mapX, point.mapY), {
-      icon: window.L.divIcon({ className: 'calibration-cross', html: `<span>✚ ${point.label}</span>` }),
-    }).addTo(leafletMap);
-    calibrationMarkers.push(marker);
-  });
+  const showCalibration = Boolean(getMapToolsSettings().calibrationMode);
+  if (showCalibration) {
+    const calPoints = getMapToolsSettings().calibrationPoints ?? [];
+    calPoints.forEach((point) => {
+      const marker = window.L.marker(mapPointToLatLng(point.mapX, point.mapY), {
+        icon: window.L.divIcon({ className: 'calibration-cross', html: `<span>✚ ${point.label}</span>` }),
+      }).addTo(leafletMap);
+      calibrationMarkers.push(marker);
+    });
 
-  const p1 = calPoints.find((point) => point.label === 'P1');
-  const p2 = calPoints.find((point) => point.label === 'P2');
-  if (p1 && p2) {
-    calibrationLine = window.L.polyline([mapPointToLatLng(p1.mapX, p1.mapY), mapPointToLatLng(p2.mapX, p2.mapY)], { color: '#ff66ff', dashArray: '10 8' }).addTo(leafletMap);
+    const p1 = calPoints.find((point) => point.label === 'P1');
+    const p2 = calPoints.find((point) => point.label === 'P2');
+    if (p1 && p2) {
+      calibrationLine = window.L.polyline([mapPointToLatLng(p1.mapX, p1.mapY), mapPointToLatLng(p2.mapX, p2.mapY)], { color: '#ff66ff', dashArray: '10 8' }).addTo(leafletMap);
+    }
   }
 
   if (mapLegend) {
@@ -861,6 +897,10 @@ themeSelect?.addEventListener('change', (event) => {
 
 
 document.querySelectorAll('[data-role-link]').forEach((button) => button.addEventListener('click', () => openRoleWorkspace(button.dataset.roleLink)));
+calibrationModeButton?.addEventListener('click', () => {
+  const tools = getMapToolsSettings();
+  setCalibrationMode(!tools.calibrationMode);
+});
 document.querySelector('#apply-calibration')?.addEventListener('click', applyCalibration);
 document.querySelector('#reset-calibration')?.addEventListener('click', resetCalibration);
 document.querySelector('#apply-map-image')?.addEventListener('click', applyMapImage);
