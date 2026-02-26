@@ -13,6 +13,15 @@ function normalizeCount(value, limits) {
   return clamp(Number(value) || limits.min, limits.min, limits.max);
 }
 
+function getGunCountForBattery(batteryId) {
+  const key = String(batteryId);
+  const raw = document.querySelector(`[data-battery-guns-count="${key}"]`)?.value
+    ?? state.settings.batteryGunCounts?.[key]
+    ?? state.settings.gunsPerBattery
+    ?? LIMITS.gunsPerBattery.min;
+  return normalizeCount(raw, LIMITS.gunsPerBattery);
+}
+
 function loadLauncherSettings() {
   try {
     const parsed = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
@@ -21,6 +30,7 @@ function loadLauncherSettings() {
       gunsPerBattery: normalizeCount(parsed.gunsPerBattery, LIMITS.gunsPerBattery),
       observerCount: normalizeCount(parsed.observerCount, LIMITS.observers),
       batteryConfig: parsed.batteryConfig ?? {},
+      batteryGunCounts: parsed.batteryGunCounts ?? {},
       gunCoords: parsed.gunCoords ?? {},
       observerBindings: parsed.observerBindings ?? {},
       observerCoords: parsed.observerCoords ?? {},
@@ -33,6 +43,7 @@ function loadLauncherSettings() {
       gunsPerBattery: 1,
       observerCount: 1,
       batteryConfig: {},
+      batteryGunCounts: {},
       gunCoords: {},
       observerBindings: {},
       observerCoords: {},
@@ -75,7 +86,7 @@ const i18n = {
     rolesTitle: 'Роли и рабочие места', rolesHint: 'Быстрые переходы к интерфейсам по ролям.', roleCommander: 'Командир (Карта)', roleGunner: 'Наводчик (Огневые задачи)', roleObserver: 'Наблюдатель (Корректировки)', roleLogistics: 'Логистика и данные',
     mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту',
     calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
-    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolObserver: 'Наблюдатель', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
+    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolBattery: 'Активная батарея', markerToolObserver: 'Наблюдатель', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
     calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', clearManualMarkers: 'Очистить ручные метки'
   },
   en: {
@@ -103,7 +114,7 @@ const i18n = {
     rolesTitle: 'Roles & workspaces', rolesHint: 'Quick jump to interfaces by role.', roleCommander: 'Commander (Map)', roleGunner: 'Gunner (Fire missions)', roleObserver: 'Observer (Corrections)', roleLogistics: 'Logistics & data',
     mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image',
     calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
-    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolObserver: 'Observer', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
+    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolBattery: 'Active battery', markerToolObserver: 'Observer', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
     calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', clearManualMarkers: 'Clear manual markers'
   },
 };
@@ -160,7 +171,6 @@ let calibrationLine;
 let selectedManualMarkerId = null;
 let rightMousePanState = null;
 let lastOverlayBoundsKey = '';
-let dragMarkerId = null;
 
 function parseCoordinateValue(rawValue) {
   const text = String(rawValue ?? '').trim();
@@ -211,10 +221,12 @@ function clearBoundMarkerCoordinates(marker) {
 function syncMapMarkersWithAvailableTargets() {
   const tools = getMapToolsSettings();
   const validGunTargets = new Set(getActiveMarkerTargets('gun').map((entry) => entry.id));
+  const validBatteryTargets = new Set(getActiveMarkerTargets('battery').map((entry) => entry.id));
   const validObserverTargets = new Set(getActiveMarkerTargets('observer').map((entry) => entry.id));
   const source = tools.manualMarkers ?? [];
   const filtered = source.filter((marker) => {
     if (marker.type === 'gun') return validGunTargets.has(marker.targetId);
+    if (marker.type === 'battery') return validBatteryTargets.has(marker.targetId);
     if (marker.type === 'observer') return validObserverTargets.has(marker.targetId);
     return true;
   });
@@ -236,6 +248,7 @@ function persistLauncherSettings() {
   if (observerCountInput) observerCountInput.value = String(state.settings.observerCount);
 
   state.settings.batteryConfig = {};
+  state.settings.batteryGunCounts = {};
   document.querySelectorAll('[data-battery-height]').forEach((input) => {
     const batteryId = input.dataset.batteryHeight;
     state.settings.batteryConfig[batteryId] = {
@@ -244,6 +257,7 @@ function persistLauncherSettings() {
       projectileProfile: document.querySelector(`[data-battery-projectile-profile="${batteryId}"]`)?.value ?? projectileProfiles[0],
       title: document.querySelector(`[data-battery-title="${batteryId}"]`)?.value ?? `${t('battery')} ${batteryId}`,
     };
+    state.settings.batteryGunCounts[batteryId] = getGunCountForBattery(batteryId);
   });
 
   state.settings.gunCoords = {};
@@ -360,8 +374,9 @@ function renderGlobalConfig() {
     const saved = state.settings.batteryConfig[String(b)] ?? {};
     row.innerHTML = `
       <h3>${t('battery')} ${b}</h3>
-      <div class="pair pair-4">
+      <div class="pair pair-5">
         <input type="number" data-battery-height="${b}" placeholder="${t('batteryHeight')}" value="${saved.height ?? 0}" />
+        <input type="number" min="1" max="5" data-battery-guns-count="${b}" placeholder="${t('gunsPerBattery')}" value="${getGunCountForBattery(b)}" />
         <select data-battery-gun-profile="${b}">${gunProfileOptions}</select>
         <select data-battery-projectile-profile="${b}">${projectileOptions}</select>
         <input data-battery-title="${b}" value="${saved.title ?? `${t('battery')} ${b}`}" />
@@ -377,13 +392,14 @@ function renderGunsGrid() {
   const container = document.querySelector('#guns-coordinates');
   if (!container) return;
   const batteries = Number(batteryCountInput?.value || 1);
-  const gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
+  const defaultGunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
   container.innerHTML = '';
   for (let b = 1; b <= batteries; b += 1) {
     const batteryTitle = document.createElement('h3');
     batteryTitle.className = 'battery-group-title';
     batteryTitle.textContent = `${t('batteryShort')}${b}`;
     container.append(batteryTitle);
+    const gunsPerBattery = getGunCountForBattery(b) || defaultGunsPerBattery;
     for (let g = 1; g <= gunsPerBattery; g += 1) {
       const key = `${b}-${g}`;
       const saved = state.settings.gunCoords[key] ?? {};
@@ -412,9 +428,11 @@ function renderObservers() {
   if (!container) return;
   const observers = Number(observerCountInput?.value || 1);
   const batteries = Number(batteryCountInput?.value || 1);
-  const gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
   const gunOptions = [];
-  for (let b = 1; b <= batteries; b += 1) for (let g = 1; g <= gunsPerBattery; g += 1) gunOptions.push(`gun-${b}-${g}`);
+  for (let b = 1; b <= batteries; b += 1) {
+    const gunsPerBattery = getGunCountForBattery(b);
+    for (let g = 1; g <= gunsPerBattery; g += 1) gunOptions.push(`gun-${b}-${g}`);
+  }
   container.innerHTML = '';
   for (let i = 1; i <= observers; i += 1) {
     const saved = state.settings.observerBindings[String(i)] ?? {};
@@ -437,11 +455,12 @@ function renderObservers() {
 
 function renderMissionSelectors() {
   const batteries = Number(batteryCountInput?.value || 1);
-  const gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
   missionBatterySelect.innerHTML = Array.from({ length: batteries }, (_, index) => `<option value="${index + 1}">${t('battery')} ${index + 1}</option>`).join('');
   const savedMissionBattery = Number(state.settings.mission.battery || 1);
-  missionBatterySelect.value = String(Math.min(Math.max(1, savedMissionBattery), batteries));
+  const selectedBattery = Math.min(Math.max(1, savedMissionBattery), batteries);
+  missionBatterySelect.value = String(selectedBattery);
 
+  const gunsPerBattery = getGunCountForBattery(selectedBattery);
   const gunOptions = ['all', ...Array.from({ length: gunsPerBattery }, (_, idx) => `${idx + 1}`)];
   missionGunSelect.innerHTML = gunOptions.map((value) => `<option value="${value}">${value === 'all' ? t('allGuns') : `${t('gun')} ${value}`}</option>`).join('');
   missionGunSelect.value = gunOptions.includes(state.settings.mission.gun) ? state.settings.mission.gun : 'all';
@@ -477,7 +496,7 @@ function calculateFire() {
   const targetY = targetInput.y;
   const battery = Number(missionBatterySelect.value || 1);
   const selectedGun = missionGunSelect.value;
-  const gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
+  const gunsPerBattery = getGunCountForBattery(battery);
   const gunIds = selectedGun === 'all' ? Array.from({ length: gunsPerBattery }, (_, idx) => idx + 1) : [Number(selectedGun)];
   const batteryHeight = getBatteryHeight(battery);
 
@@ -563,9 +582,13 @@ function getActiveMarkerTargets(type) {
   }
 
   const batteries = Number(batteryCountInput?.value || 1);
-  const gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
+  if (type === 'battery') {
+    return Array.from({ length: batteries }, (_, idx) => ({ id: String(idx + 1), label: `${t('battery')} ${idx + 1}` }));
+  }
+
   const targets = [];
   for (let b = 1; b <= batteries; b += 1) {
+    const gunsPerBattery = getGunCountForBattery(b);
     for (let g = 1; g <= gunsPerBattery; g += 1) {
       const key = `${b}-${g}`;
       targets.push({ id: key, label: `${t('batteryShort')}${b}-${t('gunShort')}${g}` });
@@ -613,6 +636,16 @@ function addManualMarker(type, latlng) {
     const observerYInput = document.querySelector(`[data-observer-y="${targetId}"]`);
     if (observerXInput) observerXInput.value = point.x.toFixed(2);
     if (observerYInput) observerYInput.value = point.y.toFixed(2);
+  }
+
+  if (type === 'battery' && targetId) {
+    const batteryGunCount = getGunCountForBattery(targetId);
+    for (let gunId = 1; gunId <= batteryGunCount; gunId += 1) {
+      const gunXInput = document.querySelector(`[data-gun-x="${targetId}-${gunId}"]`);
+      const gunYInput = document.querySelector(`[data-gun-y="${targetId}-${gunId}"]`);
+      if (gunXInput) gunXInput.value = point.x.toFixed(2);
+      if (gunYInput) gunYInput.value = point.y.toFixed(2);
+    }
   }
 
   const tools = getMapToolsSettings();
@@ -796,7 +829,7 @@ function refreshMapOverlay() {
 
   const battery = Number(missionBatterySelect?.value || 1);
   const selectedGun = missionGunSelect?.value || 'all';
-  const gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
+  const gunsPerBattery = getGunCountForBattery(battery);
   const gunIds = selectedGun === 'all' ? Array.from({ length: gunsPerBattery }, (_, idx) => idx + 1) : [Number(selectedGun)];
 
   const legendRows = [];
@@ -855,6 +888,7 @@ function refreshMapOverlay() {
   const markerStyle = {
     gun: '#ff4f4f',
     observer: '#00d4ff',
+    battery: '#ffd84d',
   };
 
   const tools = getMapToolsSettings();
@@ -875,36 +909,8 @@ function refreshMapOverlay() {
     });
     marker.on('mousedown', (event) => {
       if (event.originalEvent?.button !== 0) return;
-      if (selectedManualMarkerId === item.id) {
-        dragMarkerId = item.id;
-        return;
-      }
       selectedManualMarkerId = item.id;
-      dragMarkerId = null;
       refreshMapOverlay();
-    });
-    marker.on('mousemove', (event) => {
-      if (dragMarkerId !== item.id || !event.originalEvent?.buttons || (event.originalEvent.buttons & 1) !== 1) return;
-      const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
-      const nextMarkers = (tools.manualMarkers ?? []).map((entry) => (entry.id === item.id ? { ...entry, x: point.x, y: point.y } : entry));
-      state.settings.mapTools = { ...tools, manualMarkers: nextMarkers };
-      if (item.type === 'gun' && item.targetId) {
-        const gunXInput = document.querySelector(`[data-gun-x="${item.targetId}"]`);
-        const gunYInput = document.querySelector(`[data-gun-y="${item.targetId}"]`);
-        if (gunXInput) gunXInput.value = point.x.toFixed(2);
-        if (gunYInput) gunYInput.value = point.y.toFixed(2);
-      }
-      if (item.type === 'observer' && item.targetId) {
-        const observerXInput = document.querySelector(`[data-observer-x="${item.targetId}"]`);
-        const observerYInput = document.querySelector(`[data-observer-y="${item.targetId}"]`);
-        if (observerXInput) observerXInput.value = point.x.toFixed(2);
-        if (observerYInput) observerYInput.value = point.y.toFixed(2);
-      }
-      persistLauncherSettings();
-      refreshMapOverlay();
-    });
-    marker.on('mouseup', () => {
-      dragMarkerId = null;
     });
     manualMarkers.push(marker);
   });
@@ -942,7 +948,6 @@ function deleteSelectedManualMarker() {
   };
   if (markerToDelete) clearBoundMarkerCoordinates(markerToDelete);
   selectedManualMarkerId = null;
-  dragMarkerId = null;
   persistLauncherSettings();
   refreshMapOverlay();
 }
@@ -1042,7 +1047,19 @@ document.addEventListener('change', (event) => {
   if (!(event.target instanceof HTMLSelectElement) || !event.target.matches('[data-observer-mode]')) return;
   syncObserverBindingVisibility();
 });
+document.addEventListener('change', (event) => {
+  if (!(event.target instanceof HTMLInputElement) || !event.target.matches('[data-battery-guns-count]')) return;
+  event.target.value = String(getGunCountForBattery(event.target.dataset.batteryGunsCount));
+  renderGunsGrid();
+  renderObservers();
+  renderMissionSelectors();
+  syncMarkerTargetOptions();
+  syncMapMarkersWithAvailableTargets();
+  persistLauncherSettings();
+  refreshMapOverlay();
+});
 missionBatterySelect?.addEventListener('change', () => {
+  renderMissionSelectors();
   persistLauncherSettings();
   refreshMapOverlay();
 });
@@ -1056,9 +1073,6 @@ document.addEventListener('keydown', (event) => {
   deleteSelectedManualMarker();
 });
 
-window.addEventListener('mouseup', () => {
-  dragMarkerId = null;
-});
 
 document.addEventListener('input', (event) => {
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) {
