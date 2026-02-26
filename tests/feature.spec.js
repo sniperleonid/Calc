@@ -247,6 +247,23 @@ test('map module supports three-point calibration and map profile save/load in m
   assert.equal(clean.getModule('batteries').list().length, 1);
 });
 
+test('three-point calibration treats map Y axis as inverted versus world north axis', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-y-axis' });
+  const map = workspace.getModule('map');
+
+  map.calibrateByThreePoints({
+    p0: { mapX: 0, mapY: 0 },
+    p1: { mapX: 0, mapY: 0 },
+    p2: { mapX: 0, mapY: 100 },
+    knownP0: { gameX: 1000, gameY: 2000 },
+    scaleMeters: 1000,
+  });
+
+  const calibration = map.getCalibration();
+  const expected = -Math.PI / 2;
+  assert.equal(Math.abs(calibration.model.angleRad - expected) < 1e-9, true);
+});
+
 
 test('ballistics module supports gun/projectile binding, interpolation, wind and sector checks', () => {
   const workspace = new TacticalWorkspace({ missionId: 'm-ballistics' });
