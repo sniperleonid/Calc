@@ -15,6 +15,7 @@ export class HudOverlay {
       { id: 'btn-logistics', label: 'Логистика', action: 'logistics.request', enabled: true },
       { id: 'btn-drone', label: 'Запуск дрона', action: 'observer.drone.launch', enabled: true }
     ];
+    this.applyRole('commander');
   }
 
   toggleVisibility() {
@@ -23,6 +24,9 @@ export class HudOverlay {
   }
 
   click(buttonId) {
+    if (!this.visible) {
+      throw new Error('HUD is hidden');
+    }
     const button = this.buttons.find((item) => item.id === buttonId);
     if (!button) throw new Error(`Unknown HUD button: ${buttonId}`);
     if (!button.enabled) throw new Error(`HUD button disabled: ${buttonId}`);
@@ -33,6 +37,22 @@ export class HudOverlay {
       action: button.action,
       label: button.label
     };
+  }
+
+  applyRole(role) {
+    const permissions = {
+      commander: ['btn-ready', 'btn-fire', 'btn-correction', 'btn-logistics', 'btn-drone'],
+      'battery-commander': ['btn-ready', 'btn-fire', 'btn-logistics'],
+      gunner: ['btn-ready', 'btn-fire'],
+      observer: ['btn-correction', 'btn-drone'],
+    };
+
+    const enabledButtons = new Set(permissions[role] ?? []);
+    this.buttons = this.buttons.map((button) => ({
+      ...button,
+      enabled: enabledButtons.has(button.id),
+    }));
+    return this.snapshot();
   }
 
   assignBatteryCommander(batteryId) {
