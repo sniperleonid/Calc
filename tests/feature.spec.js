@@ -6,6 +6,8 @@ import { CHANNELS, RealtimeGateway } from '../services/realtime-gateway/src/serv
 import { createLayerState, WEB_MAP_LAYERS } from '../apps/web-map/src/layers.js';
 import { PinnedGunnerPanel } from '../apps/fire-control/src/pinned-gunner-panel.js';
 import { CorrectionPanel } from '../apps/observer-console/src/correction-panel.js';
+import { HudOverlay } from '../apps/hud/src/hud-overlay.js';
+import { LobbyService, MAX_BATTERIES, MAX_GUNS_PER_BATTERY, MAX_OBSERVERS, ROLES } from '../services/realtime-gateway/src/lobby-service.js';
 
 test('mission journal stores events by mission', () => {
   const journal = new MissionJournal();
@@ -69,4 +71,46 @@ test('observer correction panel binds to assigned gun', () => {
 
   assert.equal(correction.channel, 'observer.correction');
   assert.equal(correction.payload.assignedGunId, 'gun-9');
+});
+
+test('hud overlay exposes command buttons over game window', () => {
+  const hud = new HudOverlay({ roomId: 'room-1', playerId: 'u-1' });
+
+  const snapshot = hud.snapshot();
+  assert.equal(snapshot.visible, true);
+  assert.equal(snapshot.buttons.length >= 5, true);
+
+  const click = hud.click('btn-drone');
+  assert.equal(click.action, 'observer.drone.launch');
+
+  assert.equal(hud.toggleVisibility(), false);
+});
+
+test('lobby service supports password protected online room and role assignments', () => {
+  const lobby = new LobbyService();
+  const created = lobby.createRoom({ roomId: 'alpha', password: 'p@ss', commanderUserId: 'cmd-1' });
+
+  assert.equal(created.limits.batteries, MAX_BATTERIES);
+  assert.equal(created.batteries.length, MAX_BATTERIES);
+  assert.equal(created.batteries[0].guns.length, MAX_GUNS_PER_BATTERY);
+
+  lobby.joinRoom({ roomId: 'alpha', password: 'p@ss', userId: 'obs-1' });
+  lobby.joinRoom({ roomId: 'alpha', password: 'p@ss', userId: 'gunner-1' });
+  lobby.joinRoom({ roomId: 'alpha', password: 'p@ss', userId: 'log-1' });
+
+  lobby.assignRole({ roomId: 'alpha', actorUserId: 'cmd-1', userId: 'obs-1', role: ROLES.OBSERVER });
+  lobby.assignRole({
+    roomId: 'alpha',
+    actorUserId: 'cmd-1',
+    userId: 'gunner-1',
+    role: ROLES.GUNNER,
+    batteryId: 'battery-1',
+    gunId: 'gun-1-1'
+  });
+  lobby.assignRole({ roomId: 'alpha', actorUserId: 'cmd-1', userId: 'log-1', role: ROLES.LOGISTICIAN });
+
+  const state = lobby.getRoom('alpha');
+  assert.equal(state.observers.length, 1);
+  assert.equal(state.limits.observers, MAX_OBSERVERS);
+  assert.equal(state.batteries[0].guns[0].operatorUserId, 'gunner-1');
 });
