@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { MissionJournal } from './mission-journal.js';
+import { logger } from './logger.js';
 
 export const CHANNELS = [
   'mission.assign',
@@ -17,6 +18,7 @@ export class RealtimeGateway {
 
   subscribe(channel, listener) {
     if (!CHANNELS.includes(channel)) {
+      logger.error('Subscribe failed for unsupported channel', { channel });
       throw new Error(`Unsupported channel: ${channel}`);
     }
     this.bus.on(channel, listener);
@@ -25,6 +27,7 @@ export class RealtimeGateway {
 
   publish(channel, payload) {
     if (!CHANNELS.includes(channel)) {
+      logger.error('Publish failed for unsupported channel', { channel });
       throw new Error(`Unsupported channel: ${channel}`);
     }
 
@@ -45,7 +48,12 @@ export class RealtimeGateway {
         break;
     }
 
-    this.bus.emit(channel, payload);
+    try {
+      this.bus.emit(channel, payload);
+    } catch (error) {
+      logger.error('Listener processing failed', { channel, error: String(error) });
+      throw error;
+    }
   }
 
   getMissionJournal(missionId) {

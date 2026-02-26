@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/feature.spec.js"
+    "test": "node --test tests/feature.spec.js",
+    "start": "node scripts/start-all.mjs",
+    "start:gateway": "node services/realtime-gateway/src/runtime.js",
+    "start:ballistics": "python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 --app-dir services/ballistics-core"
   }
 }

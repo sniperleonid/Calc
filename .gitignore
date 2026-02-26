@@ -1,3 +1,4 @@
 __pycache__/
 *.pyc
 data/protocols/*.json
+logs/*.log

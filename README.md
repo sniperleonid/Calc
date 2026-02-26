@@ -44,3 +44,25 @@ flowchart LR
 - **Сервис статусов орудий** представлен интерфейсом `apps/fire-control` и событиями в `services/realtime-gateway`.
 - **Сервис наблюдателей** реализуется через публикацию наблюдений и корректировок в `services/realtime-gateway`.
 - **Канал обмена (`services/realtime-gateway`)** маршрутизирует события между ролями и сервисами.
+
+
+## Быстрый запуск проекта (одним ярлыком)
+
+1. Установите зависимости Python и Node.js (FastAPI + uvicorn для API).
+2. Запустите общий старт:
+
+```bash
+npm run start
+```
+
+Альтернативно можно использовать ярлык:
+
+- Linux/macOS: `./start-calc.sh`
+- Windows: `start-calc.cmd`
+
+При запуске поднимаются:
+
+- `ballistics-core` API на `http://localhost:8000`
+- `realtime-gateway` runtime с журналированием событий
+
+Все сервисные логи сохраняются в папке `logs/`.
