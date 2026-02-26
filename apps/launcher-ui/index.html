@@ -58,21 +58,22 @@
       </section>
 
       <section class="tab-panel" data-panel="configuration">
-        <div class="section-layout">
+        <div class="section-layout single-column">
           <article class="card">
-            <h2 data-i18n="sectionConfigTitle">Общие орудийные расчёты</h2>
-            <label for="battery-count" data-i18n="batteryCount">Количество батарей</label>
-            <input id="battery-count" type="number" min="1" max="5" value="2" />
-            <label for="battery-height" data-i18n="batteryHeight">Высота батарей для поправок (м)</label>
-            <input id="battery-height" type="number" value="0" />
-            <label for="guns-per-battery" data-i18n="gunsPerBattery">Орудий в батарее</label>
-            <input id="guns-per-battery" type="number" min="1" max="5" value="2" />
+            <h2 data-i18n="sectionConfigTitle">Конфигурация секций</h2>
+            <label for="battery-count" data-i18n="batteryCount">Количество секций</label>
+            <select id="battery-count"></select>
+            <div id="section-config" class="stack"></div>
           </article>
           <article class="card">
             <h2 data-i18n="coordinatesTitle">Координаты орудий</h2>
             <p class="hint" data-i18n="gunsHint">Для каждого орудия укажите координаты карты.</p>
+            <p class="hint" id="total-guns"></p>
             <div id="guns-coordinates" class="stack"></div>
           </article>
+          <div class="card-actions">
+            <button class="btn" id="save-config" data-i18n="saveConfig">Сохранить</button>
+          </div>
         </div>
       </section>
 
