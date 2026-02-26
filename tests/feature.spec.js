@@ -152,7 +152,7 @@ test('tactical workspace keeps modules isolated and supports map workflows', () 
   });
 
   const missionSnapshot = workspace.saveMission();
-  assert.equal(missionSnapshot.modules.ballistics.length, 1);
+  assert.equal(missionSnapshot.modules.ballistics.guns.length, 1);
   assert.equal(missionSnapshot.modules.observers.length, 1);
   assert.equal(missionSnapshot.modules.map.markers.length, 1);
 
@@ -167,4 +167,101 @@ test('tactical workspace keeps modules isolated and supports map workflows', () 
   const uiSchema = cleanWorkspace.buildUiSchema();
   assert.equal(uiSchema.panels.length, 5);
   assert.equal(uiSchema.panels.find((panel) => panel.module === 'map').supports.includes('mission-save-load'), true);
+});
+
+
+test('ballistics module supports gun/projectile binding, interpolation, wind and sector checks', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-ballistics' });
+  const ballistics = workspace.getModule('ballistics');
+
+  ballistics.upsertManual({
+    id: 'gun-m777',
+    name: 'M777 #1',
+    type: 'M777',
+    position: { x: 0, y: 0 },
+    heading: 90,
+    sectorStart: 75,
+    sectorEnd: 105,
+    minElevationMil: 250,
+    maxElevationMil: 1300,
+  });
+
+  ballistics.registerProjectile({
+    id: 'm777-he',
+    label: 'M777 HE',
+    shellType: 'HE',
+    windDriftFactor: 0.45,
+  });
+
+  ballistics.bindProjectileToGun({ gunId: 'gun-m777', projectileId: 'm777-he' });
+  ballistics.bindTableToProjectile({
+    projectileId: 'm777-he',
+    chargeLevel: 5,
+    table: [
+      { range: 4000, elevation: 980, tof: 12, dElev: 14, tofPer100m: 0.12 },
+      { range: 6000, elevation: 870, tof: 17, dElev: 18, tofPer100m: 0.16 },
+      { range: 8000, elevation: 760, tof: 23, dElev: 25, tofPer100m: 0.22 },
+    ],
+  });
+
+  ballistics.setCalibration({
+    defaultElevationOffsetMil: 3,
+    byGunId: { 'gun-m777': 5 },
+  });
+
+  const solution = ballistics.calculateGunSolution({
+    gunId: 'gun-m777',
+    projectileId: 'm777-he',
+    distance: 5000,
+    bearing: 92,
+    heightDifference: 60,
+    wind: { speed: 6, direction: 130 },
+  });
+
+  assert.equal(solution.inRange, true);
+  assert.equal(solution.inSector, true);
+  assert.equal(solution.inElevationLimits, true);
+  assert.equal(solution.chargeLevel, 5);
+  assert.equal(solution.trajectory.length > 4, true);
+  assert.equal(solution.envelope.maxRange, 8000);
+  assert.equal(solution.elevationMil > 900 && solution.elevationMil < 1000, true);
+});
+
+test('battery can solve different weapons with own projectile tables', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-battery' });
+  const ballistics = workspace.getModule('ballistics');
+
+  ballistics.upsertManual({ id: 'gun-mortar', name: 'Mortar', type: '2B14', position: { x: 0, y: 0 }, heading: 180, sectorStart: 0, sectorEnd: 360, minElevationMil: 700, maxElevationMil: 1500 });
+  ballistics.upsertManual({ id: 'gun-m777', name: 'M777', type: 'M777', position: { x: 10, y: 10 }, heading: 95, sectorStart: 70, sectorEnd: 120, minElevationMil: 250, maxElevationMil: 1300 });
+
+  ballistics.registerProjectile({ id: 'mort-he', shellType: 'HE' });
+  ballistics.registerProjectile({ id: 'm777-smoke', shellType: 'SMOKE' });
+
+  ballistics.bindProjectileToGun({ gunId: 'gun-mortar', projectileId: 'mort-he' });
+  ballistics.bindProjectileToGun({ gunId: 'gun-m777', projectileId: 'm777-smoke' });
+
+  ballistics.bindTableToProjectile({ projectileId: 'mort-he', chargeLevel: 2, table: [
+    { range: 1200, elevation: 1260, tof: 16, dElev: 30, tofPer100m: 0.2 },
+    { range: 1800, elevation: 1120, tof: 21, dElev: 36, tofPer100m: 0.25 },
+  ]});
+
+  ballistics.bindTableToProjectile({ projectileId: 'm777-smoke', chargeLevel: 4, table: [
+    { range: 5000, elevation: 920, tof: 14, dElev: 18, tofPer100m: 0.15 },
+    { range: 7000, elevation: 810, tof: 20, dElev: 22, tofPer100m: 0.2 },
+  ]});
+
+  const results = ballistics.calculateBatterySolutions({
+    assignments: [
+      { gunId: 'gun-mortar', projectileId: 'mort-he' },
+      { gunId: 'gun-m777', projectileId: 'm777-smoke' },
+    ],
+    distance: 1500,
+    bearing: 100,
+    heightDifference: -20,
+    wind: { speed: 2, direction: 210 },
+  });
+
+  assert.equal(results.length, 2);
+  assert.equal(results[0].solution.inRange, true);
+  assert.equal(results[1].solution.inRange, false);
 });
