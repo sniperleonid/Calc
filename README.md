@@ -64,5 +64,8 @@ npm run start
 
 - `ballistics-core` API на `http://localhost:8000`
 - `realtime-gateway` runtime с журналированием событий
+- `ui-server` с интерфейсом запуска на `http://localhost:8080`
 
 Все сервисные логи сохраняются в папке `logs/`.
+
+Если Python не найден, UI и gateway всё равно стартуют, а в консоли появится понятная подсказка по установке.
