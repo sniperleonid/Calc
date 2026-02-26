@@ -215,6 +215,13 @@ select,
   align-items: end;
 }
 
+
+.battery-group-title {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
 .observer-row {
   border: 1px dashed color-mix(in srgb, var(--border), transparent 45%);
   border-radius: 8px;
