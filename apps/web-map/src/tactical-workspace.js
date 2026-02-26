@@ -64,11 +64,15 @@ function buildSectorEnvelope({ gun, charge, bearing }) {
       continue;
     }
 
+    // Arma Reforger ground grid: x=EAST, y=NORTH, 0° points to NORTH.
+    // Convert bearing to unit vector where ux=sin(a), uy=cos(a).
     const radians = (angle * Math.PI) / 180;
-    const x1 = gun.position.x + Math.cos(radians) * minRange;
-    const y1 = gun.position.y + Math.sin(radians) * minRange;
-    const x2 = gun.position.x + Math.cos(radians) * maxRange;
-    const y2 = gun.position.y + Math.sin(radians) * maxRange;
+    const ux = Math.sin(radians);
+    const uy = Math.cos(radians);
+    const x1 = gun.position.x + ux * minRange;
+    const y1 = gun.position.y + uy * minRange;
+    const x2 = gun.position.x + ux * maxRange;
+    const y2 = gun.position.y + uy * maxRange;
     points.push({ angle, min: { x: x1, y: y1 }, max: { x: x2, y: y2 } });
   }
 
