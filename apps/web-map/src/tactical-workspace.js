@@ -877,6 +877,7 @@ export class TacticalWorkspace {
       observers: this.modules.observers.list(),
       knownPoints: this.modules.knownPoints.list(),
       safetyData: this.modules.safetyData.toSnapshot(),
+      fireMissions: this.modules.fireMissions.toSnapshot(),
       savedAt: new Date().toISOString(),
     };
     return this.profileStorage.saveProfile(profileName, payload);
@@ -894,6 +895,7 @@ export class TacticalWorkspace {
     this.modules.observers.restore(payload.observers ?? []);
     this.modules.knownPoints.restore(payload.knownPoints ?? []);
     this.modules.safetyData.restore(payload.safetyData ?? {});
+    this.modules.fireMissions.restore(payload.fireMissions ?? {});
     return payload;
   }
 
