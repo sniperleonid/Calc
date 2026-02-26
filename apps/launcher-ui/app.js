@@ -19,7 +19,6 @@ function getGunCountForBattery(batteryId) {
   const key = String(batteryId);
   const raw = document.querySelector(`[data-battery-guns-count="${key}"]`)?.value
     ?? state.settings.batteryGunCounts?.[key]
-    ?? state.settings.gunsPerBattery
     ?? LIMITS.gunsPerBattery.min;
   return normalizeCount(raw, LIMITS.gunsPerBattery);
 }
@@ -29,7 +28,6 @@ function loadLauncherSettings() {
     const parsed = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
     return {
       batteryCount: normalizeCount(parsed.batteryCount, LIMITS.batteries),
-      gunsPerBattery: normalizeCount(parsed.gunsPerBattery, LIMITS.gunsPerBattery),
       observerCount: normalizeCount(parsed.observerCount, LIMITS.observers),
       batteryConfig: parsed.batteryConfig ?? {},
       batteryGunCounts: parsed.batteryGunCounts ?? {},
@@ -42,7 +40,6 @@ function loadLauncherSettings() {
   } catch {
     return {
       batteryCount: 1,
-      gunsPerBattery: 1,
       observerCount: 1,
       batteryConfig: {},
       batteryGunCounts: {},
@@ -68,8 +65,9 @@ const i18n = {
     tabHome: 'Главная', tabGlobal: 'Глобальные настройки', tabFire: 'Огневые задачи', tabMap: 'Карта', tabSafety: 'Безопасность и данные', tabSettings: 'Настройки',
     homeConfiguration: 'Глобальные настройки', homeFire: 'Огневые задачи', homeMap: 'Карта и интеграции', openApi: 'Открыть API', editGlobalData: 'Настроить орудия, батареи и наблюдателей',
     openMissionPlanner: 'Открыть вкладку задач', checkServices: 'Проверить сервисы', openMap: 'Открыть карту', mapUrl: 'URL внешней карты (необязательно)',
-    sectionConfigTitle: 'Параметры батарей и орудий', batteryCount: 'Количество батарей', batteryHeightHint: 'Высота задаётся отдельно для каждой батареи и применяется ко всем орудиям этой батареи.',
-    batteryHeight: 'Высота батареи (м)', gunsPerBattery: 'Орудий в батарее', coordinatesTitle: 'Координаты и наблюдатели', gunsHint: 'Для каждого орудия укажите координаты карты.',
+    sectionConfigTitle: 'Параметры батарей и орудий', batterySectionTitle: 'Батареи', gunsSectionTitle: 'Орудия', observerSectionTitle: 'Наблюдатели',
+    batteryCount: 'Количество батарей', batteryHeightHint: 'Высота задаётся отдельно для каждой батареи и применяется ко всем орудиям этой батареи.',
+    batteryHeight: 'Высота батареи (м)', gunsPerBattery: 'Орудий в батарее', batteryName: 'Название батареи', coordinatesTitle: 'Координаты и наблюдатели', gunsHint: 'Для каждого орудия укажите координаты карты.',
     observerTitle: 'Наблюдатели и привязки', observerCount: 'Количество наблюдателей (до 5)', observerBinding: 'Привязка наблюдателя',
     bindToGun: 'К орудию', bindToBattery: 'К батарее', gunnerHint: 'Все расчёты выполняются на основе глобальных настроек.',
     actionsTitle: 'Действия', calculate: 'Рассчитать', showMto: 'Показать MTO', logMission: 'Сохранить миссию',
@@ -96,8 +94,9 @@ const i18n = {
     tabHome: 'Home', tabGlobal: 'Global settings', tabFire: 'Fire Missions', tabMap: 'Map', tabSafety: 'Safety & Data', tabSettings: 'Settings',
     homeConfiguration: 'Global settings', homeFire: 'Fire Missions', homeMap: 'Map & integrations', openApi: 'Open API', editGlobalData: 'Configure guns, batteries and observers',
     openMissionPlanner: 'Open missions tab', checkServices: 'Check services', openMap: 'Open map', mapUrl: 'External map URL (optional)',
-    sectionConfigTitle: 'Battery and gun parameters', batteryCount: 'Battery count', batteryHeightHint: 'Each battery has an independent altitude applied to every gun in that battery.',
-    batteryHeight: 'Battery altitude (m)', gunsPerBattery: 'Guns per battery', coordinatesTitle: 'Coordinates and observers', gunsHint: 'Set map coordinates for each gun.',
+    sectionConfigTitle: 'Battery and gun parameters', batterySectionTitle: 'Batteries', gunsSectionTitle: 'Guns', observerSectionTitle: 'Observers',
+    batteryCount: 'Battery count', batteryHeightHint: 'Each battery has an independent altitude applied to every gun in that battery.',
+    batteryHeight: 'Battery altitude (m)', gunsPerBattery: 'Guns per battery', batteryName: 'Battery name', coordinatesTitle: 'Coordinates and observers', gunsHint: 'Set map coordinates for each gun.',
     observerTitle: 'Observers and bindings', observerCount: 'Observers count (up to 5)', observerBinding: 'Observer binding',
     bindToGun: 'To gun', bindToBattery: 'To battery', gunnerHint: 'All calculations use data from global settings.',
     actionsTitle: 'Actions', calculate: 'Calculate', showMto: 'Show MTO', logMission: 'Save mission',
@@ -130,7 +129,6 @@ const exportDataBtn = document.querySelector('#export-data');
 const languageSelect = document.querySelector('#language');
 const themeSelect = document.querySelector('#theme');
 const batteryCountInput = document.querySelector('#battery-count');
-const gunsPerBatteryInput = document.querySelector('#guns-per-battery');
 const observerCountInput = document.querySelector('#observer-count');
 const mapUrlInput = document.querySelector('#map-url');
 const missionBatterySelect = document.querySelector('#mission-battery');
@@ -254,10 +252,8 @@ function syncMapMarkersWithAvailableTargets() {
 
 function persistLauncherSettings() {
   state.settings.batteryCount = normalizeCount(batteryCountInput?.value, LIMITS.batteries);
-  state.settings.gunsPerBattery = normalizeCount(gunsPerBatteryInput?.value, LIMITS.gunsPerBattery);
   state.settings.observerCount = normalizeCount(observerCountInput?.value, LIMITS.observers);
   if (batteryCountInput) batteryCountInput.value = String(state.settings.batteryCount);
-  if (gunsPerBatteryInput) gunsPerBatteryInput.value = String(state.settings.gunsPerBattery);
   if (observerCountInput) observerCountInput.value = String(state.settings.observerCount);
 
   state.settings.batteryConfig = {};
@@ -325,7 +321,6 @@ function applyI18n() {
   themeSelect.value = state.theme;
   mapUrlInput.value = state.mapUrl;
   batteryCountInput.value = String(state.settings.batteryCount);
-  gunsPerBatteryInput.value = String(state.settings.gunsPerBattery);
   observerCountInput.value = String(state.settings.observerCount);
   renderGlobalConfig();
   renderGunsGrid();
@@ -384,15 +379,15 @@ function renderGlobalConfig() {
     const projectileOptions = projectileProfiles.map((profile) => `<option value="${profile}">${profile}</option>`).join('');
     const saved = state.settings.batteryConfig[String(b)] ?? {};
     row.innerHTML = `
-      <h3>${t('battery')} ${b}</h3>
+      <h3>${saved.title ?? `${t('battery')} ${b}`}</h3>
       <div class="pair pair-5">
         <input type="text" inputmode="numeric" data-height data-battery-height="${b}" placeholder="${t('batteryHeight')}" value="${saved.height ?? 0}" />
         <input type="number" min="1" max="5" data-battery-guns-count="${b}" placeholder="${t('gunsPerBattery')}" value="${getGunCountForBattery(b)}" />
         <select data-battery-gun-profile="${b}">${gunProfileOptions}</select>
         <select data-battery-projectile-profile="${b}">${projectileOptions}</select>
-        <input data-battery-title="${b}" value="${saved.title ?? `${t('battery')} ${b}`}" />
+        <input data-battery-title="${b}" placeholder="${t('batteryName')}" value="${saved.title ?? `${t('battery')} ${b}`}" />
       </div>
-      <p class="hint compact">${t('batteryHeight')} · ${t('gunProfile')} · ${t('projectileProfile')}</p>`;
+      <p class="hint compact">${t('batteryName')} · ${t('batteryHeight')} · ${t('gunsPerBattery')} · ${t('gunProfile')} · ${t('projectileProfile')}</p>`;
     container.append(row);
     row.querySelector(`[data-battery-gun-profile="${b}"]`).value = saved.gunProfile ?? gunProfiles[0];
     row.querySelector(`[data-battery-projectile-profile="${b}"]`).value = saved.projectileProfile ?? projectileProfiles[0];
@@ -403,14 +398,13 @@ function renderGunsGrid() {
   const container = document.querySelector('#guns-coordinates');
   if (!container) return;
   const batteries = Number(batteryCountInput?.value || 1);
-  const defaultGunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
   container.innerHTML = '';
   for (let b = 1; b <= batteries; b += 1) {
     const batteryTitle = document.createElement('h3');
     batteryTitle.className = 'battery-group-title';
-    batteryTitle.textContent = `${t('batteryShort')}${b}`;
+    batteryTitle.textContent = getBatteryDisplayName(b);
     container.append(batteryTitle);
-    const gunsPerBattery = getGunCountForBattery(b) || defaultGunsPerBattery;
+    const gunsPerBattery = getGunCountForBattery(b);
     for (let g = 1; g <= gunsPerBattery; g += 1) {
       const key = `${b}-${g}`;
       const saved = state.settings.gunCoords[key] ?? {};
@@ -449,7 +443,7 @@ function renderObservers() {
     const saved = state.settings.observerBindings[String(i)] ?? {};
     const savedCoords = state.settings.observerCoords?.[String(i)] ?? {};
     const row = document.createElement('div');
-    const batteryOptions = Array.from({ length: batteries }, (_, n) => `<option value="battery-${n + 1}">${t('batteryShort')}${n + 1}</option>`).join('');
+    const batteryOptions = Array.from({ length: batteries }, (_, n) => `<option value="battery-${n + 1}">${getBatteryDisplayName(n + 1)}</option>`).join('');
     const gunOptionMarkup = gunOptions.map((id) => {
       const [, batteryId, gunId] = id.split('-');
       return `<option value="${id}">${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}</option>`;
@@ -833,6 +827,38 @@ function latLngToMapPoint(lat, lng) {
   };
 }
 
+function getBatteryDisplayName(batteryId) {
+  const nameInput = document.querySelector(`[data-battery-title="${batteryId}"]`);
+  const fallback = `${t('battery')} ${batteryId}`;
+  return String(nameInput?.value || state.settings.batteryConfig?.[String(batteryId)]?.title || fallback).trim() || fallback;
+}
+
+function getMarkerTypeName(type) {
+  if (type === 'gun') return t('gun');
+  if (type === 'battery') return t('battery');
+  if (type === 'observer') return t('observer');
+  return type;
+}
+
+function buildMarkerLabel(type, markerId) {
+  if (type === 'gun' && markerId?.includes('-')) {
+    const [batteryId, gunId] = markerId.split('-');
+    return `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}`;
+  }
+  if (type === 'battery' && markerId) return getBatteryDisplayName(markerId);
+  if (type === 'observer' && markerId) return `${t('observer')} ${markerId}`;
+  return getMarkerTypeName(type);
+}
+
+function addPersistentLabel(marker, labelText) {
+  marker.bindTooltip(labelText, {
+    permanent: true,
+    direction: 'top',
+    offset: [0, -10],
+    className: 'map-label-tooltip',
+  });
+}
+
 function refreshMapOverlay() {
   if (!leafletMap) return;
   syncMapMarkersWithAvailableTargets();
@@ -855,6 +881,12 @@ function refreshMapOverlay() {
   const gunIds = selectedGun === 'all' ? Array.from({ length: gunsPerBattery }, (_, idx) => idx + 1) : [Number(selectedGun)];
 
   const legendRows = [];
+  const markerStyle = {
+    gun: '#00ff57',
+    observer: '#00d4ff',
+    battery: '#ffd84d',
+    target: '#ff7a1a',
+  };
   gunIds.forEach((gunId) => {
     const gunPoint = readXYFromInputs(
       document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
@@ -864,14 +896,16 @@ function refreshMapOverlay() {
     const { x: gunX, y: gunY } = gunPoint;
     const marker = window.L.circleMarker(mapPointToLatLng(gunX, gunY), {
       radius: 8,
-      color: '#00ff57',
-      fillColor: '#00ff57',
+      color: markerStyle.gun,
+      fillColor: markerStyle.gun,
       fillOpacity: 0.9,
       weight: 2,
     }).addTo(leafletMap);
-    marker.bindPopup(`${t('gun')} ${gunId}<br>X: ${gunX}, Y: ${gunY}`);
+    const gunLabel = `${t('batteryShort')}${battery}-${t('gunShort')}${gunId}`;
+    marker.bindPopup(`${gunLabel}<br>X: ${gunX}, Y: ${gunY}`);
+    addPersistentLabel(marker, gunLabel);
     gunMarkers.push(marker);
-    legendRows.push(`<p>${t('gun')} ${gunId}: X=${gunX}, Y=${gunY}</p>`);
+    legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.gun}"></span>${gunLabel}: X=${gunX}, Y=${gunY}</p>`);
   });
 
   const batteryGunPoints = Array.from({ length: gunsPerBattery }, (_, idx) => {
@@ -887,31 +921,34 @@ function refreshMapOverlay() {
     center.y /= batteryGunPoints.length;
     const batteryMarker = window.L.circleMarker(mapPointToLatLng(center.x, center.y), {
       radius: 11,
-      color: '#ffd84d',
-      fillColor: '#ffd84d',
+      color: markerStyle.battery,
+      fillColor: markerStyle.battery,
       fillOpacity: 0.25,
       weight: 3,
     }).addTo(leafletMap);
-    batteryMarker.bindPopup(`${t('battery')} ${battery}<br>X: ${center.x.toFixed(1)}, Y: ${center.y.toFixed(1)}`);
+    const batteryName = getBatteryDisplayName(battery);
+    batteryMarker.bindPopup(`${batteryName}<br>X: ${center.x.toFixed(1)}, Y: ${center.y.toFixed(1)}`);
+    addPersistentLabel(batteryMarker, batteryName);
     gunMarkers.push(batteryMarker);
-    legendRows.push(`<p>${t('battery')} ${battery}: X=${center.x.toFixed(1)}, Y=${center.y.toFixed(1)}</p>`);
+    legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.battery}"></span>${batteryName}: X=${center.x.toFixed(1)}, Y=${center.y.toFixed(1)}</p>`);
   }
 
   const targetPoint = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y')) ?? { x: 0, y: 0 };
   const targetX = targetPoint.x;
   const targetY = targetPoint.y;
   if (!targetMarker) {
-    targetMarker = window.L.marker(mapPointToLatLng(targetX, targetY)).addTo(leafletMap);
+    targetMarker = window.L.circleMarker(mapPointToLatLng(targetX, targetY), {
+      radius: 9,
+      color: markerStyle.target,
+      fillColor: markerStyle.target,
+      fillOpacity: 0.8,
+      weight: 3,
+    }).addTo(leafletMap);
   } else {
     targetMarker.setLatLng(mapPointToLatLng(targetX, targetY));
   }
   targetMarker.bindPopup(`${t('target')}: X=${targetX}, Y=${targetY}`);
-
-  const markerStyle = {
-    gun: '#ff4f4f',
-    observer: '#00d4ff',
-    battery: '#ffd84d',
-  };
+  addPersistentLabel(targetMarker, t('target'));
 
   const tools = getMapToolsSettings();
   (tools.manualMarkers ?? []).forEach((item) => {
@@ -924,7 +961,9 @@ function refreshMapOverlay() {
       fillOpacity: 0.9,
       weight: isSelected ? 4 : 2,
     }).addTo(leafletMap);
-    marker.bindPopup(`${item.type}${item.targetId ? ` ${item.targetId}` : ''}<br>X: ${Number(item.x).toFixed(1)}, Y: ${Number(item.y).toFixed(1)}`);
+    const markerTitle = buildMarkerLabel(item.type, item.targetId);
+    marker.bindPopup(`${markerTitle}<br>${getMarkerTypeName(item.type)}<br>X: ${Number(item.x).toFixed(1)}, Y: ${Number(item.y).toFixed(1)}`);
+    addPersistentLabel(marker, markerTitle);
     marker.on('click', () => {
       selectedManualMarkerId = item.id;
       refreshMapOverlay();
@@ -955,8 +994,12 @@ function refreshMapOverlay() {
   }
 
   if (mapLegend) {
-    const markerLegendRows = (getMapToolsSettings().manualMarkers ?? []).map((item) => `<p>${item.type}: X=${Number(item.x).toFixed(1)}, Y=${Number(item.y).toFixed(1)}</p>`);
-    mapLegend.innerHTML = [...legendRows, `<p>${t('target')}: X=${targetX}, Y=${targetY}</p>`, ...markerLegendRows].join('');
+    const markerLegendRows = (getMapToolsSettings().manualMarkers ?? []).map((item) => {
+      const color = markerStyle[item.type] ?? '#ffffff';
+      const label = buildMarkerLabel(item.type, item.targetId);
+      return `<p><span class="legend-dot" style="--dot-color:${color}"></span>${label}: X=${Number(item.x).toFixed(1)}, Y=${Number(item.y).toFixed(1)}</p>`;
+    });
+    mapLegend.innerHTML = [...legendRows, `<p><span class="legend-dot" style="--dot-color:${markerStyle.target}"></span>${t('target')}: X=${targetX}, Y=${targetY}</p>`, ...markerLegendRows].join('');
   }
 }
 
@@ -1042,11 +1085,9 @@ document.querySelector('#open-map')?.addEventListener('click', openMap);
 document.querySelector('#calculate-btn')?.addEventListener('click', calculateFire);
 document.querySelector('#show-mto')?.addEventListener('click', showMto);
 document.querySelector('#save-mission')?.addEventListener('click', saveMission);
-[batteryCountInput, gunsPerBatteryInput].forEach((input) => input?.addEventListener('change', () => {
+batteryCountInput?.addEventListener('change', () => {
   state.settings.batteryCount = normalizeCount(batteryCountInput?.value, LIMITS.batteries);
-  state.settings.gunsPerBattery = normalizeCount(gunsPerBatteryInput?.value, LIMITS.gunsPerBattery);
   if (batteryCountInput) batteryCountInput.value = String(state.settings.batteryCount);
-  if (gunsPerBatteryInput) gunsPerBatteryInput.value = String(state.settings.gunsPerBattery);
   renderGlobalConfig();
   renderGunsGrid();
   renderObservers();
@@ -1055,7 +1096,7 @@ document.querySelector('#save-mission')?.addEventListener('click', saveMission);
   syncMapMarkersWithAvailableTargets();
   persistLauncherSettings();
   refreshMapOverlay();
-}));
+});
 observerCountInput?.addEventListener('change', () => {
   state.settings.observerCount = normalizeCount(observerCountInput?.value, LIMITS.observers);
   if (observerCountInput) observerCountInput.value = String(state.settings.observerCount);
