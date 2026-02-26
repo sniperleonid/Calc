@@ -97,30 +97,24 @@ function calculateHorizontalDistance(pos1, pos2) {
 
 /**
  * Calculate bearing from pos1 to pos2
- * Matches original spreadsheet calculation where X/Y are swapped
+ * Coordinate system: X = East, Y = North, 0° = North, 90° = East
  * @param {Position3D} pos1 - Origin position (mortar)
  * @param {Position3D} pos2 - Target position
  * @returns {number} Bearing in degrees (0-360)
  */
 function calculateBearing(pos1, pos2) {
-    // In the game coordinate system, X and Y are swapped compared to standard math
-    // Use Y as horizontal and X as vertical for correct bearing
-    const dy = pos2.x - pos1.x;
-    const dx = pos2.y - pos1.y;
-    
-    let angle = Math.atan2(dy, dx);
-    angle *= 180 / Math.PI;
-    
-    if (angle < 0) {
-        angle = 360 + angle;
-    }
-    
+    const dx = pos2.x - pos1.x;
+    const dy = pos2.y - pos1.y;
+    let angle = Math.atan2(dx, dy) * 180 / Math.PI;
+    if (angle < 0) angle += 360;
     return parseFloat(angle.toFixed(1));
 }
 
 /**
  * Parse grid coordinate string to meters
  * Supports both 3-digit (100m precision) and 4-digit (10m precision) formats
+ * 3-digit grids return the center of a 100m cell (+50m on each axis).
+ * 4-digit grids return the lower-left corner of a 10m cell.
  * @param {string} gridString - Grid coordinate (e.g., "058/071", "058,071", "0584/0713", or "0584,0713")
  * @returns {Object} Object with x and y in meters
  * @throws {Error} If format is invalid
@@ -212,12 +206,12 @@ function parsePosition(position) {
 function applyCorrectionAlongBearing(targetPos, bearing, leftRight, addDrop) {
     const bearingRad = (bearing * Math.PI) / 180;
     
-    // Apply corrections in swapped coordinate system
+    // Apply corrections in Arma Reforger coordinate system (X=East, Y=North)
     // Bearing vector in X,Y coords is: (sin(bearing), cos(bearing))
     // Add/Drop along bearing: negative = away (Add/farther), positive = towards (Drop/closer)
     // Left/Right perpendicular: negative = left, positive = right
-    const correctedX = targetPos.x + addDrop * Math.sin(bearingRad) + leftRight * Math.cos(bearingRad);
-    const correctedY = targetPos.y + addDrop * Math.cos(bearingRad) - leftRight * Math.sin(bearingRad);
+    const correctedX = targetPos.x + addDrop * Math.sin(bearingRad) + leftRight * Math.sin(bearingRad + Math.PI / 2);
+    const correctedY = targetPos.y + addDrop * Math.cos(bearingRad) + leftRight * Math.cos(bearingRad + Math.PI / 2);
     
     return {
         x: correctedX,
@@ -330,8 +324,8 @@ function generateFireForEffectPattern(mortarPos, targetPos, patternType, numRoun
     for (let i = 0; i < numRounds; i++) {
         const offset = (i * spacing) - centerOffset;
         positions.push({
-            x: targetPos.x + offset * Math.cos(directionRad),
-            y: targetPos.y + offset * Math.sin(directionRad),
+            x: targetPos.x + offset * Math.sin(directionRad),
+            y: targetPos.y + offset * Math.cos(directionRad),
             z: targetPos.z
         });
     }
@@ -366,8 +360,8 @@ function generateCircularPattern(targetPos, radius, numRounds) {
         for (let i = 0; i < 2; i++) {
             const angle = i * Math.PI;
             positions.push({
-                x: targetPos.x + radius * Math.cos(angle),
-                y: targetPos.y + radius * Math.sin(angle),
+                x: targetPos.x + radius * Math.sin(angle),
+                y: targetPos.y + radius * Math.cos(angle),
                 z: targetPos.z
             });
         }
@@ -379,8 +373,8 @@ function generateCircularPattern(targetPos, radius, numRounds) {
         for (let i = 0; i < outerRounds; i++) {
             const angle = i * angleStep;
             positions.push({
-                x: targetPos.x + radius * Math.cos(angle),
-                y: targetPos.y + radius * Math.sin(angle),
+                x: targetPos.x + radius * Math.sin(angle),
+                y: targetPos.y + radius * Math.cos(angle),
                 z: targetPos.z
             });
         }
@@ -397,8 +391,8 @@ function generateCircularPattern(targetPos, radius, numRounds) {
         for (let i = 0; i < innerRounds; i++) {
             const angle = i * innerAngleStep;
             positions.push({
-                x: targetPos.x + innerRadius * Math.cos(angle),
-                y: targetPos.y + innerRadius * Math.sin(angle),
+                x: targetPos.x + innerRadius * Math.sin(angle),
+                y: targetPos.y + innerRadius * Math.cos(angle),
                 z: targetPos.z
             });
         }
@@ -408,8 +402,8 @@ function generateCircularPattern(targetPos, radius, numRounds) {
         for (let i = 0; i < outerRounds; i++) {
             const angle = i * outerAngleStep + angleOffset;
             positions.push({
-                x: targetPos.x + radius * Math.cos(angle),
-                y: targetPos.y + radius * Math.sin(angle),
+                x: targetPos.x + radius * Math.sin(angle),
+                y: targetPos.y + radius * Math.cos(angle),
                 z: targetPos.z
             });
         }
