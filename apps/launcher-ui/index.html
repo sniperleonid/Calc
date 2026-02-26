@@ -128,10 +128,6 @@
         <div class="section-layout map-layout">
           <article class="card map-card">
             <h2 data-i18n="mapPanelTitle">Тактическая карта (Leaflet)</h2>
-            <div class="card-actions inline-actions">
-              <button class="btn ghost" id="map-sync" data-i18n="syncMap">Синхронизировать с координатами</button>
-              <button class="btn ghost" id="map-center-target" data-i18n="centerTarget">Центр на цели</button>
-            </div>
             <div id="leaflet-map" class="leaflet-map" aria-label="Leaflet tactical map"></div>
           </article>
           <article class="card">
@@ -144,9 +140,9 @@
             <select id="marker-tool">
               <option value="gun" data-i18n="markerToolGun">Активное орудие</option>
               <option value="observer" data-i18n="markerToolObserver">Наблюдатель</option>
-              <option value="battery" data-i18n="markerToolBattery">Батарея</option>
-              <option value="calibration" data-i18n="markerToolCalibration">Калибровочная точка</option>
             </select>
+            <label for="marker-target" data-i18n="markerTargetLabel">Активная цель метки</label>
+            <select id="marker-target"></select>
             <label for="calibration-mode">
               <input id="calibration-mode" type="checkbox" />
               <span data-i18n="calibrationMode">Режим калибровки</span>
@@ -178,10 +174,8 @@
               <div class="pair pair-4">
                 <input id="cal-p2-x" type="number" placeholder="P2 X" />
                 <input id="cal-p2-y" type="number" placeholder="P2 Y" />
-                <input id="cal-known-p0-x" type="number" placeholder="Known P0 X" />
-                <input id="cal-known-p0-y" type="number" placeholder="Known P0 Y" />
+                <input id="cal-scale-meters" type="number" min="0" step="0.1" placeholder="P1-P2 scale (m)" />
               </div>
-              <input id="cal-scale-meters" type="number" min="0" step="0.1" placeholder="P1-P2 scale (m)" />
             </div>
             <div class="card-actions inline-actions">
               <button class="btn ghost" id="apply-calibration" data-i18n="applyCalibration">Применить калибровку</button>
