@@ -88,7 +88,8 @@ const i18n = {
     invalidCoordinates: 'Ошибка координат: разрешены только цифры и допустимые пределы',
     mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту',
     calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
-    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolBattery: 'Активная батарея', markerToolObserver: 'Наблюдатель', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
+    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolBattery: 'Активная батарея', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
+    rulerPointSet: 'Точка линейки установлена', rulerMeasurement: 'Линейка', rulerCleared: 'Линейка удалена', coordsCaptured: 'Координаты точки',
     calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', clearManualMarkers: 'Очистить ручные метки'
   },
   en: {
@@ -117,7 +118,8 @@ const i18n = {
     invalidCoordinates: 'Coordinate error: only digits and allowed limits are accepted',
     mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image',
     calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
-    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolBattery: 'Active battery', markerToolObserver: 'Observer', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
+    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolBattery: 'Active battery', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
+    rulerPointSet: 'Ruler point set', rulerMeasurement: 'Ruler', rulerCleared: 'Ruler removed', coordsCaptured: 'Picked coordinates',
     calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', clearManualMarkers: 'Clear manual markers'
   },
 };
@@ -156,9 +158,11 @@ function getMapToolsSettings() {
     imageBounds: { minX: 0, minY: 0, maxX: 4000, maxY: 4000 },
     imageDataUrl: '',
     manualMarkers: [],
+    ruler: { p1: null, p2: null },
     calibrationPoints: [],
     calibrationMode: false,
     nextCalibrationPointIndex: 0,
+    calibrationScaleMeters: '',
   };
   return { ...defaults, ...state.settings.mapTools, calibration: { ...defaults.calibration, ...(state.settings.mapTools?.calibration ?? {}) }, imageBounds: { ...defaults.imageBounds, ...(state.settings.mapTools?.imageBounds ?? {}) } };
 }
@@ -170,9 +174,12 @@ const gunMarkers = [];
 const manualMarkers = [];
 const calibrationMarkers = [];
 let calibrationLine;
+let rulerLine;
+let rulerEndpointMarkers = [];
 let selectedManualMarkerId = null;
 let rightMousePanState = null;
 let lastOverlayBoundsKey = '';
+let lastCtrlPressAt = 0;
 
 function parseCoordinateValue(rawValue) {
   const text = String(rawValue ?? '').trim();
@@ -605,6 +612,7 @@ function initializeMap() {
 }
 
 function getActiveMarkerTargets(type) {
+  if (type === 'ruler' || type === 'coords') return [];
   if (type === 'observer') {
     const observers = Number(observerCountInput?.value || 1);
     return Array.from({ length: observers }, (_, idx) => {
@@ -634,8 +642,37 @@ function getActiveMarkerTargets(type) {
 
 function syncMarkerTargetOptions() {
   if (!markerTargetSelect || !markerToolSelect) return;
-  const targets = getActiveMarkerTargets(markerToolSelect.value || 'gun');
+  const type = markerToolSelect.value || 'gun';
+  const targets = getActiveMarkerTargets(type);
+  const previousValue = markerTargetSelect.value;
   markerTargetSelect.innerHTML = targets.map((target) => `<option value="${target.id}">${target.label}</option>`).join('');
+  markerTargetSelect.disabled = targets.length === 0;
+  if (!targets.length) return;
+  if (targets.some((target) => target.id === previousValue)) {
+    markerTargetSelect.value = previousValue;
+    return;
+  }
+  if (type === 'battery') {
+    markerTargetSelect.value = missionBatterySelect?.value || targets[0].id;
+    return;
+  }
+  if (type === 'gun') {
+    const batteryId = missionBatterySelect?.value || '1';
+    const gunId = missionGunSelect?.value || 'all';
+    const activeGunTarget = gunId !== 'all' ? `${batteryId}-${gunId}` : '';
+    markerTargetSelect.value = targets.some((target) => target.id === activeGunTarget) ? activeGunTarget : targets[0].id;
+    return;
+  }
+  markerTargetSelect.value = targets[0].id;
+}
+
+function formatRulerMeasurement(p1, p2) {
+  const dx = Number(p2.x) - Number(p1.x);
+  const dy = Number(p2.y) - Number(p1.y);
+  const distance = Math.hypot(dx, dy);
+  const azimuthDeg = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
+  const azimuthMils = (azimuthDeg * 6400) / 360;
+  return `${t('rulerMeasurement')}: D=${distance.toFixed(2)}m Az=${azimuthDeg.toFixed(2)}°/${azimuthMils.toFixed(1)} mil`;
 }
 
 function getNextCalibrationPointLabel() {
@@ -696,7 +733,30 @@ function onMapDoubleClick(event) {
   event.originalEvent?.stopPropagation?.();
   const tools = getMapToolsSettings();
   if (!tools.calibrationMode) {
-    addManualMarker(markerToolSelect?.value || 'gun', event.latlng);
+    const toolType = markerToolSelect?.value || 'gun';
+    if (toolType === 'coords') {
+      const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+      if (mapToolsOutput) mapToolsOutput.textContent = `${t('coordsCaptured')}: X=${point.x.toFixed(2)}, Y=${point.y.toFixed(2)}`;
+      return;
+    }
+    if (toolType === 'ruler') {
+      const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+      const nextRuler = tools.ruler?.p1 && tools.ruler?.p2
+        ? { p1: point, p2: null }
+        : tools.ruler?.p1
+          ? { p1: tools.ruler.p1, p2: point }
+          : { p1: point, p2: null };
+      state.settings.mapTools = { ...tools, ruler: nextRuler };
+      persistLauncherSettings();
+      refreshMapOverlay();
+      if (mapToolsOutput) {
+        mapToolsOutput.textContent = nextRuler.p1 && nextRuler.p2
+          ? formatRulerMeasurement(nextRuler.p1, nextRuler.p2)
+          : `${t('rulerPointSet')}: P1 (${point.x.toFixed(2)}, ${point.y.toFixed(2)})`;
+      }
+      return;
+    }
+    addManualMarker(toolType, event.latlng);
     return;
   }
 
@@ -717,7 +777,7 @@ function onMapDoubleClick(event) {
 }
 
 function hydrateMapToolsForm() {
-  const { imageBounds, calibration, calibrationMode } = getMapToolsSettings();
+  const { imageBounds, calibration, calibrationMode, calibrationScaleMeters } = getMapToolsSettings();
   const fill = (id, val) => { const el = document.querySelector(id); if (el) el.value = String(val ?? ''); };
   fill('#map-min-x', imageBounds.minX);
   fill('#map-min-y', imageBounds.minY);
@@ -725,7 +785,7 @@ function hydrateMapToolsForm() {
   fill('#map-max-y', imageBounds.maxY);
   fill('#cal-p0-x', calibration.originWorldX);
   fill('#cal-p0-y', calibration.originWorldY);
-  fill('#cal-scale-meters', '');
+  fill('#cal-scale-meters', calibrationScaleMeters);
   if (calibrationControls) calibrationControls.classList.toggle('hidden', !calibrationMode);
   if (calibrationModeButton) calibrationModeButton.textContent = calibrationMode ? t('calibrationModeToggleActive') : t('calibrationModeToggle');
 }
@@ -778,6 +838,7 @@ function applyCalibration() {
   const scale = scaleMeters / mapDistance;
   state.settings.mapTools = {
     ...tools,
+    calibrationScaleMeters: scaleMeters,
     calibration: { scale, originMapX: p0x, originMapY: p0y, originWorldX: p0x, originWorldY: p0y },
   };
   persistLauncherSettings();
@@ -791,6 +852,7 @@ function resetCalibration() {
     calibration: { scale: 1, originMapX: 0, originMapY: 0, originWorldX: 0, originWorldY: 0 },
     calibrationPoints: [],
     nextCalibrationPointIndex: 0,
+    calibrationScaleMeters: '',
   };
   persistLauncherSettings();
   refreshMapOverlay();
@@ -819,7 +881,7 @@ function clearMapImage() {
 
 function clearManualMarkers() {
   selectedManualMarkerId = null;
-  state.settings.mapTools = { ...getMapToolsSettings(), manualMarkers: [], calibrationPoints: [], nextCalibrationPointIndex: 0 };
+  state.settings.mapTools = { ...getMapToolsSettings(), manualMarkers: [], calibrationPoints: [], nextCalibrationPointIndex: 0, ruler: { p1: null, p2: null } };
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = t('clearManualMarkers');
@@ -902,6 +964,8 @@ function getMarkerTypeName(type) {
   if (type === 'gun') return t('gun');
   if (type === 'battery') return t('battery');
   if (type === 'observer') return t('observer');
+  if (type === 'ruler') return t('markerToolRuler');
+  if (type === 'coords') return t('markerToolCoords');
   return type;
 }
 
@@ -933,11 +997,17 @@ function refreshMapOverlay() {
   gunMarkers.length = 0;
   manualMarkers.forEach((marker) => marker.remove());
   manualMarkers.length = 0;
+  rulerEndpointMarkers.forEach((marker) => marker.remove());
+  rulerEndpointMarkers = [];
   calibrationMarkers.forEach((marker) => marker.remove());
   calibrationMarkers.length = 0;
   if (calibrationLine) {
     calibrationLine.remove();
     calibrationLine = null;
+  }
+  if (rulerLine) {
+    rulerLine.remove();
+    rulerLine = null;
   }
 
   const battery = Number(missionBatterySelect?.value || 1);
@@ -1020,6 +1090,24 @@ function refreshMapOverlay() {
   addPersistentLabel(targetMarker, t('target'));
 
   const tools = getMapToolsSettings();
+  if (tools.ruler?.p1) {
+    const p1Marker = window.L.marker(mapPointToLatLng(tools.ruler.p1.x, tools.ruler.p1.y), {
+      icon: window.L.divIcon({ className: 'calibration-cross', html: '<span>R1</span>' }),
+    }).addTo(leafletMap);
+    rulerEndpointMarkers.push(p1Marker);
+  }
+  if (tools.ruler?.p2) {
+    const p2Marker = window.L.marker(mapPointToLatLng(tools.ruler.p2.x, tools.ruler.p2.y), {
+      icon: window.L.divIcon({ className: 'calibration-cross', html: '<span>R2</span>' }),
+    }).addTo(leafletMap);
+    rulerEndpointMarkers.push(p2Marker);
+    rulerLine = window.L.polyline([
+      mapPointToLatLng(tools.ruler.p1.x, tools.ruler.p1.y),
+      mapPointToLatLng(tools.ruler.p2.x, tools.ruler.p2.y),
+    ], { color: '#ffe066', dashArray: '7 7' }).addTo(leafletMap);
+    const rulerText = formatRulerMeasurement(tools.ruler.p1, tools.ruler.p2);
+    rulerLine.bindTooltip(rulerText, { permanent: true, direction: 'center', className: 'map-label-tooltip' });
+  }
   (tools.manualMarkers ?? []).forEach((item) => {
     const color = markerStyle[item.type] ?? '#ffffff';
     const isSelected = selectedManualMarkerId === item.id;
@@ -1192,14 +1280,30 @@ document.addEventListener('change', (event) => {
 });
 missionBatterySelect?.addEventListener('change', () => {
   renderMissionSelectors();
+  syncMarkerTargetOptions();
   persistLauncherSettings();
   refreshMapOverlay();
 });
 missionGunSelect?.addEventListener('change', () => {
+  syncMarkerTargetOptions();
   persistLauncherSettings();
   refreshMapOverlay();
 });
 document.addEventListener('keydown', (event) => {
+  if (event.key === 'Control') {
+    const now = Date.now();
+    if (now - lastCtrlPressAt <= 400) {
+      const tools = getMapToolsSettings();
+      if (tools.ruler?.p1 || tools.ruler?.p2) {
+        state.settings.mapTools = { ...tools, ruler: { p1: null, p2: null } };
+        persistLauncherSettings();
+        refreshMapOverlay();
+        if (mapToolsOutput) mapToolsOutput.textContent = t('rulerCleared');
+      }
+    }
+    lastCtrlPressAt = now;
+    return;
+  }
   if (event.key !== 'Delete') return;
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) return;
   deleteSelectedManualMarker();
@@ -1214,6 +1318,15 @@ document.addEventListener('input', (event) => {
       shouldRefreshMap = true;
     }
     if (event.target.matches('[data-height]')) sanitizeIntegerInput(event.target, HEIGHT_LIMITS);
+    if (event.target.matches('[data-battery-title], [data-observer-name]')) {
+      shouldRefreshMap = true;
+      renderMissionSelectors();
+      syncMarkerTargetOptions();
+    }
+    if (event.target.matches('#cal-scale-meters')) {
+      const tools = getMapToolsSettings();
+      state.settings.mapTools = { ...tools, calibrationScaleMeters: event.target.value };
+    }
   }
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) {
     persistLauncherSettings();
