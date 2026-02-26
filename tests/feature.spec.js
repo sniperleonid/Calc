@@ -9,6 +9,10 @@ import { CorrectionPanel } from '../apps/observer-console/src/correction-panel.j
 import { HudOverlay } from '../apps/hud/src/hud-overlay.js';
 import { LobbyService, MAX_BATTERIES, MAX_GUNS_PER_BATTERY, MAX_OBSERVERS, ROLES } from '../services/realtime-gateway/src/lobby-service.js';
 import { TacticalWorkspace } from '../apps/web-map/src/tactical-workspace.js';
+import { FileMapProfileStorage } from '../apps/web-map/src/map-profile-storage.js';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 test('mission journal stores events by mission', () => {
   const journal = new MissionJournal();
@@ -95,6 +99,9 @@ test('hud overlay exposes command buttons over game window', () => {
   const click = hud.click('btn-drone');
   assert.equal(click.action, 'observer.drone.launch');
 
+  hud.applyRole('observer');
+  assert.equal(hud.snapshot().buttons.find((button) => button.id === 'btn-fire').enabled, false);
+
   hud.assignGuns(['gun-1-2', 'gun-1-4']);
   assert.equal(hud.shouldReceiveMission({ gunId: 'gun-1-2' }), true);
   assert.equal(hud.shouldReceiveMission({ gunId: 'gun-2-1' }), false);
@@ -134,12 +141,28 @@ test('lobby service supports password protected online room and role assignments
   });
   lobby.assignRole({ roomId: 'alpha', actorUserId: 'cmd-1', userId: 'log-1', role: ROLES.LOGISTICIAN });
 
+  lobby.joinRoom({ roomId: 'alpha', password: 'p@ss', userId: 'bat-cmd-1' });
+  lobby.assignRole({
+    roomId: 'alpha',
+    actorUserId: 'cmd-1',
+    userId: 'bat-cmd-1',
+    role: ROLES.BATTERY_COMMANDER,
+    batteryId: 'battery-2'
+  });
+
+  lobby.setMissionSnapshot({ roomId: 'alpha', actorUserId: 'cmd-1', snapshot: { missionId: 'm-alpha', modules: { map: { markers: [] } } } });
+  const missionForObserver = lobby.getMissionForUser({ roomId: 'alpha', userId: 'obs-1' });
+  const missionForBatteryCommander = lobby.getMissionForUser({ roomId: 'alpha', userId: 'bat-cmd-1' });
+
   const state = lobby.getRoom('alpha');
   assert.equal(state.observers.length, 1);
   assert.equal(state.limits.observers, MAX_OBSERVERS);
   assert.equal(state.batteries[0].guns[0].operatorUserId, 'gunner-1');
   assert.equal(state.batteries[0].guns[1].operatorUserId, 'gunner-1');
   assert.equal(state.members.find((member) => member.userId === 'obs-1').assignment.observerBinding.batteryId, 'battery-1');
+  assert.equal(missionForObserver.permissions.canEditMissions, false);
+  assert.equal(missionForBatteryCommander.permissions.canEditMissions, true);
+  assert.equal(missionForObserver.missionSnapshot.missionId, 'm-alpha');
 });
 
 test('tactical workspace keeps modules isolated and supports map workflows', () => {
@@ -191,8 +214,37 @@ test('tactical workspace keeps modules isolated and supports map workflows', () 
   assert.equal(cleanWorkspace.getModule('map').getCalibration().model.offsetY, 5520);
 
   const uiSchema = cleanWorkspace.buildUiSchema();
-  assert.equal(uiSchema.panels.length, 5);
+  assert.equal(uiSchema.panels.length, 7);
   assert.equal(uiSchema.panels.find((panel) => panel.module === 'map').supports.includes('mission-save-load'), true);
+});
+
+test('map module supports three-point calibration and map profile save/load in maps folder', async () => {
+  const mapsRoot = await mkdtemp(join(tmpdir(), 'calc-maps-'));
+  const profileStorage = new FileMapProfileStorage({ mapsDir: mapsRoot });
+  const workspace = new TacticalWorkspace({ missionId: 'm-profile', profileStorage });
+
+  workspace.getModule('map').loadMap({ assetId: 'field-2', fileName: 'field-2.png', width: 2048, height: 2048 });
+  workspace.getModule('map').calibrateByThreePoints({
+    p0: { mapX: 100, mapY: 100 },
+    p1: { mapX: 200, mapY: 100 },
+    p2: { mapX: 500, mapY: 100 },
+    knownP0: { gameX: 1000, gameY: 2000 },
+    scaleMeters: 900,
+  });
+  workspace.getModule('ballistics').placeOnMap({ id: 'gun-active-1', name: 'Gun', position: { x: 230, y: 100 } });
+  workspace.getModule('batteries').placeOnMap({ id: 'battery-1', name: 'Battery 1', position: { x: 260, y: 140 } });
+  workspace.getModule('targets').placeOnMap({ id: 'target-1', name: 'Target 1', position: { x: 500, y: 500 } });
+  workspace.getModule('observers').placeOnMap({ id: 'observer-1', name: 'Observer 1', position: { x: 450, y: 300 } });
+
+  await workspace.saveMapProfile('mission-profile');
+  const list = await profileStorage.listProfiles();
+  assert.equal(list.includes('mission-profile'), true);
+
+  const clean = new TacticalWorkspace({ missionId: 'm-clean', profileStorage });
+  await clean.loadMapProfile('mission-profile');
+  assert.equal(clean.getModule('map').getCalibration().controlPoints.length, 3);
+  assert.equal(clean.getModule('targets').list().length, 1);
+  assert.equal(clean.getModule('batteries').list().length, 1);
 });
 
 

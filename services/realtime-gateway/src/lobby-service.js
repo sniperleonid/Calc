@@ -4,6 +4,7 @@ const MAX_OBSERVERS = 10;
 
 const ROLES = Object.freeze({
   COMMANDER: 'commander',
+  BATTERY_COMMANDER: 'battery-commander',
   GUNNER: 'gunner',
   OBSERVER: 'observer',
   LOGISTICIAN: 'logistician',
@@ -35,7 +36,8 @@ export class LobbyService {
       members: new Map([[commanderUserId, { userId: commanderUserId, role: ROLES.COMMANDER }]]),
       roleAssignments: new Map([[commanderUserId, ROLES.COMMANDER]]),
       batteries: this.#createBatteries(batteriesCount),
-      observers: new Set()
+      observers: new Set(),
+      missionSnapshot: null,
     };
 
     this.rooms.set(roomId, room);
@@ -93,9 +95,10 @@ export class LobbyService {
       };
     }
 
-    if (role === ROLES.GUNNER) {
+    if (role === ROLES.GUNNER || role === ROLES.BATTERY_COMMANDER) {
       const targetGunIds = gunIds.length ? gunIds : gunId ? [gunId] : [];
-      if (!batteryId || (!isBatteryCommander && !targetGunIds.length)) {
+      const isBatteryLeader = isBatteryCommander || role === ROLES.BATTERY_COMMANDER;
+      if (!batteryId || (!isBatteryLeader && !targetGunIds.length)) {
         throw new Error('batteryId and gunId are required for gunner');
       }
 
@@ -112,12 +115,12 @@ export class LobbyService {
         gun.operatorUserId = userId;
       }
 
-      if (isBatteryCommander) {
+      if (isBatteryLeader) {
         battery.commanderUserId = userId;
       }
 
       member.assignment = {
-        scope: isBatteryCommander ? 'battery' : 'guns',
+        scope: isBatteryLeader ? 'battery' : 'guns',
         batteryId,
         gunIds: targetGunIds
       };
@@ -131,6 +134,53 @@ export class LobbyService {
     room.roleAssignments.set(userId, role);
 
     return this.getRoom(roomId);
+  }
+
+  setMissionSnapshot({ roomId, actorUserId, snapshot }) {
+    const room = this.#requireRoom(roomId);
+    if (actorUserId !== room.commanderUserId) {
+      throw new Error('Only commander can update mission snapshot');
+    }
+    if (!snapshot) {
+      throw new Error('snapshot is required');
+    }
+    room.missionSnapshot = structuredClone(snapshot);
+    return this.getMissionForUser({ roomId, userId: actorUserId });
+  }
+
+  getMissionForUser({ roomId, userId }) {
+    const room = this.#requireRoom(roomId);
+    const member = room.members.get(userId);
+    if (!member) {
+      throw new Error(`User is not in room: ${userId}`);
+    }
+
+    return {
+      roomId,
+      userId,
+      role: member.role,
+      assignment: member.assignment ?? null,
+      permissions: this.#permissionsByRole(member),
+      missionSnapshot: room.missionSnapshot ? structuredClone(room.missionSnapshot) : null,
+    };
+  }
+
+  #permissionsByRole(member) {
+    if (!member?.role) {
+      return { canEditMap: false, canEditRoles: false, canEditMissions: false, canPlaceUnits: false, canPlaceObservers: false };
+    }
+
+    switch (member.role) {
+      case ROLES.COMMANDER:
+        return { canEditMap: true, canEditRoles: true, canEditMissions: true, canPlaceUnits: true, canPlaceObservers: true };
+      case ROLES.BATTERY_COMMANDER:
+      case ROLES.GUNNER:
+        return { canEditMap: false, canEditRoles: false, canEditMissions: true, canPlaceUnits: true, canPlaceObservers: false };
+      case ROLES.OBSERVER:
+        return { canEditMap: false, canEditRoles: false, canEditMissions: false, canPlaceUnits: false, canPlaceObservers: true };
+      default:
+        return { canEditMap: false, canEditRoles: false, canEditMissions: false, canPlaceUnits: false, canPlaceObservers: false };
+    }
   }
 
   getRoom(roomId) {

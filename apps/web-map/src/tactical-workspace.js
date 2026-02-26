@@ -376,6 +376,48 @@ class MapModule {
     this.tools = [];
   }
 
+  calibrateByThreePoints({ p0, p1, p2, knownP0, scaleMeters }) {
+    if (!p0 || !p1 || !p2 || !knownP0 || !Number.isFinite(scaleMeters) || scaleMeters <= 0) {
+      throw new Error('Three-point calibration requires p0, p1, p2, knownP0 and scaleMeters');
+    }
+
+    const rulerDx = p2.mapX - p1.mapX;
+    const rulerDy = p2.mapY - p1.mapY;
+    const rulerPixels = Math.hypot(rulerDx, rulerDy);
+    if (!Number.isFinite(rulerPixels) || rulerPixels === 0) {
+      throw new Error('P1/P2 ruler points must have non-zero distance');
+    }
+
+    const metersPerPixel = scaleMeters / rulerPixels;
+    const angleRad = Math.atan2(rulerDy, rulerDx);
+    const cos = Math.cos(angleRad);
+    const sin = Math.sin(angleRad);
+
+    const model = {
+      metersPerPixel,
+      angleRad,
+      originMapX: p0.mapX,
+      originMapY: p0.mapY,
+      originWorldX: knownP0.gameX,
+      originWorldY: knownP0.gameY,
+      transform: {
+        a: cos * metersPerPixel,
+        b: -sin * metersPerPixel,
+        c: sin * metersPerPixel,
+        d: cos * metersPerPixel,
+      },
+    };
+
+    return this.setCalibration({
+      controlPoints: [
+        { id: 'P0', ...p0, gameX: knownP0.gameX, gameY: knownP0.gameY },
+        { id: 'P1', ...p1 },
+        { id: 'P2', ...p2 },
+      ],
+      model,
+    });
+  }
+
   loadMap({ assetId, fileName, width, height }) {
     this.mapAsset = {
       assetId,
@@ -471,10 +513,13 @@ class MapModule {
 }
 
 export class TacticalWorkspace {
-  constructor({ missionId, idGenerator = makeIdGenerator('unit') }) {
+  constructor({ missionId, idGenerator = makeIdGenerator('unit'), profileStorage = null }) {
     this.missionId = missionId;
+    this.profileStorage = profileStorage;
     this.modules = {
       ballistics: new BallisticsModule({ createId: idGenerator }),
+      batteries: new UnitModule({ moduleId: 'batteries', createId: idGenerator }),
+      targets: new UnitModule({ moduleId: 'targets', createId: idGenerator }),
       observers: new UnitModule({ moduleId: 'observers', createId: idGenerator }),
       logistics: new UnitModule({ moduleId: 'logistics', createId: idGenerator }),
       infantry: new UnitModule({ moduleId: 'infantry', createId: idGenerator }),
@@ -497,6 +542,8 @@ export class TacticalWorkspace {
       savedAt: new Date().toISOString(),
       modules: {
         ballistics: this.modules.ballistics.toSnapshot(),
+        batteries: this.modules.batteries.list(),
+        targets: this.modules.targets.list(),
         observers: this.modules.observers.list(),
         logistics: this.modules.logistics.list(),
         infantry: this.modules.infantry.list(),
@@ -512,6 +559,8 @@ export class TacticalWorkspace {
 
     this.missionId = snapshot.missionId ?? this.missionId;
     this.modules.ballistics.restore(snapshot.modules.ballistics);
+    this.modules.batteries.restore(snapshot.modules.batteries);
+    this.modules.targets.restore(snapshot.modules.targets);
     this.modules.observers.restore(snapshot.modules.observers);
     this.modules.logistics.restore(snapshot.modules.logistics);
     this.modules.infantry.restore(snapshot.modules.infantry);
@@ -544,6 +593,37 @@ export class TacticalWorkspace {
     return this.modules.map.getCalibration();
   }
 
+  async saveMapProfile(profileName) {
+    if (!this.profileStorage) {
+      throw new Error('Map profile storage is not configured');
+    }
+    const payload = {
+      missionId: this.missionId,
+      map: this.modules.map.toSnapshot(),
+      ballistics: {
+        guns: this.modules.ballistics.list(),
+      },
+      batteries: this.modules.batteries.list(),
+      targets: this.modules.targets.list(),
+      observers: this.modules.observers.list(),
+      savedAt: new Date().toISOString(),
+    };
+    return this.profileStorage.saveProfile(profileName, payload);
+  }
+
+  async loadMapProfile(profileName) {
+    if (!this.profileStorage) {
+      throw new Error('Map profile storage is not configured');
+    }
+    const payload = await this.profileStorage.loadProfile(profileName);
+    this.modules.map.restore(payload.map ?? {});
+    this.modules.ballistics.restore({ guns: payload.ballistics?.guns ?? [] });
+    this.modules.batteries.restore(payload.batteries ?? []);
+    this.modules.targets.restore(payload.targets ?? []);
+    this.modules.observers.restore(payload.observers ?? []);
+    return payload;
+  }
+
   buildUiSchema() {
     return {
       missionId: this.missionId,
@@ -561,10 +641,17 @@ export class TacticalWorkspace {
             'calibration-adjustment',
           ],
         },
+        { id: 'battery-input', title: 'Батареи', module: 'batteries', supports: ['manual', 'map-placement'] },
+        { id: 'target-input', title: 'Цели', module: 'targets', supports: ['manual', 'map-placement'] },
         { id: 'observer-input', title: 'Наблюдатели', module: 'observers', supports: ['manual', 'map-placement'] },
         { id: 'logistics-input', title: 'Логистика', module: 'logistics', supports: ['manual', 'map-placement'] },
         { id: 'infantry-input', title: 'Пехота', module: 'infantry', supports: ['manual', 'map-placement'] },
-        { id: 'map-controls', title: 'Карта и калибровка', module: 'map', supports: ['map-upload', 'calibration-save-load', 'mission-save-load'] },
+        {
+          id: 'map-controls',
+          title: 'Карта и калибровка',
+          module: 'map',
+          supports: ['map-upload', 'calibration-save-load', 'calibration-3-point', 'mission-save-load', 'map-profile-save-load'],
+        },
       ],
     };
   }
