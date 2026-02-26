@@ -60,7 +60,7 @@ test('pinned gunner panel emits ready and ammo actions', () => {
   assert.equal(ammo.payload.gunId, 'gun-1');
 });
 
-test('observer correction panel binds to assigned gun', () => {
+test('observer correction panel binds to gun or battery', () => {
   const panel = new CorrectionPanel({ observerId: 'obs-1' });
   panel.bindGun('gun-9');
   const correction = panel.createCorrection({
@@ -72,6 +72,17 @@ test('observer correction panel binds to assigned gun', () => {
 
   assert.equal(correction.channel, 'observer.correction');
   assert.equal(correction.payload.assignedGunId, 'gun-9');
+
+  panel.bindBattery('battery-3');
+  const batteryCorrection = panel.createCorrection({
+    missionId: 'm-2',
+    range: 'short',
+    direction: 'right',
+    mode: 'repeat'
+  });
+
+  assert.equal(batteryCorrection.payload.assignedBatteryId, 'battery-3');
+  assert.equal(batteryCorrection.payload.assignedGunId, null);
 });
 
 test('hud overlay exposes command buttons over game window', () => {
@@ -83,6 +94,13 @@ test('hud overlay exposes command buttons over game window', () => {
 
   const click = hud.click('btn-drone');
   assert.equal(click.action, 'observer.drone.launch');
+
+  hud.assignGuns(['gun-1-2', 'gun-1-4']);
+  assert.equal(hud.shouldReceiveMission({ gunId: 'gun-1-2' }), true);
+  assert.equal(hud.shouldReceiveMission({ gunId: 'gun-2-1' }), false);
+
+  hud.assignBatteryCommander('battery-1');
+  assert.equal(hud.shouldReceiveMission({ batteryId: 'battery-1' }), true);
 
   assert.equal(hud.toggleVisibility(), false);
 });
@@ -99,14 +117,20 @@ test('lobby service supports password protected online room and role assignments
   lobby.joinRoom({ roomId: 'alpha', password: 'p@ss', userId: 'gunner-1' });
   lobby.joinRoom({ roomId: 'alpha', password: 'p@ss', userId: 'log-1' });
 
-  lobby.assignRole({ roomId: 'alpha', actorUserId: 'cmd-1', userId: 'obs-1', role: ROLES.OBSERVER });
+  lobby.assignRole({
+    roomId: 'alpha',
+    actorUserId: 'cmd-1',
+    userId: 'obs-1',
+    role: ROLES.OBSERVER,
+    observerBinding: { batteryId: 'battery-1' }
+  });
   lobby.assignRole({
     roomId: 'alpha',
     actorUserId: 'cmd-1',
     userId: 'gunner-1',
     role: ROLES.GUNNER,
     batteryId: 'battery-1',
-    gunId: 'gun-1-1'
+    gunIds: ['gun-1-1', 'gun-1-2']
   });
   lobby.assignRole({ roomId: 'alpha', actorUserId: 'cmd-1', userId: 'log-1', role: ROLES.LOGISTICIAN });
 
@@ -114,6 +138,8 @@ test('lobby service supports password protected online room and role assignments
   assert.equal(state.observers.length, 1);
   assert.equal(state.limits.observers, MAX_OBSERVERS);
   assert.equal(state.batteries[0].guns[0].operatorUserId, 'gunner-1');
+  assert.equal(state.batteries[0].guns[1].operatorUserId, 'gunner-1');
+  assert.equal(state.members.find((member) => member.userId === 'obs-1').assignment.observerBinding.batteryId, 'battery-1');
 });
 
 test('tactical workspace keeps modules isolated and supports map workflows', () => {

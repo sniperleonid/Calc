@@ -1,6 +1,6 @@
 const MAX_BATTERIES = 5;
 const MAX_GUNS_PER_BATTERY = 5;
-const MAX_OBSERVERS = 5;
+const MAX_OBSERVERS = 10;
 
 const ROLES = Object.freeze({
   COMMANDER: 'commander',
@@ -55,7 +55,17 @@ export class LobbyService {
     return this.getRoom(roomId);
   }
 
-  assignRole({ roomId, actorUserId, userId, role, batteryId = null, gunId = null }) {
+  assignRole({
+    roomId,
+    actorUserId,
+    userId,
+    role,
+    batteryId = null,
+    gunId = null,
+    gunIds = [],
+    observerBinding = null,
+    isBatteryCommander = false
+  }) {
     const room = this.#requireRoom(roomId);
     if (actorUserId !== room.commanderUserId) {
       throw new Error('Only commander can assign roles');
@@ -77,23 +87,44 @@ export class LobbyService {
         throw new Error(`Room supports up to ${MAX_OBSERVERS} observers`);
       }
       room.observers.add(userId);
+      member.assignment = {
+        scope: 'observer',
+        observerBinding: this.#normalizeObserverBinding(room, observerBinding)
+      };
     }
 
     if (role === ROLES.GUNNER) {
-      if (!batteryId || !gunId) {
+      const targetGunIds = gunIds.length ? gunIds : gunId ? [gunId] : [];
+      if (!batteryId || (!isBatteryCommander && !targetGunIds.length)) {
         throw new Error('batteryId and gunId are required for gunner');
       }
 
       const battery = room.batteries.find((item) => item.batteryId === batteryId);
       if (!battery) throw new Error(`Unknown battery: ${batteryId}`);
 
-      const gun = battery.guns.find((item) => item.gunId === gunId);
-      if (!gun) throw new Error(`Unknown gun: ${gunId}`);
-      if (gun.operatorUserId) {
-        throw new Error(`Gun already assigned: ${gunId}`);
+      for (const currentGunId of targetGunIds) {
+        const gun = battery.guns.find((item) => item.gunId === currentGunId);
+        if (!gun) throw new Error(`Unknown gun: ${currentGunId}`);
+        if (gun.operatorUserId) {
+          throw new Error(`Gun already assigned: ${currentGunId}`);
+        }
+
+        gun.operatorUserId = userId;
       }
 
-      gun.operatorUserId = userId;
+      if (isBatteryCommander) {
+        battery.commanderUserId = userId;
+      }
+
+      member.assignment = {
+        scope: isBatteryCommander ? 'battery' : 'guns',
+        batteryId,
+        gunIds: targetGunIds
+      };
+    }
+
+    if (!member.assignment) {
+      member.assignment = { scope: role };
     }
 
     member.role = role;
@@ -125,6 +156,7 @@ export class LobbyService {
   #createBatteries(count) {
     return Array.from({ length: count }, (_, batteryIndex) => ({
       batteryId: `battery-${batteryIndex + 1}`,
+      commanderUserId: null,
       guns: Array.from({ length: MAX_GUNS_PER_BATTERY }, (_, gunIndex) => ({
         gunId: `gun-${batteryIndex + 1}-${gunIndex + 1}`,
         operatorUserId: null
@@ -141,7 +173,36 @@ export class LobbyService {
           gun.operatorUserId = null;
         }
       }
+
+      if (battery.commanderUserId === userId) {
+        battery.commanderUserId = null;
+      }
     }
+
+    const member = room.members.get(userId);
+    if (member) member.assignment = null;
+  }
+
+  #normalizeObserverBinding(room, observerBinding) {
+    if (!observerBinding) return null;
+    const { batteryId = null, gunId = null } = observerBinding;
+    if (!batteryId && !gunId) return null;
+    if (batteryId && gunId) {
+      throw new Error('Observer binding must target either battery or gun');
+    }
+
+    if (batteryId) {
+      const battery = room.batteries.find((item) => item.batteryId === batteryId);
+      if (!battery) throw new Error(`Unknown battery: ${batteryId}`);
+      return { batteryId, gunId: null };
+    }
+
+    for (const battery of room.batteries) {
+      const gun = battery.guns.find((item) => item.gunId === gunId);
+      if (gun) return { batteryId: battery.batteryId, gunId };
+    }
+
+    throw new Error(`Unknown gun: ${gunId}`);
   }
 
   #requireRoom(roomId) {
