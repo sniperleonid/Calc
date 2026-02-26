@@ -221,3 +221,32 @@ select,
   border-radius: 8px;
   padding: 8px;
 }
+
+
+.output {
+  margin-top: 12px;
+  min-height: 180px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  white-space: pre-wrap;
+  background: color-mix(in srgb, var(--panel), transparent 10%);
+}
+
+.battery-config-row {
+  border: 1px dashed color-mix(in srgb, var(--border), transparent 45%);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.battery-config-row h3 {
+  margin: 0 0 8px;
+}
+
+.compact {
+  margin-top: 8px;
+}
+
+.pair-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
