@@ -10,6 +10,7 @@ function loadLauncherSettings() {
       batteryConfig: parsed.batteryConfig ?? {},
       gunCoords: parsed.gunCoords ?? {},
       observerBindings: parsed.observerBindings ?? {},
+      observerCoords: parsed.observerCoords ?? {},
       mission: parsed.mission ?? {},
       mapTools: parsed.mapTools ?? {},
     };
@@ -21,6 +22,7 @@ function loadLauncherSettings() {
       batteryConfig: {},
       gunCoords: {},
       observerBindings: {},
+      observerCoords: {},
       mission: {},
       mapTools: {},
     };
@@ -58,8 +60,8 @@ const i18n = {
     target: 'Цель', openedExternalMap: 'Открыта внешняя карта',
     rolesTitle: 'Роли и рабочие места', rolesHint: 'Быстрые переходы к интерфейсам по ролям.', roleCommander: 'Командир (Карта)', roleGunner: 'Наводчик (Огневые задачи)', roleObserver: 'Наблюдатель (Корректировки)', roleLogistics: 'Логистика и данные',
     mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту',
-    calibrationHint: 'Калибровка: включите режим, двойным щелчком поставьте P0/P1/P2, задайте координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
-    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolObserver: 'Наблюдатель', markerToolBattery: 'Батарея', markerToolCalibration: 'Калибровочная точка', markerPlaced: 'Метка добавлена',
+    calibrationHint: 'Калибровка: включите режим, двойным щелчком поставьте P0/P1/P2. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
+    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolObserver: 'Наблюдатель', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
     calibrationMode: 'Режим калибровки', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', clearManualMarkers: 'Очистить ручные метки'
   },
   en: {
@@ -85,8 +87,8 @@ const i18n = {
     target: 'Target', openedExternalMap: 'Opened external map',
     rolesTitle: 'Roles & workspaces', rolesHint: 'Quick jump to interfaces by role.', roleCommander: 'Commander (Map)', roleGunner: 'Gunner (Fire missions)', roleObserver: 'Observer (Corrections)', roleLogistics: 'Logistics & data',
     mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image',
-    calibrationHint: 'Calibration: enable mode, double-click to set P0/P1/P2, then enter known P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
-    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolObserver: 'Observer', markerToolBattery: 'Battery', markerToolCalibration: 'Calibration point', markerPlaced: 'Marker added',
+    calibrationHint: 'Calibration: enable mode, double-click to set P0/P1/P2, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
+    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolObserver: 'Observer', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
     calibrationMode: 'Calibration mode', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', clearManualMarkers: 'Clear manual markers'
   },
 };
@@ -111,6 +113,7 @@ const mapLegend = document.querySelector('#map-legend');
 const mapToolsOutput = document.querySelector('#map-tools-output');
 const mapImageUploadInput = document.querySelector('#map-image-upload');
 const markerToolSelect = document.querySelector('#marker-tool');
+const markerTargetSelect = document.querySelector('#marker-target');
 const calibrationModeInput = document.querySelector('#calibration-mode');
 
 const t = (key) => i18n[state.lang][key] ?? key;
@@ -136,6 +139,8 @@ const gunMarkers = [];
 const manualMarkers = [];
 const calibrationMarkers = [];
 let calibrationLine;
+let selectedManualMarkerId = null;
+let rightMousePanState = null;
 
 function persistLauncherSettings() {
   state.settings.batteryCount = Number(batteryCountInput?.value || 1);
@@ -172,6 +177,15 @@ function persistLauncherSettings() {
     };
   });
 
+  state.settings.observerCoords = {};
+  document.querySelectorAll('[data-observer-x]').forEach((input) => {
+    const key = input.dataset.observerX;
+    state.settings.observerCoords[key] = {
+      x: input.value,
+      y: document.querySelector(`[data-observer-y="${key}"]`)?.value ?? '',
+    };
+  });
+
   state.settings.mapTools = {
     ...getMapToolsSettings(),
   };
@@ -202,6 +216,7 @@ function applyI18n() {
   renderObservers();
   renderMissionSelectors();
   hydrateMapToolsForm();
+  syncMarkerTargetOptions();
   refreshMapOverlay();
 }
 
@@ -298,11 +313,12 @@ function renderObservers() {
   container.innerHTML = '';
   for (let i = 1; i <= observers; i += 1) {
     const saved = state.settings.observerBindings[String(i)] ?? {};
+    const savedCoords = state.settings.observerCoords?.[String(i)] ?? {};
     const row = document.createElement('div');
     const batteryOptions = Array.from({ length: batteries }, (_, n) => `<option value="battery-${n + 1}">${t('battery')} ${n + 1}</option>`).join('');
     const gunOptionMarkup = gunOptions.map((id) => `<option value="${id}">${id}</option>`).join('');
     row.className = 'observer-row';
-    row.innerHTML = `<label data-observer-index="${i}">${t('observer')} ${i}: ${t('observerBinding')}</label><div class="pair"><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><select data-observer-gun="${i}">${gunOptionMarkup}</select><select data-observer-battery="${i}">${batteryOptions}</select></div>`;
+    row.innerHTML = `<label data-observer-index="${i}">${t('observer')} ${i}: ${t('observerBinding')}</label><div class="pair"><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><select data-observer-gun="${i}">${gunOptionMarkup}</select><select data-observer-battery="${i}">${batteryOptions}</select></div><div class="pair"><input data-observer-x="${i}" type="number" placeholder="${t('x')}" value="${savedCoords.x ?? ''}" /><input data-observer-y="${i}" type="number" placeholder="${t('y')}" value="${savedCoords.y ?? ''}" /></div>`;
     container.append(row);
     row.querySelector(`[data-observer-mode="${i}"]`).value = saved.mode ?? 'gun';
     row.querySelector(`[data-observer-gun="${i}"]`).value = saved.gunId ?? gunOptions[0];
@@ -379,10 +395,52 @@ function saveMission() {
 
 function initializeMap() {
   if (leafletMap || !window.L) return;
-  leafletMap = window.L.map('leaflet-map', { zoomControl: true, doubleClickZoom: false }).setView([0, 0], 2);
-  leafletMap.on('click', onMapClick);
+  leafletMap = window.L.map('leaflet-map', { zoomControl: true, doubleClickZoom: false, crs: window.L.CRS.Simple }).setView([0, 0], 0);
+  leafletMap.dragging.disable();
   leafletMap.on('dblclick', onMapDoubleClick);
+
+  const container = leafletMap.getContainer();
+  container.addEventListener('contextmenu', (event) => event.preventDefault());
+  container.addEventListener('mousedown', (event) => {
+    if (event.button !== 2) return;
+    rightMousePanState = { x: event.clientX, y: event.clientY };
+  });
+  container.addEventListener('mousemove', (event) => {
+    if (!rightMousePanState) return;
+    const dx = event.clientX - rightMousePanState.x;
+    const dy = event.clientY - rightMousePanState.y;
+    rightMousePanState = { x: event.clientX, y: event.clientY };
+    leafletMap.panBy([-dx, -dy], { animate: false });
+  });
+  window.addEventListener('mouseup', () => {
+    rightMousePanState = null;
+  });
+
   setTimeout(() => leafletMap.invalidateSize(), 0);
+}
+
+function getActiveMarkerTargets(type) {
+  if (type === 'observer') {
+    const observers = Number(observerCountInput?.value || 1);
+    return Array.from({ length: observers }, (_, idx) => ({ id: String(idx + 1), label: `${t('observer')} ${idx + 1}` }));
+  }
+
+  const batteries = Number(batteryCountInput?.value || 1);
+  const gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
+  const targets = [];
+  for (let b = 1; b <= batteries; b += 1) {
+    for (let g = 1; g <= gunsPerBattery; g += 1) {
+      const key = `${b}-${g}`;
+      targets.push({ id: key, label: `${t('battery')} ${b}, ${t('gun')} ${g}` });
+    }
+  }
+  return targets;
+}
+
+function syncMarkerTargetOptions() {
+  if (!markerTargetSelect || !markerToolSelect) return;
+  const targets = getActiveMarkerTargets(markerToolSelect.value || 'gun');
+  markerTargetSelect.innerHTML = targets.map((target) => `<option value="${target.id}">${target.label}</option>`).join('');
 }
 
 function getNextCalibrationPointLabel() {
@@ -392,21 +450,35 @@ function getNextCalibrationPointLabel() {
 
 function addManualMarker(type, latlng) {
   const point = latLngToMapPoint(latlng.lat, latlng.lng);
+  const targetId = markerTargetSelect?.value || '';
+
+  if (type === 'gun' && targetId) {
+    const gunXInput = document.querySelector(`[data-gun-x="${targetId}"]`);
+    const gunYInput = document.querySelector(`[data-gun-y="${targetId}"]`);
+    if (gunXInput) gunXInput.value = point.x.toFixed(2);
+    if (gunYInput) gunYInput.value = point.y.toFixed(2);
+  }
+
+  if (type === 'observer' && targetId) {
+    const observerXInput = document.querySelector(`[data-observer-x="${targetId}"]`);
+    const observerYInput = document.querySelector(`[data-observer-y="${targetId}"]`);
+    if (observerXInput) observerXInput.value = point.x.toFixed(2);
+    if (observerYInput) observerYInput.value = point.y.toFixed(2);
+  }
+
   const tools = getMapToolsSettings();
-  const marker = { id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`, type, x: point.x, y: point.y };
-  state.settings.mapTools = { ...tools, manualMarkers: [...(tools.manualMarkers ?? []), marker] };
+  const marker = { id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`, type, targetId, x: point.x, y: point.y };
+  state.settings.mapTools = { ...tools, manualMarkers: [...(tools.manualMarkers ?? []).filter((item) => !(item.type === type && item.targetId === targetId)), marker] };
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = `${t('markerPlaced')}: ${type} (${marker.x.toFixed(1)}, ${marker.y.toFixed(1)})`;
 }
 
-function onMapClick(event) {
-  if (calibrationModeInput?.checked) return;
-  addManualMarker(markerToolSelect?.value || 'gun', event.latlng);
-}
-
 function onMapDoubleClick(event) {
-  if (!calibrationModeInput?.checked) return;
+  if (!calibrationModeInput?.checked) {
+    addManualMarker(markerToolSelect?.value || 'gun', event.latlng);
+    return;
+  }
   const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
   const tools = getMapToolsSettings();
   const current = [...(tools.calibrationPoints ?? [])];
@@ -439,12 +511,18 @@ function upsertMapOverlay() {
     mapImageOverlay.remove();
     mapImageOverlay = null;
   }
-  if (!tools.imageDataUrl) return;
+  if (!tools.imageDataUrl) {
+    leafletMap.setMaxBounds(null);
+    return;
+  }
   const { minX, minY, maxX, maxY } = tools.imageBounds;
   const southWest = mapPointToLatLng(Number(minX), Number(minY));
   const northEast = mapPointToLatLng(Number(maxX), Number(maxY));
-  mapImageOverlay = window.L.imageOverlay(tools.imageDataUrl, [southWest, northEast], { opacity: 0.85 });
+  const bounds = window.L.latLngBounds(southWest, northEast);
+  mapImageOverlay = window.L.imageOverlay(tools.imageDataUrl, bounds, { opacity: 0.85 });
   mapImageOverlay.addTo(leafletMap);
+  leafletMap.setMaxBounds(bounds.pad(0.05));
+  leafletMap.fitBounds(bounds);
 }
 
 function applyCalibration() {
@@ -454,11 +532,9 @@ function applyCalibration() {
   const p1y = Number(document.querySelector('#cal-p1-y')?.value);
   const p2x = Number(document.querySelector('#cal-p2-x')?.value);
   const p2y = Number(document.querySelector('#cal-p2-y')?.value);
-  const knownP0X = Number(document.querySelector('#cal-known-p0-x')?.value);
-  const knownP0Y = Number(document.querySelector('#cal-known-p0-y')?.value);
   const scaleMeters = Number(document.querySelector('#cal-scale-meters')?.value);
 
-  if (![p0x, p0y, p1x, p1y, p2x, p2y, knownP0X, knownP0Y, scaleMeters].every(Number.isFinite)) {
+  if (![p0x, p0y, p1x, p1y, p2x, p2y, scaleMeters].every(Number.isFinite)) {
     if (mapToolsOutput) mapToolsOutput.textContent = t('invalidCalibration');
     return;
   }
@@ -472,7 +548,7 @@ function applyCalibration() {
   const scale = scaleMeters / mapDistance;
   state.settings.mapTools = {
     ...getMapToolsSettings(),
-    calibration: { scale, originMapX: p0x, originMapY: p0y, originWorldX: knownP0X, originWorldY: knownP0Y },
+    calibration: { scale, originMapX: p0x, originMapY: p0y, originWorldX: p0x, originWorldY: p0y },
   };
   persistLauncherSettings();
   refreshMapOverlay();
@@ -511,6 +587,7 @@ function clearMapImage() {
 }
 
 function clearManualMarkers() {
+  selectedManualMarkerId = null;
   state.settings.mapTools = { ...getMapToolsSettings(), manualMarkers: [], calibrationPoints: [] };
   persistLauncherSettings();
   refreshMapOverlay();
@@ -586,20 +663,49 @@ function refreshMapOverlay() {
   const markerStyle = {
     gun: '#ff4f4f',
     observer: '#00d4ff',
-    battery: '#ffc107',
-    calibration: '#ff66ff',
   };
 
-  (getMapToolsSettings().manualMarkers ?? []).forEach((item) => {
+  const tools = getMapToolsSettings();
+  (tools.manualMarkers ?? []).forEach((item) => {
     const color = markerStyle[item.type] ?? '#ffffff';
+    const isSelected = selectedManualMarkerId === item.id;
     const marker = window.L.circleMarker(mapPointToLatLng(Number(item.x), Number(item.y)), {
-      radius: 8,
+      radius: isSelected ? 10 : 8,
       color,
       fillColor: color,
       fillOpacity: 0.9,
-      weight: 2,
+      weight: isSelected ? 4 : 2,
     }).addTo(leafletMap);
-    marker.bindPopup(`${item.type}<br>X: ${Number(item.x).toFixed(1)}, Y: ${Number(item.y).toFixed(1)}`);
+    marker.bindPopup(`${item.type}${item.targetId ? ` ${item.targetId}` : ''}<br>X: ${Number(item.x).toFixed(1)}, Y: ${Number(item.y).toFixed(1)}`);
+    marker.on('click', () => {
+      selectedManualMarkerId = item.id;
+      refreshMapOverlay();
+    });
+    marker.on('mousedown', (event) => {
+      if (event.originalEvent?.button !== 0) return;
+      selectedManualMarkerId = item.id;
+      refreshMapOverlay();
+    });
+    marker.on('mousemove', (event) => {
+      if (selectedManualMarkerId !== item.id || !event.originalEvent?.buttons || (event.originalEvent.buttons & 1) !== 1) return;
+      const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+      const nextMarkers = (tools.manualMarkers ?? []).map((entry) => (entry.id === item.id ? { ...entry, x: point.x, y: point.y } : entry));
+      state.settings.mapTools = { ...tools, manualMarkers: nextMarkers };
+      if (item.type === 'gun' && item.targetId) {
+        const gunXInput = document.querySelector(`[data-gun-x="${item.targetId}"]`);
+        const gunYInput = document.querySelector(`[data-gun-y="${item.targetId}"]`);
+        if (gunXInput) gunXInput.value = point.x.toFixed(2);
+        if (gunYInput) gunYInput.value = point.y.toFixed(2);
+      }
+      if (item.type === 'observer' && item.targetId) {
+        const observerXInput = document.querySelector(`[data-observer-x="${item.targetId}"]`);
+        const observerYInput = document.querySelector(`[data-observer-y="${item.targetId}"]`);
+        if (observerXInput) observerXInput.value = point.x.toFixed(2);
+        if (observerYInput) observerYInput.value = point.y.toFixed(2);
+      }
+      persistLauncherSettings();
+      refreshMapOverlay();
+    });
     manualMarkers.push(marker);
   });
 
@@ -623,12 +729,18 @@ function refreshMapOverlay() {
   }
 }
 
-function centerMapOnTarget() {
-  if (!leafletMap) return;
-  const targetX = Number(document.querySelector('#target-x')?.value || 0);
-  const targetY = Number(document.querySelector('#target-y')?.value || 0);
-  leafletMap.setView(mapPointToLatLng(targetX, targetY), 11);
+function deleteSelectedManualMarker() {
+  if (!selectedManualMarkerId) return;
+  const tools = getMapToolsSettings();
+  state.settings.mapTools = {
+    ...tools,
+    manualMarkers: (tools.manualMarkers ?? []).filter((marker) => marker.id !== selectedManualMarkerId),
+  };
+  selectedManualMarkerId = null;
+  persistLauncherSettings();
+  refreshMapOverlay();
 }
+
 
 function openMap() {
   state.mapUrl = mapUrlInput.value || '';
@@ -694,8 +806,6 @@ clearDataBtn?.addEventListener('click', clearLocalData);
 openLogsBtn?.addEventListener('click', openLogs);
 exportDataBtn?.addEventListener('click', exportData);
 document.querySelector('#open-map')?.addEventListener('click', openMap);
-document.querySelector('#map-sync')?.addEventListener('click', refreshMapOverlay);
-document.querySelector('#map-center-target')?.addEventListener('click', centerMapOnTarget);
 document.querySelector('#calculate-btn')?.addEventListener('click', calculateFire);
 document.querySelector('#show-mto')?.addEventListener('click', showMto);
 document.querySelector('#save-mission')?.addEventListener('click', saveMission);
@@ -706,12 +816,14 @@ document.querySelector('#save-mission')?.addEventListener('click', saveMission);
   renderGunsGrid();
   renderObservers();
   renderMissionSelectors();
+  syncMarkerTargetOptions();
   persistLauncherSettings();
   refreshMapOverlay();
 }));
 observerCountInput?.addEventListener('change', () => {
   state.settings.observerCount = Number(observerCountInput?.value || 1);
   renderObservers();
+  syncMarkerTargetOptions();
   persistLauncherSettings();
 });
 missionBatterySelect?.addEventListener('change', () => {
@@ -722,6 +834,12 @@ missionGunSelect?.addEventListener('change', () => {
   persistLauncherSettings();
   refreshMapOverlay();
 });
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Delete') return;
+  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) return;
+  deleteSelectedManualMarker();
+});
+
 document.addEventListener('input', (event) => {
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) {
     persistLauncherSettings();
@@ -748,6 +866,9 @@ document.querySelector('#reset-calibration')?.addEventListener('click', resetCal
 document.querySelector('#apply-map-image')?.addEventListener('click', applyMapImage);
 document.querySelector('#clear-map-image')?.addEventListener('click', clearMapImage);
 document.querySelector('#clear-manual-markers')?.addEventListener('click', clearManualMarkers);
+markerToolSelect?.addEventListener('change', () => {
+  syncMarkerTargetOptions();
+});
 mapImageUploadInput?.addEventListener('change', async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
