@@ -160,6 +160,72 @@ let calibrationLine;
 let selectedManualMarkerId = null;
 let rightMousePanState = null;
 let lastOverlayBoundsKey = '';
+let dragMarkerId = null;
+
+function parseCoordinateValue(rawValue) {
+  const text = String(rawValue ?? '').trim();
+  if (!text) return null;
+
+  const numeric = Number(text.replace(',', '.'));
+  if (Number.isFinite(numeric)) return numeric;
+
+  const normalized = text.replace(/\s+/g, '');
+  const gridMatch = normalized.match(/^(\d{3,6})-(\d{3,6})$/);
+  if (!gridMatch) return null;
+
+  const [, xPart, yPart] = gridMatch;
+  if (xPart.length !== yPart.length) return null;
+  const multiplier = 10 ** (6 - xPart.length);
+  return { x: Number(xPart) * multiplier, y: Number(yPart) * multiplier };
+}
+
+function readXYFromInputs(xInput, yInput) {
+  if (!xInput || !yInput) return null;
+  const xRaw = String(xInput.value ?? '').trim();
+  const yRaw = String(yInput.value ?? '').trim();
+  if (!xRaw && !yRaw) return null;
+
+  const xParsed = parseCoordinateValue(xRaw);
+  const yParsed = parseCoordinateValue(yRaw);
+  if (typeof xParsed === 'object') return xParsed;
+  if (typeof yParsed === 'object') return yParsed;
+  if (!Number.isFinite(xParsed) || !Number.isFinite(yParsed)) return null;
+  return { x: xParsed, y: yParsed };
+}
+
+function clearBoundMarkerCoordinates(marker) {
+  if (marker.type === 'gun' && marker.targetId) {
+    const gunXInput = document.querySelector(`[data-gun-x="${marker.targetId}"]`);
+    const gunYInput = document.querySelector(`[data-gun-y="${marker.targetId}"]`);
+    if (gunXInput) gunXInput.value = '';
+    if (gunYInput) gunYInput.value = '';
+  }
+  if (marker.type === 'observer' && marker.targetId) {
+    const observerXInput = document.querySelector(`[data-observer-x="${marker.targetId}"]`);
+    const observerYInput = document.querySelector(`[data-observer-y="${marker.targetId}"]`);
+    if (observerXInput) observerXInput.value = '';
+    if (observerYInput) observerYInput.value = '';
+  }
+}
+
+function syncMapMarkersWithAvailableTargets() {
+  const tools = getMapToolsSettings();
+  const validGunTargets = new Set(getActiveMarkerTargets('gun').map((entry) => entry.id));
+  const validObserverTargets = new Set(getActiveMarkerTargets('observer').map((entry) => entry.id));
+  const source = tools.manualMarkers ?? [];
+  const filtered = source.filter((marker) => {
+    if (marker.type === 'gun') return validGunTargets.has(marker.targetId);
+    if (marker.type === 'observer') return validObserverTargets.has(marker.targetId);
+    return true;
+  });
+
+  if (filtered.length === source.length) return;
+  const removed = source.filter((marker) => !filtered.some((entry) => entry.id === marker.id));
+  removed.forEach(clearBoundMarkerCoordinates);
+  if (selectedManualMarkerId && !filtered.some((marker) => marker.id === selectedManualMarkerId)) selectedManualMarkerId = null;
+  state.settings.mapTools = { ...tools, manualMarkers: filtered };
+  persistLauncherSettings();
+}
 
 function persistLauncherSettings() {
   state.settings.batteryCount = normalizeCount(batteryCountInput?.value, LIMITS.batteries);
@@ -323,7 +389,7 @@ function renderGunsGrid() {
       const saved = state.settings.gunCoords[key] ?? {};
       const row = document.createElement('div');
       row.className = 'pair';
-      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="number" placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="number" placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" />`;
+      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="decimal" placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="decimal" placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" />`;
       container.append(row);
     }
   }
@@ -360,7 +426,7 @@ function renderObservers() {
       return `<option value="${id}">${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}</option>`;
     }).join('');
     row.className = 'observer-row';
-    row.innerHTML = `<label data-observer-index="${i}">${t('observer')} ${i}: ${t('observerBinding')}</label><div class="pair"><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><select data-observer-gun="${i}">${gunOptionMarkup}</select><select data-observer-battery="${i}">${batteryOptions}</select></div><div class="pair"><input data-observer-x="${i}" type="number" placeholder="${t('x')}" value="${savedCoords.x ?? ''}" /><input data-observer-y="${i}" type="number" placeholder="${t('y')}" value="${savedCoords.y ?? ''}" /><input data-observer-height="${i}" type="number" placeholder="${t('observerHeight')}" value="${savedCoords.height ?? 0}" /></div>`;
+    row.innerHTML = `<label data-observer-index="${i}">${t('observer')} ${i}: ${t('observerBinding')}</label><div class="pair"><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><select data-observer-gun="${i}">${gunOptionMarkup}</select><select data-observer-battery="${i}">${batteryOptions}</select></div><div class="pair"><input data-observer-x="${i}" type="text" inputmode="decimal" placeholder="${t('x')}" value="${savedCoords.x ?? ''}" /><input data-observer-y="${i}" type="text" inputmode="decimal" placeholder="${t('y')}" value="${savedCoords.y ?? ''}" /><input data-observer-height="${i}" type="number" placeholder="${t('observerHeight')}" value="${savedCoords.height ?? 0}" /></div>`;
     container.append(row);
     row.querySelector(`[data-observer-mode="${i}"]`).value = saved.mode ?? 'gun';
     row.querySelector(`[data-observer-gun="${i}"]`).value = saved.gunId ?? gunOptions[0];
@@ -406,8 +472,9 @@ function getObserverCorrections(batteryId, gunIds, batteryHeight) {
 }
 
 function calculateFire() {
-  const targetX = Number(document.querySelector('#target-x')?.value || 0);
-  const targetY = Number(document.querySelector('#target-y')?.value || 0);
+  const targetInput = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y')) ?? { x: 0, y: 0 };
+  const targetX = targetInput.x;
+  const targetY = targetInput.y;
   const battery = Number(missionBatterySelect.value || 1);
   const selectedGun = missionGunSelect.value;
   const gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
@@ -415,18 +482,23 @@ function calculateFire() {
   const batteryHeight = getBatteryHeight(battery);
 
   const results = gunIds.map((gunId) => {
-    const gunX = Number(document.querySelector(`[data-gun-x="${battery}-${gunId}"]`)?.value || 0);
-    const gunY = Number(document.querySelector(`[data-gun-y="${battery}-${gunId}"]`)?.value || 0);
+    const gunPoint = readXYFromInputs(
+      document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
+      document.querySelector(`[data-gun-y="${battery}-${gunId}"]`),
+    ) ?? { x: 0, y: 0 };
+    const gunX = gunPoint.x;
+    const gunY = gunPoint.y;
     const dx = targetX - gunX;
     const dy = targetY - gunY;
     const distance = Math.hypot(dx, dy);
-    const azimuth = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+    const azimuth = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
+    const azimuthMils = (azimuth * 6400) / 360;
     const elevationMils = ((Math.atan2(batteryHeight, distance || 1) * 1000) / Math.PI) * 17.7778;
-    return { gunId, distance: distance.toFixed(1), azimuth: azimuth.toFixed(2), elevation: elevationMils.toFixed(1) };
+    return { gunId, distance: distance.toFixed(1), azimuth: azimuth.toFixed(2), azimuthMils: azimuthMils.toFixed(1), elevation: elevationMils.toFixed(1) };
   });
 
   const output = [`${t('calcDone')}: ${document.querySelector('#mission-name')?.value || 'Mission'}`,
-    ...results.map((row) => `${t('gun')} ${row.gunId}: D=${row.distance}m Az=${row.azimuth}° Elev=${row.elevation} mil`)].join('\n');
+    ...results.map((row) => `${t('gun')} ${row.gunId}: D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil`)].join('\n');
 
   const observerCorrections = getObserverCorrections(battery, gunIds, batteryHeight);
   const observerRows = observerCorrections.map((item) => `${t('observer')} ${item.observerId}: ΔH=${item.heightDelta}m`);
@@ -708,6 +780,7 @@ function latLngToMapPoint(lat, lng) {
 
 function refreshMapOverlay() {
   if (!leafletMap) return;
+  syncMapMarkersWithAvailableTargets();
   upsertMapOverlay();
 
   gunMarkers.forEach((marker) => marker.remove());
@@ -728,8 +801,12 @@ function refreshMapOverlay() {
 
   const legendRows = [];
   gunIds.forEach((gunId) => {
-    const gunX = Number(document.querySelector(`[data-gun-x="${battery}-${gunId}"]`)?.value || 0);
-    const gunY = Number(document.querySelector(`[data-gun-y="${battery}-${gunId}"]`)?.value || 0);
+    const gunPoint = readXYFromInputs(
+      document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
+      document.querySelector(`[data-gun-y="${battery}-${gunId}"]`),
+    );
+    if (!gunPoint) return;
+    const { x: gunX, y: gunY } = gunPoint;
     const marker = window.L.circleMarker(mapPointToLatLng(gunX, gunY), {
       radius: 8,
       color: '#00ff57',
@@ -742,8 +819,32 @@ function refreshMapOverlay() {
     legendRows.push(`<p>${t('gun')} ${gunId}: X=${gunX}, Y=${gunY}</p>`);
   });
 
-  const targetX = Number(document.querySelector('#target-x')?.value || 0);
-  const targetY = Number(document.querySelector('#target-y')?.value || 0);
+  const batteryGunPoints = Array.from({ length: gunsPerBattery }, (_, idx) => {
+    const gunId = idx + 1;
+    return readXYFromInputs(
+      document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
+      document.querySelector(`[data-gun-y="${battery}-${gunId}"]`),
+    );
+  }).filter(Boolean);
+  if (batteryGunPoints.length) {
+    const center = batteryGunPoints.reduce((acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }), { x: 0, y: 0 });
+    center.x /= batteryGunPoints.length;
+    center.y /= batteryGunPoints.length;
+    const batteryMarker = window.L.circleMarker(mapPointToLatLng(center.x, center.y), {
+      radius: 11,
+      color: '#ffd84d',
+      fillColor: '#ffd84d',
+      fillOpacity: 0.25,
+      weight: 3,
+    }).addTo(leafletMap);
+    batteryMarker.bindPopup(`${t('battery')} ${battery}<br>X: ${center.x.toFixed(1)}, Y: ${center.y.toFixed(1)}`);
+    gunMarkers.push(batteryMarker);
+    legendRows.push(`<p>${t('battery')} ${battery}: X=${center.x.toFixed(1)}, Y=${center.y.toFixed(1)}</p>`);
+  }
+
+  const targetPoint = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y')) ?? { x: 0, y: 0 };
+  const targetX = targetPoint.x;
+  const targetY = targetPoint.y;
   if (!targetMarker) {
     targetMarker = window.L.marker(mapPointToLatLng(targetX, targetY)).addTo(leafletMap);
   } else {
@@ -774,11 +875,16 @@ function refreshMapOverlay() {
     });
     marker.on('mousedown', (event) => {
       if (event.originalEvent?.button !== 0) return;
+      if (selectedManualMarkerId === item.id) {
+        dragMarkerId = item.id;
+        return;
+      }
       selectedManualMarkerId = item.id;
+      dragMarkerId = null;
       refreshMapOverlay();
     });
     marker.on('mousemove', (event) => {
-      if (selectedManualMarkerId !== item.id || !event.originalEvent?.buttons || (event.originalEvent.buttons & 1) !== 1) return;
+      if (dragMarkerId !== item.id || !event.originalEvent?.buttons || (event.originalEvent.buttons & 1) !== 1) return;
       const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
       const nextMarkers = (tools.manualMarkers ?? []).map((entry) => (entry.id === item.id ? { ...entry, x: point.x, y: point.y } : entry));
       state.settings.mapTools = { ...tools, manualMarkers: nextMarkers };
@@ -796,6 +902,9 @@ function refreshMapOverlay() {
       }
       persistLauncherSettings();
       refreshMapOverlay();
+    });
+    marker.on('mouseup', () => {
+      dragMarkerId = null;
     });
     manualMarkers.push(marker);
   });
@@ -826,11 +935,14 @@ function refreshMapOverlay() {
 function deleteSelectedManualMarker() {
   if (!selectedManualMarkerId) return;
   const tools = getMapToolsSettings();
+  const markerToDelete = (tools.manualMarkers ?? []).find((marker) => marker.id === selectedManualMarkerId);
   state.settings.mapTools = {
     ...tools,
     manualMarkers: (tools.manualMarkers ?? []).filter((marker) => marker.id !== selectedManualMarkerId),
   };
+  if (markerToDelete) clearBoundMarkerCoordinates(markerToDelete);
   selectedManualMarkerId = null;
+  dragMarkerId = null;
   persistLauncherSettings();
   refreshMapOverlay();
 }
@@ -913,6 +1025,7 @@ document.querySelector('#save-mission')?.addEventListener('click', saveMission);
   renderObservers();
   renderMissionSelectors();
   syncMarkerTargetOptions();
+  syncMapMarkersWithAvailableTargets();
   persistLauncherSettings();
   refreshMapOverlay();
 }));
@@ -921,6 +1034,7 @@ observerCountInput?.addEventListener('change', () => {
   if (observerCountInput) observerCountInput.value = String(state.settings.observerCount);
   renderObservers();
   syncMarkerTargetOptions();
+  syncMapMarkersWithAvailableTargets();
   persistLauncherSettings();
 });
 
@@ -940,6 +1054,10 @@ document.addEventListener('keydown', (event) => {
   if (event.key !== 'Delete') return;
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) return;
   deleteSelectedManualMarker();
+});
+
+window.addEventListener('mouseup', () => {
+  dragMarkerId = null;
 });
 
 document.addEventListener('input', (event) => {

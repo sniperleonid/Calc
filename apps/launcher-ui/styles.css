@@ -273,6 +273,8 @@ select,
   min-height: 560px;
   border: 1px solid var(--border);
   border-radius: 8px;
+  user-select: none;
+  -webkit-user-select: none;
   background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--panel), white 5%) 0 24px, color-mix(in srgb, var(--panel), transparent 15%) 24px 48px),
     repeating-linear-gradient(90deg, color-mix(in srgb, var(--panel), white 5%) 0 24px, color-mix(in srgb, var(--panel), transparent 15%) 24px 48px);
 }
