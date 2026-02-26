@@ -1,7 +1,35 @@
+const SETTINGS_KEY = 'calc.launcherSettings';
+
+function loadLauncherSettings() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    return {
+      batteryCount: Number(parsed.batteryCount) || 1,
+      gunsPerBattery: Number(parsed.gunsPerBattery) || 1,
+      observerCount: Number(parsed.observerCount) || 1,
+      batteryConfig: parsed.batteryConfig ?? {},
+      gunCoords: parsed.gunCoords ?? {},
+      observerBindings: parsed.observerBindings ?? {},
+      mission: parsed.mission ?? {},
+    };
+  } catch {
+    return {
+      batteryCount: 1,
+      gunsPerBattery: 1,
+      observerCount: 1,
+      batteryConfig: {},
+      gunCoords: {},
+      observerBindings: {},
+      mission: {},
+    };
+  }
+}
+
 const state = {
   lang: localStorage.getItem('calc.lang') || 'ru',
   theme: localStorage.getItem('calc.theme') || 'terminal',
   mapUrl: localStorage.getItem('calc.mapUrl') || 'http://localhost:4173',
+  settings: loadLauncherSettings(),
 };
 
 const i18n = {
@@ -62,6 +90,52 @@ const t = (key) => i18n[state.lang][key] ?? key;
 const gunProfiles = ['mortar-120-standard', 'm777-howitzer', 'd30-standard'];
 const projectileProfiles = ['he-charge-3', 'smoke-charge-2', 'illum'];
 
+function persistLauncherSettings() {
+  state.settings.batteryCount = Number(batteryCountInput?.value || 1);
+  state.settings.gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
+  state.settings.observerCount = Number(observerCountInput?.value || 1);
+
+  state.settings.batteryConfig = {};
+  document.querySelectorAll('[data-battery-height]').forEach((input) => {
+    const batteryId = input.dataset.batteryHeight;
+    state.settings.batteryConfig[batteryId] = {
+      height: input.value,
+      gunProfile: document.querySelector(`[data-battery-gun-profile="${batteryId}"]`)?.value ?? gunProfiles[0],
+      projectileProfile: document.querySelector(`[data-battery-projectile-profile="${batteryId}"]`)?.value ?? projectileProfiles[0],
+      title: document.querySelector(`[data-battery-title="${batteryId}"]`)?.value ?? `${t('battery')} ${batteryId}`,
+    };
+  });
+
+  state.settings.gunCoords = {};
+  document.querySelectorAll('[data-gun-x]').forEach((input) => {
+    const key = input.dataset.gunX;
+    state.settings.gunCoords[key] = {
+      x: input.value,
+      y: document.querySelector(`[data-gun-y="${key}"]`)?.value ?? '',
+    };
+  });
+
+  state.settings.observerBindings = {};
+  document.querySelectorAll('[data-observer-index]').forEach((input) => {
+    const observerId = input.dataset.observerIndex;
+    state.settings.observerBindings[observerId] = {
+      mode: document.querySelector(`[data-observer-mode="${observerId}"]`)?.value ?? 'gun',
+      gunId: document.querySelector(`[data-observer-gun="${observerId}"]`)?.value ?? 'gun-1-1',
+      batteryId: document.querySelector(`[data-observer-battery="${observerId}"]`)?.value ?? 'battery-1',
+    };
+  });
+
+  state.settings.mission = {
+    name: document.querySelector('#mission-name')?.value ?? '',
+    targetX: document.querySelector('#target-x')?.value ?? '',
+    targetY: document.querySelector('#target-y')?.value ?? '',
+    battery: missionBatterySelect?.value ?? '1',
+    gun: missionGunSelect?.value ?? 'all',
+  };
+
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+}
+
 function applyI18n() {
   document.documentElement.lang = state.lang;
   document.title = state.lang === 'ru' ? 'Calc · Баллистический калькулятор' : 'Calc · Ballistics Calculator';
@@ -69,6 +143,9 @@ function applyI18n() {
   languageSelect.value = state.lang;
   themeSelect.value = state.theme;
   mapUrlInput.value = state.mapUrl;
+  batteryCountInput.value = String(state.settings.batteryCount);
+  gunsPerBatteryInput.value = String(state.settings.gunsPerBattery);
+  observerCountInput.value = String(state.settings.observerCount);
   renderGlobalConfig();
   renderGunsGrid();
   renderObservers();
@@ -83,8 +160,8 @@ function switchTab(tabName) {
 async function checkService(url, okKey, warnKey, selector) {
   const targets = document.querySelectorAll(`[data-service="${selector}"]`);
   try {
-    const response = await fetch(url, { method: 'GET' });
-    if (response.ok || response.type === 'opaque') {
+    const response = await fetch(url, { method: 'GET', mode: 'no-cors' });
+    if (response.type === 'opaque' || response.ok) {
       targets.forEach((target) => { target.textContent = t(okKey); target.classList.remove('warn'); });
       return;
     }
@@ -103,6 +180,8 @@ async function runHealthCheck() {
 
 function clearLocalData() {
   localStorage.clear();
+  state.settings = loadLauncherSettings();
+  applyI18n();
   alert(t('dataCleared'));
 }
 
@@ -116,16 +195,19 @@ function renderGlobalConfig() {
     row.className = 'battery-config-row';
     const gunProfileOptions = gunProfiles.map((profile) => `<option value="${profile}">${profile}</option>`).join('');
     const projectileOptions = projectileProfiles.map((profile) => `<option value="${profile}">${profile}</option>`).join('');
+    const saved = state.settings.batteryConfig[String(b)] ?? {};
     row.innerHTML = `
       <h3>${t('battery')} ${b}</h3>
       <div class="pair pair-4">
-        <input type="number" data-battery-height="${b}" placeholder="${t('batteryHeight')}" value="0" />
+        <input type="number" data-battery-height="${b}" placeholder="${t('batteryHeight')}" value="${saved.height ?? 0}" />
         <select data-battery-gun-profile="${b}">${gunProfileOptions}</select>
         <select data-battery-projectile-profile="${b}">${projectileOptions}</select>
-        <input value="${t('battery')} ${b}" />
+        <input data-battery-title="${b}" value="${saved.title ?? `${t('battery')} ${b}`}" />
       </div>
       <p class="hint compact">${t('batteryHeight')} · ${t('gunProfile')} · ${t('projectileProfile')}</p>`;
     container.append(row);
+    row.querySelector(`[data-battery-gun-profile="${b}"]`).value = saved.gunProfile ?? gunProfiles[0];
+    row.querySelector(`[data-battery-projectile-profile="${b}"]`).value = saved.projectileProfile ?? projectileProfiles[0];
   }
 }
 
@@ -137,9 +219,11 @@ function renderGunsGrid() {
   container.innerHTML = '';
   for (let b = 1; b <= batteries; b += 1) {
     for (let g = 1; g <= gunsPerBattery; g += 1) {
+      const key = `${b}-${g}`;
+      const saved = state.settings.gunCoords[key] ?? {};
       const row = document.createElement('div');
       row.className = 'pair';
-      row.innerHTML = `<label>${t('battery')} ${b}, ${t('gun')} ${g}</label><input data-gun-x="${b}-${g}" type="number" placeholder="${t('x')}" value="${1000 + b * 100 + g * 10}" /><input data-gun-y="${b}-${g}" type="number" placeholder="${t('y')}" value="${1000 + b * 120 + g * 10}" />`;
+      row.innerHTML = `<label>${t('battery')} ${b}, ${t('gun')} ${g}</label><input data-gun-x="${key}" type="number" placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="number" placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" />`;
       container.append(row);
     }
   }
@@ -155,12 +239,16 @@ function renderObservers() {
   for (let b = 1; b <= batteries; b += 1) for (let g = 1; g <= gunsPerBattery; g += 1) gunOptions.push(`gun-${b}-${g}`);
   container.innerHTML = '';
   for (let i = 1; i <= observers; i += 1) {
+    const saved = state.settings.observerBindings[String(i)] ?? {};
     const row = document.createElement('div');
     const batteryOptions = Array.from({ length: batteries }, (_, n) => `<option value="battery-${n + 1}">${t('battery')} ${n + 1}</option>`).join('');
     const gunOptionMarkup = gunOptions.map((id) => `<option value="${id}">${id}</option>`).join('');
     row.className = 'observer-row';
-    row.innerHTML = `<label>${t('observer')} ${i}: ${t('observerBinding')}</label><div class="pair"><select><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><select>${gunOptionMarkup}</select><select>${batteryOptions}</select></div>`;
+    row.innerHTML = `<label data-observer-index="${i}">${t('observer')} ${i}: ${t('observerBinding')}</label><div class="pair"><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><select data-observer-gun="${i}">${gunOptionMarkup}</select><select data-observer-battery="${i}">${batteryOptions}</select></div>`;
     container.append(row);
+    row.querySelector(`[data-observer-mode="${i}"]`).value = saved.mode ?? 'gun';
+    row.querySelector(`[data-observer-gun="${i}"]`).value = saved.gunId ?? gunOptions[0];
+    row.querySelector(`[data-observer-battery="${i}"]`).value = saved.batteryId ?? 'battery-1';
   }
 }
 
@@ -168,10 +256,16 @@ function renderMissionSelectors() {
   const batteries = Number(batteryCountInput?.value || 1);
   const gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
   missionBatterySelect.innerHTML = Array.from({ length: batteries }, (_, index) => `<option value="${index + 1}">${t('battery')} ${index + 1}</option>`).join('');
-  const battery = Number(missionBatterySelect.value || 1);
+  const savedMissionBattery = Number(state.settings.mission.battery || 1);
+  missionBatterySelect.value = String(Math.min(Math.max(1, savedMissionBattery), batteries));
+
   const gunOptions = ['all', ...Array.from({ length: gunsPerBattery }, (_, idx) => `${idx + 1}`)];
   missionGunSelect.innerHTML = gunOptions.map((value) => `<option value="${value}">${value === 'all' ? t('allGuns') : `${t('gun')} ${value}`}</option>`).join('');
-  missionBatterySelect.value = String(Math.min(Math.max(1, battery), batteries));
+  missionGunSelect.value = gunOptions.includes(state.settings.mission.gun) ? state.settings.mission.gun : 'all';
+
+  document.querySelector('#mission-name').value = state.settings.mission.name ?? '';
+  document.querySelector('#target-x').value = state.settings.mission.targetX ?? '';
+  document.querySelector('#target-y').value = state.settings.mission.targetY ?? '';
 }
 
 function getBatteryHeight(batteryId) {
@@ -202,6 +296,7 @@ function calculateFire() {
     ...results.map((row) => `${t('gun')} ${row.gunId}: D=${row.distance}m Az=${row.azimuth}° Elev=${row.elevation} mil`)].join('\n');
 
   fireOutput.textContent = output;
+  persistLauncherSettings();
   return { results, battery, selectedGun, targetX, targetY, batteryHeight };
 }
 
@@ -237,9 +332,27 @@ document.querySelector('#open-map')?.addEventListener('click', openMap);
 document.querySelector('#calculate-btn')?.addEventListener('click', calculateFire);
 document.querySelector('#show-mto')?.addEventListener('click', showMto);
 document.querySelector('#save-mission')?.addEventListener('click', saveMission);
-[batteryCountInput, gunsPerBatteryInput].forEach((input) => input?.addEventListener('change', () => { renderGlobalConfig(); renderGunsGrid(); renderObservers(); renderMissionSelectors(); }));
-observerCountInput?.addEventListener('change', renderObservers);
-missionBatterySelect?.addEventListener('change', renderMissionSelectors);
+[batteryCountInput, gunsPerBatteryInput].forEach((input) => input?.addEventListener('change', () => {
+  state.settings.batteryCount = Number(batteryCountInput?.value || 1);
+  state.settings.gunsPerBattery = Number(gunsPerBatteryInput?.value || 1);
+  renderGlobalConfig();
+  renderGunsGrid();
+  renderObservers();
+  renderMissionSelectors();
+  persistLauncherSettings();
+}));
+observerCountInput?.addEventListener('change', () => {
+  state.settings.observerCount = Number(observerCountInput?.value || 1);
+  renderObservers();
+  persistLauncherSettings();
+});
+missionBatterySelect?.addEventListener('change', persistLauncherSettings);
+missionGunSelect?.addEventListener('change', persistLauncherSettings);
+document.addEventListener('input', (event) => {
+  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) {
+    persistLauncherSettings();
+  }
+});
 
 languageSelect?.addEventListener('change', (event) => {
   state.lang = event.target.value;
@@ -256,4 +369,5 @@ themeSelect?.addEventListener('change', (event) => {
 
 document.body.dataset.theme = state.theme;
 applyI18n();
+persistLauncherSettings();
 runHealthCheck();
