@@ -818,6 +818,37 @@ function mapPointToLatLng(x, y) {
   return [lat, lng];
 }
 
+function getAllGunPoints() {
+  const batteries = Number(batteryCountInput?.value || 1);
+  const points = [];
+  for (let batteryId = 1; batteryId <= batteries; batteryId += 1) {
+    const gunsPerBattery = getGunCountForBattery(batteryId);
+    for (let gunId = 1; gunId <= gunsPerBattery; gunId += 1) {
+      const point = readXYFromInputs(
+        document.querySelector(`[data-gun-x="${batteryId}-${gunId}"]`),
+        document.querySelector(`[data-gun-y="${batteryId}-${gunId}"]`),
+      );
+      if (!point) continue;
+      points.push({ batteryId, gunId, ...point });
+    }
+  }
+  return points;
+}
+
+function getObserverPoints() {
+  const observers = Number(observerCountInput?.value || 1);
+  const points = [];
+  for (let observerId = 1; observerId <= observers; observerId += 1) {
+    const point = readXYFromInputs(
+      document.querySelector(`[data-observer-x="${observerId}"]`),
+      document.querySelector(`[data-observer-y="${observerId}"]`),
+    );
+    if (!point) continue;
+    points.push({ observerId, ...point });
+  }
+  return points;
+}
+
 function latLngToMapPoint(lat, lng) {
   const { calibration } = getMapToolsSettings();
   const scale = Number(calibration.scale) || 1;
@@ -876,9 +907,6 @@ function refreshMapOverlay() {
   }
 
   const battery = Number(missionBatterySelect?.value || 1);
-  const selectedGun = missionGunSelect?.value || 'all';
-  const gunsPerBattery = getGunCountForBattery(battery);
-  const gunIds = selectedGun === 'all' ? Array.from({ length: gunsPerBattery }, (_, idx) => idx + 1) : [Number(selectedGun)];
 
   const legendRows = [];
   const markerStyle = {
@@ -887,13 +915,8 @@ function refreshMapOverlay() {
     battery: '#ffd84d',
     target: '#ff7a1a',
   };
-  gunIds.forEach((gunId) => {
-    const gunPoint = readXYFromInputs(
-      document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
-      document.querySelector(`[data-gun-y="${battery}-${gunId}"]`),
-    );
-    if (!gunPoint) return;
-    const { x: gunX, y: gunY } = gunPoint;
+  const allGunPoints = getAllGunPoints();
+  allGunPoints.forEach(({ batteryId, gunId, x: gunX, y: gunY }) => {
     const marker = window.L.circleMarker(mapPointToLatLng(gunX, gunY), {
       radius: 8,
       color: markerStyle.gun,
@@ -901,37 +924,49 @@ function refreshMapOverlay() {
       fillOpacity: 0.9,
       weight: 2,
     }).addTo(leafletMap);
-    const gunLabel = `${t('batteryShort')}${battery}-${t('gunShort')}${gunId}`;
+    const gunLabel = `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}`;
     marker.bindPopup(`${gunLabel}<br>X: ${gunX}, Y: ${gunY}`);
     addPersistentLabel(marker, gunLabel);
     gunMarkers.push(marker);
     legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.gun}"></span>${gunLabel}: X=${gunX}, Y=${gunY}</p>`);
   });
 
-  const batteryGunPoints = Array.from({ length: gunsPerBattery }, (_, idx) => {
-    const gunId = idx + 1;
-    return readXYFromInputs(
-      document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
-      document.querySelector(`[data-gun-y="${battery}-${gunId}"]`),
-    );
-  }).filter(Boolean);
-  if (batteryGunPoints.length) {
+  const batteries = Number(batteryCountInput?.value || 1);
+  for (let batteryId = 1; batteryId <= batteries; batteryId += 1) {
+    const batteryGunPoints = allGunPoints.filter((point) => point.batteryId === batteryId);
+    if (!batteryGunPoints.length) continue;
     const center = batteryGunPoints.reduce((acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }), { x: 0, y: 0 });
     center.x /= batteryGunPoints.length;
     center.y /= batteryGunPoints.length;
+    const isSelectedBattery = batteryId === battery;
     const batteryMarker = window.L.circleMarker(mapPointToLatLng(center.x, center.y), {
       radius: 11,
       color: markerStyle.battery,
       fillColor: markerStyle.battery,
-      fillOpacity: 0.25,
-      weight: 3,
+      fillOpacity: isSelectedBattery ? 0.3 : 0.15,
+      weight: isSelectedBattery ? 3 : 2,
     }).addTo(leafletMap);
-    const batteryName = getBatteryDisplayName(battery);
+    const batteryName = getBatteryDisplayName(batteryId);
     batteryMarker.bindPopup(`${batteryName}<br>X: ${center.x.toFixed(1)}, Y: ${center.y.toFixed(1)}`);
     addPersistentLabel(batteryMarker, batteryName);
     gunMarkers.push(batteryMarker);
     legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.battery}"></span>${batteryName}: X=${center.x.toFixed(1)}, Y=${center.y.toFixed(1)}</p>`);
   }
+
+  getObserverPoints().forEach(({ observerId, x, y }) => {
+    const observerMarker = window.L.circleMarker(mapPointToLatLng(x, y), {
+      radius: 7,
+      color: markerStyle.observer,
+      fillColor: markerStyle.observer,
+      fillOpacity: 0.85,
+      weight: 2,
+    }).addTo(leafletMap);
+    const observerLabel = `${t('observer')} ${observerId}`;
+    observerMarker.bindPopup(`${observerLabel}<br>X: ${x}, Y: ${y}`);
+    addPersistentLabel(observerMarker, observerLabel);
+    gunMarkers.push(observerMarker);
+    legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.observer}"></span>${observerLabel}: X=${x}, Y=${y}</p>`);
+  });
 
   const targetPoint = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y')) ?? { x: 0, y: 0 };
   const targetX = targetPoint.x;
@@ -1138,13 +1173,18 @@ document.addEventListener('keydown', (event) => {
 
 
 document.addEventListener('input', (event) => {
+  let shouldRefreshMap = false;
   if (event.target instanceof HTMLInputElement) {
-    if (event.target.matches('[data-coordinate]')) sanitizeIntegerInput(event.target, COORD_LIMITS);
+    if (event.target.matches('[data-coordinate]')) {
+      sanitizeIntegerInput(event.target, COORD_LIMITS);
+      shouldRefreshMap = true;
+    }
     if (event.target.matches('[data-height]')) sanitizeIntegerInput(event.target, HEIGHT_LIMITS);
   }
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) {
     persistLauncherSettings();
   }
+  if (shouldRefreshMap) refreshMapOverlay();
 });
 
 languageSelect?.addEventListener('change', (event) => {
