@@ -56,21 +56,8 @@
 
 
 
-        <div class="panel-grid panel-grid-1 top-gap">
-          <article class="card">
-            <h2 data-i18n="rolesTitle">Роли и рабочие места</h2>
-            <p class="hint" data-i18n="rolesHint">Быстрые переходы к интерфейсам по ролям.</p>
-            <div class="card-actions role-grid">
-              <button class="btn ghost" data-role-link="commander" data-i18n="roleCommander">Командир</button>
-              <button class="btn ghost" data-role-link="gunner" data-i18n="roleGunner">Наводчик</button>
-              <button class="btn ghost" data-role-link="observer" data-i18n="roleObserver">Наблюдатель</button>
-              <button class="btn ghost" data-role-link="logistics" data-i18n="roleLogistics">Логистика</button>
-            </div>
-          </article>
-        </div>
         <div class="status-line">
           <p class="status" data-service="ballistics"></p>
-          <p class="status" data-service="gateway"></p>
         </div>
       </section>
 
@@ -103,9 +90,9 @@
             <label for="mission-name" data-i18n="missionName">Название задачи</label>
             <input id="mission-name" value="Mission-1" />
             <label for="target-x" data-i18n="targetX">Координата цели X</label>
-            <input id="target-x" type="text" inputmode="decimal" value="1500" />
+            <input id="target-x" type="text" inputmode="numeric" data-coordinate value="1500" />
             <label for="target-y" data-i18n="targetY">Координата цели Y</label>
-            <input id="target-y" type="text" inputmode="decimal" value="1800" />
+            <input id="target-y" type="text" inputmode="numeric" data-coordinate value="1800" />
             <label for="mission-battery" data-i18n="missionBattery">Батарея</label>
             <select id="mission-battery"></select>
             <label for="mission-gun" data-i18n="missionGun">Орудие (или все в батарее)</label>
@@ -197,7 +184,6 @@
           <article class="card">
             <h2 data-i18n="serviceState">Состояние сервисов</h2>
             <p class="status info" data-service="ballistics-copy"></p>
-            <p class="status info" data-service="gateway-copy"></p>
           </article>
         </div>
       </section>
