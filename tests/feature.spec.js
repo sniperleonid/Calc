@@ -106,8 +106,26 @@ test('hud overlay exposes command buttons over game window', () => {
   assert.equal(hud.shouldReceiveMission({ gunId: 'gun-1-2' }), true);
   assert.equal(hud.shouldReceiveMission({ gunId: 'gun-2-1' }), false);
 
+  const ignoredWindow = hud.receiveFireSolution({ missionId: 'm-1', gunId: 'gun-2-1', azimuth: 123, elevation: 456 });
+  assert.equal(ignoredWindow, null);
+
+  const fireSolutionWindow = hud.receiveFireSolution({ missionId: 'm-1', gunId: 'gun-1-2', azimuth: 123, elevation: 456, charge: 3 });
+  assert.equal(fireSolutionWindow.open, true);
+  assert.equal(fireSolutionWindow.azimuth, 123);
+  assert.equal(fireSolutionWindow.elevation, 456);
+  assert.equal(fireSolutionWindow.pinned, false);
+
+  hud.pinFireSolutionWindow(true);
+  assert.equal(hud.getFireSolutionWindow().pinned, true);
+  hud.closeFireSolutionWindow();
+  assert.equal(hud.getFireSolutionWindow().open, false);
+
   hud.assignBatteryCommander('battery-1');
   assert.equal(hud.shouldReceiveMission({ batteryId: 'battery-1' }), true);
+
+  const batterySolution = hud.receiveFireSolution({ missionId: 'm-1', batteryId: 'battery-1', azimuth: 78, elevation: 901 });
+  assert.equal(batterySolution.open, true);
+  assert.equal(batterySolution.azimuth, 78);
 
   assert.equal(hud.toggleVisibility(), false);
 });

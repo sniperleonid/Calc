@@ -15,6 +15,17 @@ export class HudOverlay {
       { id: 'btn-logistics', label: 'Логистика', action: 'logistics.request', enabled: true },
       { id: 'btn-drone', label: 'Запуск дрона', action: 'observer.drone.launch', enabled: true }
     ];
+    this.fireSolutionWindow = {
+      open: false,
+      pinned: false,
+      missionId: null,
+      gunId: null,
+      batteryId: null,
+      azimuth: null,
+      elevation: null,
+      charge: null,
+      updatedAt: null
+    };
     this.applyRole('commander');
   }
 
@@ -67,6 +78,47 @@ export class HudOverlay {
     return this.snapshot();
   }
 
+  receiveFireSolution(event) {
+    if (!this.shouldReceiveMission(event)) {
+      return null;
+    }
+
+    const now = new Date().toISOString();
+    this.fireSolutionWindow = {
+      open: true,
+      pinned: this.fireSolutionWindow.pinned,
+      missionId: event.missionId ?? null,
+      gunId: event.gunId ?? null,
+      batteryId: event.batteryId ?? null,
+      azimuth: event.azimuth ?? null,
+      elevation: event.elevation ?? null,
+      charge: event.charge ?? null,
+      updatedAt: now
+    };
+
+    return this.getFireSolutionWindow();
+  }
+
+  pinFireSolutionWindow(pinned = true) {
+    this.fireSolutionWindow = {
+      ...this.fireSolutionWindow,
+      pinned: Boolean(pinned)
+    };
+    return this.getFireSolutionWindow();
+  }
+
+  closeFireSolutionWindow() {
+    this.fireSolutionWindow = {
+      ...this.fireSolutionWindow,
+      open: false
+    };
+    return this.getFireSolutionWindow();
+  }
+
+  getFireSolutionWindow() {
+    return { ...this.fireSolutionWindow };
+  }
+
   shouldReceiveMission(event) {
     if (!event) return false;
 
@@ -87,7 +139,8 @@ export class HudOverlay {
         ...this.roleScope,
         gunIds: [...this.roleScope.gunIds]
       },
-      buttons: this.buttons.map((button) => ({ ...button }))
+      buttons: this.buttons.map((button) => ({ ...button })),
+      fireSolutionWindow: this.getFireSolutionWindow()
     };
   }
 }
