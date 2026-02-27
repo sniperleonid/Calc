@@ -441,6 +441,35 @@ class BallisticsModule extends UnitModule {
     this.projectiles = new Map();
     this.tableBindings = new Map();
     this.calibration = { defaultElevationOffsetMil: 0, byGunId: {} };
+    this.environmentalCorrections = {
+      enabled: true,
+      includeWind: true,
+      includeTemperature: false,
+      includeHumidity: false,
+      includePressure: false,
+      includeSpinDrift: false,
+      temperatureFactorMilPerC: -0.12,
+      humidityFactorMilPerPct: -0.02,
+      pressureFactorMilPerHpa: 0.03,
+      spinDriftFactorMilPerKm: 0.8,
+      headwindFactorMilPerMs: 0.15,
+      referenceTemperatureC: 15,
+      referenceHumidityPct: 50,
+      referencePressureHpa: 1013.25,
+    };
+  }
+
+  configureEnvironmentalCorrections(settings = {}) {
+    this.environmentalCorrections = {
+      ...this.environmentalCorrections,
+      ...settings,
+      updatedAt: new Date().toISOString(),
+    };
+    return this.getEnvironmentalCorrections();
+  }
+
+  getEnvironmentalCorrections() {
+    return { ...this.environmentalCorrections };
   }
 
   upsertManual(input) {
@@ -530,7 +559,16 @@ class BallisticsModule extends UnitModule {
     };
   }
 
-  calculateGunSolution({ gunId, projectileId, distance, bearing, heightDifference = 0, wind = { speed: 0, direction: 0 } }) {
+  calculateGunSolution({
+    gunId,
+    projectileId,
+    distance,
+    bearing,
+    heightDifference = 0,
+    wind = { speed: 0, direction: 0, crosswind: null, headwind: null },
+    weather = { temperatureC: 15, humidityPct: 50, pressureHpa: 1013.25 },
+    spin = { driftDirection: 'right' },
+  }) {
     const gun = this.entities.get(gunId);
     if (!gun) {
       throw new Error(`Gun not found: ${gunId}`);
@@ -561,13 +599,41 @@ class BallisticsModule extends UnitModule {
     const base = interpolateByRange(availableCharge.rangeTable, distance);
     const heightCorrectionMil = ((base.dElev ?? 0) * heightDifference) / 100;
     const tofCorrection = ((base.tofPer100m ?? 0) * heightDifference) / 100;
-    const windRad = ((wind.direction ?? 0) * Math.PI) / 180;
     const fireRad = ((bearing ?? 0) * Math.PI) / 180;
-    const crosswind = (wind.speed ?? 0) * Math.sin(windRad - fireRad);
-    const windCorrectionMil = crosswind * (projectile.windDriftFactor ?? 0.2);
+    const windRad = ((wind.direction ?? 0) * Math.PI) / 180;
+    const crosswind = Number.isFinite(wind.crosswind)
+      ? wind.crosswind
+      : (wind.speed ?? 0) * Math.sin(windRad - fireRad);
+    const headwind = Number.isFinite(wind.headwind)
+      ? wind.headwind
+      : (wind.speed ?? 0) * Math.cos(windRad - fireRad);
+    const env = this.environmentalCorrections;
+    const windCorrectionMil = env.enabled && env.includeWind
+      ? crosswind * (projectile.windDriftFactor ?? 0.2) + headwind * (env.headwindFactorMilPerMs ?? 0)
+      : 0;
+    const temperatureCorrectionMil = env.enabled && env.includeTemperature
+      ? ((weather.temperatureC ?? env.referenceTemperatureC) - env.referenceTemperatureC) * (env.temperatureFactorMilPerC ?? 0)
+      : 0;
+    const humidityCorrectionMil = env.enabled && env.includeHumidity
+      ? ((weather.humidityPct ?? env.referenceHumidityPct) - env.referenceHumidityPct) * (env.humidityFactorMilPerPct ?? 0)
+      : 0;
+    const pressureCorrectionMil = env.enabled && env.includePressure
+      ? ((weather.pressureHpa ?? env.referencePressureHpa) - env.referencePressureHpa) * (env.pressureFactorMilPerHpa ?? 0)
+      : 0;
+    const spinSign = (spin.driftDirection ?? 'right') === 'left' ? -1 : 1;
+    const spinCorrectionMil = env.enabled && env.includeSpinDrift
+      ? spinSign * (distance / 1000) * (env.spinDriftFactorMilPerKm ?? 0)
+      : 0;
     const calibrationOffset = (this.calibration.byGunId?.[gunId] ?? this.calibration.defaultElevationOffsetMil ?? 0);
 
-    const elevation = base.elevation + heightCorrectionMil + windCorrectionMil + calibrationOffset;
+    const elevation = base.elevation
+      + heightCorrectionMil
+      + windCorrectionMil
+      + temperatureCorrectionMil
+      + humidityCorrectionMil
+      + pressureCorrectionMil
+      + spinCorrectionMil
+      + calibrationOffset;
     const inElevationLimits = elevation >= gun.minElevationMil && elevation <= gun.maxElevationMil;
     const sectorEnvelope = buildSectorEnvelope({ gun, charge: availableCharge, bearing });
     const trajectory = buildTrajectory({ distance, heightDifference, elevationMil: elevation });
@@ -585,6 +651,11 @@ class BallisticsModule extends UnitModule {
       corrections: {
         heightMil: heightCorrectionMil,
         windMil: windCorrectionMil,
+        windComponents: { crosswindMs: crosswind, headwindMs: headwind },
+        temperatureMil: temperatureCorrectionMil,
+        humidityMil: humidityCorrectionMil,
+        pressureMil: pressureCorrectionMil,
+        spinMil: spinCorrectionMil,
         calibrationMil: calibrationOffset,
         tofSeconds: tofCorrection,
       },
@@ -593,7 +664,15 @@ class BallisticsModule extends UnitModule {
     };
   }
 
-  calculateBatterySolutions({ assignments, distance, bearing, heightDifference = 0, wind = { speed: 0, direction: 0 } }) {
+  calculateBatterySolutions({
+    assignments,
+    distance,
+    bearing,
+    heightDifference = 0,
+    wind = { speed: 0, direction: 0, crosswind: null, headwind: null },
+    weather = { temperatureC: 15, humidityPct: 50, pressureHpa: 1013.25 },
+    spin = { driftDirection: 'right' },
+  }) {
     return assignments.map((assignment) => ({
       gunId: assignment.gunId,
       projectileId: assignment.projectileId,
@@ -604,6 +683,8 @@ class BallisticsModule extends UnitModule {
         bearing,
         heightDifference,
         wind,
+        weather,
+        spin,
       }),
     }));
   }
@@ -654,6 +735,7 @@ class BallisticsModule extends UnitModule {
       guns: this.list(),
       projectiles: this.listProjectiles(),
       calibration: this.getCalibration(),
+      environmentalCorrections: this.getEnvironmentalCorrections(),
     };
   }
 
@@ -676,6 +758,10 @@ class BallisticsModule extends UnitModule {
           updatedAt: snapshot.calibration.updatedAt ?? null,
         }
       : { defaultElevationOffsetMil: 0, byGunId: {} };
+    this.environmentalCorrections = {
+      ...this.environmentalCorrections,
+      ...(snapshot.environmentalCorrections ?? {}),
+    };
   }
 }
 
@@ -1003,6 +1089,7 @@ export class TacticalWorkspace {
             'charge-table-binding',
             'trajectory-visualization',
             'calibration-adjustment',
+            'environmental-corrections-settings',
           ],
         },
         { id: 'battery-input', title: 'Батареи', module: 'batteries', supports: ['manual', 'map-placement'] },
