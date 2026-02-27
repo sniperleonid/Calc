@@ -98,6 +98,38 @@
             <select id="mission-battery"></select>
             <label for="mission-gun" data-i18n="missionGun">Орудие (или все в батарее)</label>
             <select id="mission-gun"></select>
+            <label for="fire-mode" data-i18n="fireMode">Тип огня</label>
+            <select id="fire-mode">
+              <option value="linear" data-i18n="fireModeLinear">Линейный сноп</option>
+              <option value="parallel" data-i18n="fireModeParallel">Параллельный</option>
+              <option value="converging" data-i18n="fireModeConverging">Сходящийся</option>
+              <option value="open" data-i18n="fireModeOpen">Открытый</option>
+              <option value="circular" data-i18n="fireModeCircular">Круговой</option>
+            </select>
+            <div id="fire-mode-settings" class="stack compact-stack">
+              <div data-fire-mode-panel="linear" class="pair pair-2">
+                <input id="fire-linear-start-x" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearStartX" placeholder="Start X" />
+                <input id="fire-linear-start-y" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearStartY" placeholder="Start Y" />
+                <input id="fire-linear-end-x" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearEndX" placeholder="End X" />
+                <input id="fire-linear-end-y" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearEndY" placeholder="End Y" />
+              </div>
+              <div data-fire-mode-panel="parallel" class="pair pair-2 hidden">
+                <input id="fire-parallel-width" type="number" min="10" step="10" data-fire-setting="parallelWidth" placeholder="Width (m)" />
+                <input id="fire-parallel-lanes" type="number" min="2" max="10" step="1" data-fire-setting="parallelLanes" placeholder="Lanes" />
+              </div>
+              <div data-fire-mode-panel="converging" class="pair pair-2 hidden">
+                <input id="fire-converging-radius" type="number" min="10" step="10" data-fire-setting="convergingRadius" placeholder="Radius (m)" />
+                <input id="fire-converging-azimuth" type="number" min="0" max="359" step="1" data-fire-setting="convergingAzimuth" placeholder="Azimuth°" />
+              </div>
+              <div data-fire-mode-panel="open" class="pair pair-2 hidden">
+                <input id="fire-open-width" type="number" min="10" step="10" data-fire-setting="openWidth" placeholder="Width (m)" />
+                <input id="fire-open-depth" type="number" min="10" step="10" data-fire-setting="openDepth" placeholder="Depth (m)" />
+              </div>
+              <div data-fire-mode-panel="circular" class="pair pair-2 hidden">
+                <input id="fire-circular-radius" type="number" min="10" step="10" data-fire-setting="circularRadius" placeholder="Radius (m)" />
+                <input id="fire-circular-count" type="number" min="4" max="24" step="1" data-fire-setting="circularCount" placeholder="Points" />
+              </div>
+            </div>
           </article>
           <article class="card">
             <h2 data-i18n="actionsTitle">Действия</h2>

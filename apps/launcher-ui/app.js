@@ -76,6 +76,7 @@ const i18n = {
     bindToGun: 'К орудию', bindToBattery: 'К батарее', gunnerHint: 'Все расчёты выполняются на основе глобальных настроек.',
     actionsTitle: 'Действия', calculate: 'Рассчитать', showMto: 'Показать MTO', logMission: 'Сохранить миссию',
     missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', targetX: 'Координата цели X', targetY: 'Координата цели Y',
+    fireMode: 'Тип огня', fireModeLinear: 'Линейный сноп', fireModeParallel: 'Параллельный', fireModeConverging: 'Сходящийся', fireModeOpen: 'Открытый', fireModeCircular: 'Круговой',
     mapPanelTitle: 'Тактическая карта (Leaflet)', mapLegendTitle: 'Легенда', mapLegendHint: 'Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».',
     syncMap: 'Синхронизировать с координатами', centerTarget: 'Центр на цели',
     safeDataTitle: 'Контроль данных', safeDataDescription: 'Проверка журналов и экспорт служебных данных.', openLogs: 'Открыть логи', exportData: 'Экспорт данных', clearAllData: 'Очистить данные',
@@ -108,6 +109,7 @@ const i18n = {
     bindToGun: 'To gun', bindToBattery: 'To battery', gunnerHint: 'All calculations use data from global settings.',
     actionsTitle: 'Actions', calculate: 'Calculate', showMto: 'Show MTO', logMission: 'Save mission',
     missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', targetX: 'Target X coordinate', targetY: 'Target Y coordinate',
+    fireMode: 'Fire mode', fireModeLinear: 'Linear sheaf', fireModeParallel: 'Parallel', fireModeConverging: 'Converging', fireModeOpen: 'Open', fireModeCircular: 'Circular',
     mapPanelTitle: 'Tactical map (Leaflet)', mapLegendTitle: 'Legend', mapLegendHint: 'The map shows guns in selected battery and the current target from Fire Missions tab.',
     syncMap: 'Sync with coordinates', centerTarget: 'Center on target',
     safeDataTitle: 'Data control', safeDataDescription: 'Check logs and export service data.', openLogs: 'Open logs', exportData: 'Export data', clearAllData: 'Clear data',
@@ -141,6 +143,7 @@ const observerCountInput = document.querySelector('#observer-count');
 const mapUrlInput = document.querySelector('#map-url');
 const missionBatterySelect = document.querySelector('#mission-battery');
 const missionGunSelect = document.querySelector('#mission-gun');
+const fireModeSelect = document.querySelector('#fire-mode');
 const fireOutput = document.querySelector('#fire-output');
 const safetyOutput = document.querySelector('#safety-output');
 const mapLegend = document.querySelector('#map-legend');
@@ -167,6 +170,7 @@ function getMapToolsSettings() {
     calibrationMode: false,
     nextCalibrationPointIndex: 0,
     calibrationScaleMeters: '',
+    activeFirePattern: null,
   };
   return { ...defaults, ...state.settings.mapTools, calibration: { ...defaults.calibration, ...(state.settings.mapTools?.calibration ?? {}) }, imageBounds: { ...defaults.imageBounds, ...(state.settings.mapTools?.imageBounds ?? {}) } };
 }
@@ -180,6 +184,7 @@ const calibrationMarkers = [];
 let calibrationLine;
 let rulerLine;
 let rulerEndpointMarkers = [];
+let firePatternOverlays = [];
 let selectedManualMarkerId = null;
 let rightMousePanState = null;
 let lastOverlayBoundsKey = '';
@@ -360,12 +365,19 @@ function persistLauncherSettings() {
     ...getMapToolsSettings(),
   };
 
+  const fireModeSettings = {};
+  document.querySelectorAll('[data-fire-setting]').forEach((input) => {
+    fireModeSettings[input.dataset.fireSetting] = input.value ?? '';
+  });
+
   state.settings.mission = {
     name: document.querySelector('#mission-name')?.value ?? '',
     targetX: document.querySelector('#target-x')?.value ?? '',
     targetY: document.querySelector('#target-y')?.value ?? '',
     battery: missionBatterySelect?.value ?? '1',
     gun: missionGunSelect?.value ?? 'all',
+    fireMode: fireModeSelect?.value ?? 'linear',
+    fireModeSettings,
   };
 
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
@@ -385,6 +397,7 @@ function applyI18n() {
   renderGunsGrid();
   renderObservers();
   renderMissionSelectors();
+  syncFireModeSettingsVisibility();
   hydrateMapToolsForm();
   syncMarkerTargetOptions();
   refreshMapOverlay();
@@ -532,6 +545,13 @@ function renderMissionSelectors() {
   document.querySelector('#mission-name').value = state.settings.mission.name ?? '';
   document.querySelector('#target-x').value = state.settings.mission.targetX ?? '';
   document.querySelector('#target-y').value = state.settings.mission.targetY ?? '';
+
+  if (fireModeSelect) fireModeSelect.value = state.settings.mission.fireMode ?? 'linear';
+  const fireModeSettings = state.settings.mission.fireModeSettings ?? {};
+  document.querySelectorAll('[data-fire-setting]').forEach((input) => {
+    input.value = fireModeSettings[input.dataset.fireSetting] ?? '';
+  });
+  syncFireModeSettingsVisibility();
 }
 
 function getBatteryHeight(batteryId) {
@@ -556,6 +576,83 @@ function getObserverCorrections(batteryId, gunIds, batteryHeight) {
   return corrections;
 }
 
+function syncFireModeSettingsVisibility() {
+  const mode = fireModeSelect?.value ?? 'linear';
+  document.querySelectorAll('[data-fire-mode-panel]').forEach((panel) => {
+    panel.classList.toggle('hidden', panel.dataset.fireModePanel !== mode);
+  });
+}
+
+function toFiniteNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function buildActiveFirePattern({ mode, targetX, targetY }) {
+  const settings = state.settings.mission.fireModeSettings ?? {};
+  if (mode === 'linear') {
+    return {
+      mode,
+      geometry: {
+        type: 'line',
+        start: { x: toFiniteNumber(settings.linearStartX, targetX - 120), y: toFiniteNumber(settings.linearStartY, targetY - 120) },
+        end: { x: toFiniteNumber(settings.linearEndX, targetX + 120), y: toFiniteNumber(settings.linearEndY, targetY + 120) },
+      },
+    };
+  }
+
+  if (mode === 'parallel') {
+    const width = Math.max(10, toFiniteNumber(settings.parallelWidth, 180));
+    const lanes = Math.max(2, Math.min(10, Math.round(toFiniteNumber(settings.parallelLanes, 3))));
+    const spacing = width / (lanes - 1);
+    const lines = Array.from({ length: lanes }, (_, index) => {
+      const offset = -width / 2 + index * spacing;
+      return { start: { x: targetX - 120, y: targetY + offset }, end: { x: targetX + 120, y: targetY + offset } };
+    });
+    return { mode, geometry: { type: 'parallel-lines', lines } };
+  }
+
+  if (mode === 'converging') {
+    const radius = Math.max(10, toFiniteNumber(settings.convergingRadius, 160));
+    const azimuthDeg = toFiniteNumber(settings.convergingAzimuth, 0);
+    const angleRad = (azimuthDeg * Math.PI) / 180;
+    const spread = Math.PI / 3;
+    const lines = [-1, 0, 1].map((idx) => {
+      const angle = angleRad + idx * (spread / 2);
+      return {
+        start: { x: targetX + Math.sin(angle) * radius, y: targetY + Math.cos(angle) * radius },
+        end: { x: targetX, y: targetY },
+      };
+    });
+    return { mode, geometry: { type: 'converging-lines', lines } };
+  }
+
+  if (mode === 'circular') {
+    const radius = Math.max(10, toFiniteNumber(settings.circularRadius, 120));
+    const count = Math.max(4, Math.min(24, Math.round(toFiniteNumber(settings.circularCount, 10))));
+    const points = Array.from({ length: count }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / count;
+      return { x: targetX + Math.sin(angle) * radius, y: targetY + Math.cos(angle) * radius };
+    });
+    return { mode, geometry: { type: 'ring', center: { x: targetX, y: targetY }, radius, points } };
+  }
+
+  const width = Math.max(10, toFiniteNumber(settings.openWidth, 220));
+  const depth = Math.max(10, toFiniteNumber(settings.openDepth, 160));
+  return {
+    mode: 'open',
+    geometry: {
+      type: 'rectangle',
+      vertices: [
+        { x: targetX - width / 2, y: targetY - depth / 2 },
+        { x: targetX + width / 2, y: targetY - depth / 2 },
+        { x: targetX + width / 2, y: targetY + depth / 2 },
+        { x: targetX - width / 2, y: targetY + depth / 2 },
+      ],
+    },
+  };
+}
+
 function calculateFire() {
   const targetInput = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
   if (!targetInput) {
@@ -566,6 +663,7 @@ function calculateFire() {
   const targetY = targetInput.y;
   const battery = Number(missionBatterySelect.value || 1);
   const selectedGun = missionGunSelect.value;
+  const fireMode = fireModeSelect?.value ?? 'linear';
   const gunsPerBattery = getGunCountForBattery(battery);
   const gunIds = selectedGun === 'all' ? Array.from({ length: gunsPerBattery }, (_, idx) => idx + 1) : [Number(selectedGun)];
   const batteryHeight = getBatteryHeight(battery);
@@ -597,15 +695,18 @@ function calculateFire() {
   }
 
   const output = [`${t('calcDone')}: ${document.querySelector('#mission-name')?.value || 'Mission'}`,
+    `${t('fireMode')}: ${t(`fireMode${fireMode[0].toUpperCase()}${fireMode.slice(1)}`)}`,
     ...results.map((row) => `${t('gun')} ${row.gunId}: D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil`)].join('\n');
 
   const observerCorrections = getObserverCorrections(battery, gunIds, batteryHeight);
   const observerRows = observerCorrections.map((item) => `${getObserverDisplayName(item.observerId)}: ΔH=${item.heightDelta}m`);
 
   fireOutput.textContent = observerRows.length ? `${output}\n${observerRows.join('\n')}` : output;
+  const tools = getMapToolsSettings();
+  state.settings.mapTools = { ...tools, activeFirePattern: buildActiveFirePattern({ mode: fireMode, targetX, targetY }) };
   persistLauncherSettings();
   refreshMapOverlay();
-  return { results, battery, selectedGun, targetX, targetY, batteryHeight };
+  return { results, battery, selectedGun, targetX, targetY, batteryHeight, fireMode };
 }
 
 function showMto() {
@@ -938,6 +1039,7 @@ function resetCalibration() {
     calibrationPoints: [],
     nextCalibrationPointIndex: 0,
     calibrationScaleMeters: '',
+    activeFirePattern: null,
   };
   persistLauncherSettings();
   refreshMapOverlay();
@@ -1127,6 +1229,31 @@ function addPersistentLabel(marker, labelText) {
   });
 }
 
+function drawFirePatternOverlay(pattern, markerStyle) {
+  if (!leafletMap || !pattern?.geometry) return [];
+  const overlays = [];
+  const color = markerStyle.firePattern;
+  const toLatLng = (point) => gamePointToLatLng(point.x, point.y);
+  const geometry = pattern.geometry;
+
+  if (geometry.type === 'line') {
+    overlays.push(window.L.polyline([toLatLng(geometry.start), toLatLng(geometry.end)], { color, weight: 3 }).addTo(leafletMap));
+  }
+  if (geometry.type === 'parallel-lines' || geometry.type === 'converging-lines') {
+    (geometry.lines ?? []).forEach((line) => {
+      overlays.push(window.L.polyline([toLatLng(line.start), toLatLng(line.end)], { color, weight: 2, dashArray: '6 6' }).addTo(leafletMap));
+    });
+  }
+  if (geometry.type === 'rectangle') {
+    overlays.push(window.L.polygon((geometry.vertices ?? []).map(toLatLng), { color, weight: 2, fillOpacity: 0.08 }).addTo(leafletMap));
+  }
+  if (geometry.type === 'ring') {
+    overlays.push(window.L.circle(toLatLng(geometry.center), { color, radius: geometry.radius, weight: 2, fillOpacity: 0.05 }).addTo(leafletMap));
+  }
+
+  return overlays;
+}
+
 function refreshMapOverlay() {
   if (!leafletMap) return;
   syncMapMarkersWithAvailableTargets();
@@ -1140,6 +1267,8 @@ function refreshMapOverlay() {
   rulerEndpointMarkers = [];
   calibrationMarkers.forEach((marker) => marker.remove());
   calibrationMarkers.length = 0;
+  firePatternOverlays.forEach((overlay) => overlay.remove());
+  firePatternOverlays = [];
   if (calibrationLine) {
     calibrationLine.remove();
     calibrationLine = null;
@@ -1157,6 +1286,7 @@ function refreshMapOverlay() {
     observer: '#00d4ff',
     battery: '#ffd84d',
     target: '#ff7a1a',
+    firePattern: '#ff4df0',
   };
   const allGunPoints = getAllGunPoints();
   allGunPoints.forEach(({ batteryId, gunId, x: gunX, y: gunY }) => {
@@ -1229,6 +1359,7 @@ function refreshMapOverlay() {
   addPersistentLabel(targetMarker, t('target'));
 
   const tools = getMapToolsSettings();
+  firePatternOverlays = drawFirePatternOverlay(tools.activeFirePattern, markerStyle);
   if (tools.ruler?.p1) {
     const p1Marker = window.L.marker(mapPointToLatLng(tools.ruler.p1.x, tools.ruler.p1.y), {
       icon: window.L.divIcon({ className: 'calibration-cross', html: '<span>R1</span>' }),
@@ -1295,7 +1426,8 @@ function refreshMapOverlay() {
       const label = buildMarkerLabel(item.type, item.targetId);
       return `<p><span class="legend-dot" style="--dot-color:${color}"></span>${label}: X=${Number(item.x).toFixed(1)}, Y=${Number(item.y).toFixed(1)}</p>`;
     });
-    mapLegend.innerHTML = [...legendRows, `<p><span class="legend-dot" style="--dot-color:${markerStyle.target}"></span>${t('target')}: X=${targetX}, Y=${targetY}</p>`, ...markerLegendRows].join('');
+    const patternRow = tools.activeFirePattern ? `<p><span class="legend-dot" style="--dot-color:${markerStyle.firePattern}"></span>${t('fireMode')}: ${t(`fireMode${tools.activeFirePattern.mode[0].toUpperCase()}${tools.activeFirePattern.mode.slice(1)}`)}</p>` : '';
+    mapLegend.innerHTML = [...legendRows, `<p><span class="legend-dot" style="--dot-color:${markerStyle.target}"></span>${t('target')}: X=${targetX}, Y=${targetY}</p>`, patternRow, ...markerLegendRows].filter(Boolean).join('');
   }
 }
 
@@ -1428,6 +1560,12 @@ missionGunSelect?.addEventListener('change', () => {
   persistLauncherSettings();
   refreshMapOverlay();
 });
+
+fireModeSelect?.addEventListener('change', () => {
+  syncFireModeSettingsVisibility();
+  persistLauncherSettings();
+  refreshMapOverlay();
+});
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Control') {
     const now = Date.now();
@@ -1466,6 +1604,9 @@ document.addEventListener('input', (event) => {
     if (event.target.matches('#cal-scale-meters')) {
       const tools = getMapToolsSettings();
       state.settings.mapTools = { ...tools, calibrationScaleMeters: event.target.value };
+    }
+    if (event.target.matches('[data-fire-setting]')) {
+      syncFireModeSettingsVisibility();
     }
   }
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) {
