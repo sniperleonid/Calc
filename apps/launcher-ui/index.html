@@ -18,17 +18,17 @@
       </header>
 
       <nav class="tabs" aria-label="Sections">
-        <button class="tab active" data-tab="home" data-i18n="tabHome">Главная</button>
-        <button class="tab" data-tab="global" data-i18n="tabGlobal">Глобальные настройки</button>
-        <button class="tab" data-tab="fire" data-i18n="tabFire">Огневые задачи</button>
-        <button class="tab" data-tab="map" data-i18n="tabMap">Карта</button>
-        <button class="tab" data-tab="safety" data-i18n="tabSafety">Безопасность и данные</button>
-        <button class="tab" data-tab="settings" data-i18n="tabSettings">Настройки</button>
+        <button class="tab active" data-tab="home" data-i18n="tabHome" data-i18n-title="tipTabHome">Главная</button>
+        <button class="tab" data-tab="global" data-i18n="tabGlobal" data-i18n-title="tipTabGlobal">Глобальные настройки</button>
+        <button class="tab" data-tab="fire" data-i18n="tabFire" data-i18n-title="tipTabFire">Огневые задачи</button>
+        <button class="tab" data-tab="map" data-i18n="tabMap" data-i18n-title="tipTabMap">Карта</button>
+        <button class="tab" data-tab="safety" data-i18n="tabSafety" data-i18n-title="tipTabSafety">Безопасность и данные</button>
+        <button class="tab" data-tab="settings" data-i18n="tabSettings" data-i18n-title="tipTabSettings">Настройки</button>
       </nav>
 
       <section class="tab-panel active" data-panel="home">
         <div class="panel-grid panel-grid-3">
-          <article class="card">
+          <article class="card" data-i18n-title="tipHomeGlobalCard">
             <h2 data-i18n="homeConfiguration">Глобальные настройки</h2>
             <div class="card-actions">
               <button class="btn" data-open-tab="global" data-i18n="editGlobalData">Настроить орудия, батареи и наблюдателей</button>
@@ -36,7 +36,7 @@
             </div>
           </article>
 
-          <article class="card">
+          <article class="card" data-i18n-title="tipHomeFireCard">
             <h2 data-i18n="homeFire">Огневые задачи</h2>
             <div class="card-actions">
               <button class="btn" data-open-tab="fire" data-i18n="openMissionPlanner">Открыть вкладку задач</button>
@@ -44,7 +44,7 @@
             </div>
           </article>
 
-          <article class="card">
+          <article class="card" data-i18n-title="tipHomeMapCard">
             <h2 data-i18n="homeMap">Карта и интеграции</h2>
             <label for="map-url" data-i18n="mapUrl">URL карты</label>
             <input id="map-url" type="url" placeholder="http://localhost:4173" />
@@ -114,11 +114,11 @@
 
       <section class="tab-panel" data-panel="map">
         <div class="section-layout map-layout">
-          <article class="card map-card">
+          <article class="card map-card" data-i18n-title="tipMapCanvasCard">
             <h2 data-i18n="mapPanelTitle">Тактическая карта (Leaflet)</h2>
             <div id="leaflet-map" class="leaflet-map" aria-label="Leaflet tactical map"></div>
           </article>
-          <article class="card">
+          <article class="card" data-i18n-title="tipMapToolsCard">
             <h2 data-i18n="mapLegendTitle">Легенда</h2>
             <p class="hint" data-i18n="mapLegendHint">Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».</p>
             <div id="map-legend" class="stack"></div>
