@@ -504,3 +504,83 @@ test('battery can solve different weapons with own projectile tables', () => {
   assert.equal(results[0].solution.inRange, true);
   assert.equal(results[1].solution.inRange, false);
 });
+
+test('ballistics module supports toggleable environmental corrections (wind/temp/humidity/pressure/spin)', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-env-corrections' });
+  const ballistics = workspace.getModule('ballistics');
+
+  ballistics.upsertManual({
+    id: 'gun-1',
+    name: 'Gun #1',
+    position: { x: 0, y: 0 },
+    heading: 90,
+    sectorStart: 0,
+    sectorEnd: 360,
+    minElevationMil: 250,
+    maxElevationMil: 1300,
+  });
+  ballistics.registerProjectile({ id: 'proj-1', label: 'HE', windDriftFactor: 0.45 });
+  ballistics.bindProjectileToGun({ gunId: 'gun-1', projectileId: 'proj-1' });
+  ballistics.bindTableToProjectile({
+    projectileId: 'proj-1',
+    chargeLevel: 4,
+    table: [
+      { range: 4000, elevation: 940, tof: 12, dElev: 15, tofPer100m: 0.12 },
+      { range: 6000, elevation: 860, tof: 18, dElev: 20, tofPer100m: 0.18 },
+    ],
+  });
+
+  const baseline = ballistics.calculateGunSolution({
+    gunId: 'gun-1',
+    projectileId: 'proj-1',
+    distance: 5000,
+    bearing: 90,
+    wind: { direction: 180, crosswind: 4, headwind: 2 },
+    weather: { temperatureC: 35, humidityPct: 75, pressureHpa: 990 },
+    spin: { driftDirection: 'right' },
+  });
+
+  ballistics.configureEnvironmentalCorrections({
+    enabled: true,
+    includeWind: true,
+    includeTemperature: true,
+    includeHumidity: true,
+    includePressure: true,
+    includeSpinDrift: true,
+  });
+
+  const withCorrections = ballistics.calculateGunSolution({
+    gunId: 'gun-1',
+    projectileId: 'proj-1',
+    distance: 5000,
+    bearing: 90,
+    wind: { direction: 180, crosswind: 4, headwind: 2 },
+    weather: { temperatureC: 35, humidityPct: 75, pressureHpa: 990 },
+    spin: { driftDirection: 'right' },
+  });
+
+  assert.equal(withCorrections.corrections.windComponents.crosswindMs, 4);
+  assert.equal(withCorrections.corrections.windComponents.headwindMs, 2);
+  assert.equal(withCorrections.corrections.temperatureMil !== 0, true);
+  assert.equal(withCorrections.corrections.humidityMil !== 0, true);
+  assert.equal(withCorrections.corrections.pressureMil !== 0, true);
+  assert.equal(withCorrections.corrections.spinMil !== 0, true);
+  assert.equal(withCorrections.elevationMil !== baseline.elevationMil, true);
+
+  ballistics.configureEnvironmentalCorrections({ enabled: false });
+  const disabled = ballistics.calculateGunSolution({
+    gunId: 'gun-1',
+    projectileId: 'proj-1',
+    distance: 5000,
+    bearing: 90,
+    wind: { direction: 180, crosswind: 4, headwind: 2 },
+    weather: { temperatureC: 35, humidityPct: 75, pressureHpa: 990 },
+    spin: { driftDirection: 'right' },
+  });
+
+  assert.equal(disabled.corrections.windMil, 0);
+  assert.equal(disabled.corrections.temperatureMil, 0);
+  assert.equal(disabled.corrections.humidityMil, 0);
+  assert.equal(disabled.corrections.pressureMil, 0);
+  assert.equal(disabled.corrections.spinMil, 0);
+});
