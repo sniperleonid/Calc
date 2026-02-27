@@ -626,6 +626,9 @@ function initializeMap() {
   leafletMap = window.L.map('leaflet-map', {
     zoomControl: true,
     doubleClickZoom: false,
+    zoomSnap: 0.25,
+    zoomDelta: 0.25,
+    wheelPxPerZoomLevel: 80,
     crs: window.L.CRS.Simple,
     minZoom: -6,
     maxZoom: 6,
@@ -848,16 +851,28 @@ function hydrateMapToolsForm() {
 function upsertMapOverlay() {
   if (!leafletMap) return;
   const tools = getMapToolsSettings();
-  if (mapImageOverlay) {
-    mapImageOverlay.remove();
-    mapImageOverlay = null;
-  }
+  const overlayKey = tools.imageDataUrl ? `${tools.imageDataUrl.length}:${tools.imageDataUrl.slice(0, 64)}` : '';
+
   if (!tools.imageDataUrl) {
+    if (mapImageOverlay) {
+      mapImageOverlay.remove();
+      mapImageOverlay = null;
+    }
     leafletMap.setMaxBounds(null);
     mapImageSize = null;
     lastOverlayBoundsKey = '';
     return;
   }
+
+  if (mapImageOverlay && overlayKey === lastOverlayBoundsKey) {
+    return;
+  }
+
+  if (mapImageOverlay) {
+    mapImageOverlay.remove();
+    mapImageOverlay = null;
+  }
+
   const image = new Image();
   image.onload = () => {
     if (!leafletMap) return;
@@ -879,7 +894,7 @@ function upsertMapOverlay() {
     hydrateMapToolsForm();
     leafletMap.fitBounds(bounds);
     leafletMap.setMaxBounds(bounds);
-    lastOverlayBoundsKey = `${tools.imageDataUrl.length}:${naturalWidth}:${naturalHeight}`;
+    lastOverlayBoundsKey = overlayKey;
   };
   image.src = tools.imageDataUrl;
 }
