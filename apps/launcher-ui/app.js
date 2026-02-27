@@ -822,13 +822,6 @@ function onMapDoubleClick(event) {
   const current = [...(tools.calibrationPoints ?? [])].filter((item) => item.label !== label);
   current.push({ label, mapX: imagePoint.x, mapY: imagePoint.y });
   state.settings.mapTools = { ...tools, calibrationPoints: current, nextCalibrationPointIndex: (Number(tools.nextCalibrationPointIndex ?? 0) + 1) % 3 };
-  if (label === 'P0') {
-    const xInput = document.querySelector('#cal-p0-x');
-    const yInput = document.querySelector('#cal-p0-y');
-    const gamePoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
-    if (xInput) xInput.value = gamePoint.x.toFixed(2);
-    if (yInput) yInput.value = gamePoint.y.toFixed(2);
-  }
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = `${t('calibrationPointSet')}: ${label}`;
@@ -878,12 +871,9 @@ function upsertMapOverlay() {
     if (!leafletMap) return;
     const naturalWidth = image.naturalWidth || image.width;
     const naturalHeight = image.naturalHeight || image.height;
-    const z = getFixedProjectionZoom();
     mapImageSize = { naturalWidth, naturalHeight };
 
-    const southWest = leafletMap.unproject([0, naturalHeight], z);
-    const northEast = leafletMap.unproject([naturalWidth, 0], z);
-    const bounds = window.L.latLngBounds(southWest, northEast);
+    const bounds = window.L.latLngBounds([[0, 0], [naturalHeight, naturalWidth]]);
     mapImageOverlay = window.L.imageOverlay(tools.imageDataUrl, bounds, { opacity: 0.85 }).addTo(leafletMap);
 
     state.settings.mapTools = {
@@ -903,11 +893,12 @@ function applyCalibration() {
   const p0x = Number(document.querySelector('#cal-p0-x')?.value);
   const p0y = Number(document.querySelector('#cal-p0-y')?.value);
   const tools = getMapToolsSettings();
+  const p0 = (tools.calibrationPoints ?? []).find((point) => point.label === 'P0');
   const p1 = (tools.calibrationPoints ?? []).find((point) => point.label === 'P1');
   const p2 = (tools.calibrationPoints ?? []).find((point) => point.label === 'P2');
   const scaleMeters = Number(document.querySelector('#cal-scale-meters')?.value);
 
-  if (![p0x, p0y, scaleMeters].every(Number.isFinite) || !p1 || !p2) {
+  if (![p0x, p0y, scaleMeters].every(Number.isFinite) || !p0 || !p1 || !p2 || scaleMeters <= 0) {
     if (mapToolsOutput) mapToolsOutput.textContent = t('invalidCalibration');
     return;
   }
@@ -922,7 +913,13 @@ function applyCalibration() {
   state.settings.mapTools = {
     ...tools,
     calibrationScaleMeters: scaleMeters,
-    calibration: { scale, originMapX: p0x, originMapY: p0y, originWorldX: p0x, originWorldY: p0y },
+    calibration: {
+      scale,
+      originMapX: p0.mapX,
+      originMapY: p0.mapY,
+      originWorldX: p0x,
+      originWorldY: p0y,
+    },
   };
   persistLauncherSettings();
   refreshMapOverlay();
@@ -971,9 +968,7 @@ function clearManualMarkers() {
 }
 
 function getFixedProjectionZoom() {
-  if (!leafletMap) return 0;
-  const maxZoom = leafletMap.getMaxZoom();
-  return Number.isFinite(maxZoom) ? maxZoom : 0;
+  return 0;
 }
 
 function imagePointToGamePoint(x, y) {
@@ -1051,6 +1046,7 @@ function logMapClickDiagnostics(latlng, imagePoint) {
     mapX: Number(imagePoint.x.toFixed(2)),
     mapY: Number(imagePoint.y.toFixed(2)),
     zoom: leafletMap.getZoom(),
+    fixedZoom: getFixedProjectionZoom(),
     containerSize: {
       width: container?.clientWidth ?? null,
       height: container?.clientHeight ?? null,
@@ -1059,8 +1055,14 @@ function logMapClickDiagnostics(latlng, imagePoint) {
     latlng,
     bounds: bounds
       ? {
-          southWest: bounds.getSouthWest(),
-          northEast: bounds.getNorthEast(),
+          southWest: {
+            lat: bounds.getSouthWest().lat,
+            lng: bounds.getSouthWest().lng,
+          },
+          northEast: {
+            lat: bounds.getNorthEast().lat,
+            lng: bounds.getNorthEast().lng,
+          },
         }
       : null,
   });
