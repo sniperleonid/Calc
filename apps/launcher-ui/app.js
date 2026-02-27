@@ -38,6 +38,8 @@ function loadLauncherSettings() {
       mission: parsed.mission ?? {},
       mapTools: parsed.mapTools ?? {},
       counterBattery: parsed.counterBattery ?? {},
+      artilleryProfiles: parsed.artilleryProfiles ?? {},
+      gunSettings: parsed.gunSettings ?? {},
     };
   } catch {
     return {
@@ -52,6 +54,8 @@ function loadLauncherSettings() {
       mission: {},
       mapTools: {},
       counterBattery: {},
+      artilleryProfiles: {},
+      gunSettings: {},
     };
   }
 }
@@ -66,7 +70,7 @@ const state = {
 const i18n = {
   ru: {
     appVersion: 'Calc v1', appTitle: 'Баллистический калькулятор', appSubtitle: 'Единая оболочка для планирования огневых задач и оперативных данных.',
-    tabHome: 'Главная', tabGlobal: 'Глобальные настройки', tabFire: 'Огневые задачи', tabCounterBattery: 'Контрбатарейный огонь', tabMap: 'Карта', tabSafety: 'Безопасность и данные', tabSettings: 'Настройки',
+    tabHome: 'Главная', tabGlobal: 'Глобальные настройки', tabProfiles: 'Профили', tabFire: 'Огневые задачи', tabCounterBattery: 'Контрбатарейный огонь', tabMap: 'Карта', tabSafety: 'Безопасность и данные', tabSettings: 'Настройки',
     tipTabHome: 'Быстрый обзор состояния системы и ключевых переходов.', tipTabGlobal: 'Настройка состава батарей, орудий и наблюдателей перед расчётами.', tipTabFire: 'Подготовка и расчёт параметров для огневой задачи.', tipTabMap: 'Работа с тактической картой, метками и калибровкой.', tipTabSafety: 'Проверка логов, экспорт данных и служебные операции.', tipTabSettings: 'Переключение языка и визуальной темы интерфейса.',
     homeConfiguration: 'Глобальные настройки', homeFire: 'Огневые задачи', homeMap: 'Карта и интеграции', openApi: 'Открыть API', editGlobalData: 'Настроить орудия, батареи и наблюдателей',
     tipHomeGlobalCard: 'Карточка для первичной настройки структуры подразделения.', tipHomeFireCard: 'Карточка с быстрым переходом к расчётам и проверке доступности сервисов.', tipHomeMapCard: 'Карточка открытия внешней карты и интеграции с оболочкой.', tipMapCanvasCard: 'Основное рабочее окно карты: масштабирование, метки и позиционирование.', tipMapToolsCard: 'Панель вспомогательных инструментов карты и калибровки.',
@@ -100,11 +104,11 @@ const i18n = {
     calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
     markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolBattery: 'Активная батарея', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
     rulerPointSet: 'Точка линейки установлена', rulerMeasurement: 'Линейка', rulerCleared: 'Линейка удалена', coordsCaptured: 'Координаты точки',
-    calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', clearManualMarkers: 'Очистить ручные метки'
+    calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', clearManualMarkers: 'Очистить ручные метки', profilesTitle: 'Профили орудий и боеприпасов', profilesHint: 'Настройка сектора огня, зон минимальной/максимальной дальности и привязок к снарядам/таблицам.', profileTraverseDeg: 'Сектор наведения (°)', profileMinRange: 'Минимальная дальность (м)', profileMaxRange: 'Максимальная дальность (м)', profileProjectiles: 'Привязанные снаряды', profileTables: 'Баллистические таблицы', mapRotationHint: 'Shift + левая кнопка мыши: задать азимут орудия', mapWarningPrefix: 'Предупреждение'
   },
   en: {
     appVersion: 'Calc v1', appTitle: 'Ballistics Calculator', appSubtitle: 'Unified shell for fire mission planning and operational data.',
-    tabHome: 'Home', tabGlobal: 'Global settings', tabFire: 'Fire Missions', tabMap: 'Map', tabSafety: 'Safety & Data', tabSettings: 'Settings',
+    tabHome: 'Home', tabGlobal: 'Global settings', tabProfiles: 'Profiles', tabFire: 'Fire Missions', tabMap: 'Map', tabSafety: 'Safety & Data', tabSettings: 'Settings',
     tipTabHome: 'Quick system overview and key navigation links.', tipTabGlobal: 'Configure batteries, guns, and observers before calculations.', tipTabFire: 'Prepare and calculate fire mission parameters.', tipTabMap: 'Work with tactical map, markers, and calibration.', tipTabSafety: 'Check logs, export data, and run service actions.', tipTabSettings: 'Switch interface language and visual theme.',
     homeConfiguration: 'Global settings', homeFire: 'Fire Missions', homeMap: 'Map & integrations', openApi: 'Open API', editGlobalData: 'Configure guns, batteries and observers',
     tipHomeGlobalCard: 'Primary card for configuring your unit structure.', tipHomeFireCard: 'Quick access to mission calculations and service health check.', tipHomeMapCard: 'Open and bind an external map workspace.', tipMapCanvasCard: 'Main tactical canvas for zoom, markers, and position tracking.', tipMapToolsCard: 'Helper controls for map markers and calibration.',
@@ -138,7 +142,7 @@ const i18n = {
     calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
     markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolBattery: 'Active battery', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
     rulerPointSet: 'Ruler point set', rulerMeasurement: 'Ruler', rulerCleared: 'Ruler removed', coordsCaptured: 'Picked coordinates',
-    calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', clearManualMarkers: 'Clear manual markers'
+    calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', clearManualMarkers: 'Clear manual markers', profilesTitle: 'Gun and ammo profiles', profilesHint: 'Configure fire sector, min/max range zones, and projectile/table bindings.', profileTraverseDeg: 'Traverse sector (°)', profileMinRange: 'Min range (m)', profileMaxRange: 'Max range (m)', profileProjectiles: 'Linked projectiles', profileTables: 'Ballistic tables', mapRotationHint: 'Shift + left mouse: point gun azimuth', mapWarningPrefix: 'Warning' 
   },
 };
 
@@ -170,11 +174,33 @@ const markerToolSelect = document.querySelector('#marker-tool');
 const markerTargetSelect = document.querySelector('#marker-target');
 const calibrationModeButton = document.querySelector('#toggle-calibration-mode');
 const calibrationControls = document.querySelector('#calibration-controls');
+const profilesEditor = document.querySelector('#profiles-editor');
 
 const t = (key) => i18n[state.lang][key] ?? key;
 
 const gunProfiles = ['mortar-120-standard', 'm777-howitzer', 'd30-standard'];
 const projectileProfiles = ['he-charge-3', 'smoke-charge-2', 'illum'];
+
+function getDefaultArtilleryProfiles() {
+  return {
+    'mortar-120-standard': { name: 'Mortar 120', traverseDeg: 360, minRange: 450, maxRange: 7100, projectiles: 'HE/Smoke', tables: 'STD' },
+    'm777-howitzer': { name: 'M777', traverseDeg: 30, minRange: 3500, maxRange: 24500, projectiles: 'M107 HE', tables: 'M777/M107' },
+    'd30-standard': { name: 'D-30', traverseDeg: 60, minRange: 1000, maxRange: 15300, projectiles: 'HE', tables: 'D30/STD' },
+  };
+}
+
+function getArtilleryProfiles() {
+  return { ...getDefaultArtilleryProfiles(), ...(state.settings.artilleryProfiles ?? {}) };
+}
+
+function getGunSetting(gunKey) {
+  const settings = state.settings.gunSettings?.[gunKey] ?? {};
+  return {
+    heading: Number.isFinite(Number(settings.heading)) ? Number(settings.heading) : 0,
+    profileId: settings.profileId || null,
+  };
+}
+
 
 function getMapToolsSettings() {
   const defaults = {
@@ -352,6 +378,28 @@ function persistLauncherSettings() {
     };
   });
 
+  state.settings.gunSettings = { ...(state.settings.gunSettings ?? {}) };
+  document.querySelectorAll('[data-gun-profile]').forEach((select) => {
+    const key = select.dataset.gunProfile;
+    const prev = state.settings.gunSettings[key] ?? {};
+    state.settings.gunSettings[key] = { ...prev, profileId: select.value || gunProfiles[0], heading: Number(prev.heading ?? 0) || 0 };
+  });
+
+  const profileDraft = getArtilleryProfiles();
+  document.querySelectorAll('[data-profile-traverse]').forEach((input) => {
+    const profileId = input.dataset.profileTraverse;
+    const existing = profileDraft[profileId] ?? { name: profileId };
+    profileDraft[profileId] = {
+      ...existing,
+      traverseDeg: clamp(Number(input.value) || 360, 1, 360),
+      minRange: Math.max(0, Number(document.querySelector(`[data-profile-min-range="${profileId}"]`)?.value || 0)),
+      maxRange: Math.max(0, Number(document.querySelector(`[data-profile-max-range="${profileId}"]`)?.value || 0)),
+      projectiles: document.querySelector(`[data-profile-projectiles="${profileId}"]`)?.value ?? '',
+      tables: document.querySelector(`[data-profile-tables="${profileId}"]`)?.value ?? '',
+    };
+  });
+  state.settings.artilleryProfiles = profileDraft;
+
   state.settings.observerBindings = {};
   document.querySelectorAll('[data-observer-index]').forEach((input) => {
     const observerId = input.dataset.observerIndex;
@@ -438,6 +486,7 @@ function applyI18n() {
   observerCountInput.value = String(state.settings.observerCount);
   renderGlobalConfig();
   renderGunsGrid();
+  renderProfilesEditor();
   renderObservers();
   renderMissionSelectors();
   renderCounterBatterySection();
@@ -661,6 +710,8 @@ function renderGunsGrid() {
   const container = document.querySelector('#guns-coordinates');
   if (!container) return;
   const batteries = Number(batteryCountInput?.value || 1);
+  const profiles = getArtilleryProfiles();
+  const profileOptions = Object.entries(profiles).map(([id, profile]) => `<option value="${id}">${profile.name ?? id}</option>`).join('');
   container.innerHTML = '';
   for (let b = 1; b <= batteries; b += 1) {
     const batteryTitle = document.createElement('h3');
@@ -671,12 +722,28 @@ function renderGunsGrid() {
     for (let g = 1; g <= gunsPerBattery; g += 1) {
       const key = `${b}-${g}`;
       const saved = state.settings.gunCoords[key] ?? {};
+      const gunState = getGunSetting(key);
+      const batteryDefaultProfile = state.settings.batteryConfig?.[String(b)]?.gunProfile ?? gunProfiles[0];
       const row = document.createElement('div');
       row.className = 'pair';
-      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" />`;
+      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><select data-gun-profile="${key}">${profileOptions}</select>`;
       container.append(row);
+      const profileSelect = row.querySelector(`[data-gun-profile="${key}"]`);
+      if (profileSelect) profileSelect.value = gunState.profileId || batteryDefaultProfile;
     }
   }
+}
+
+function renderProfilesEditor() {
+  if (!profilesEditor) return;
+  const profiles = getArtilleryProfiles();
+  profilesEditor.innerHTML = '';
+  Object.entries(profiles).forEach(([profileId, profile]) => {
+    const row = document.createElement('div');
+    row.className = 'profile-row';
+    row.innerHTML = `<h3>${profile.name ?? profileId}</h3><div class="pair pair-5"><input data-profile-traverse="${profileId}" type="number" min="1" max="360" value="${profile.traverseDeg ?? 360}" placeholder="${t('profileTraverseDeg')}" /><input data-profile-min-range="${profileId}" type="number" min="0" value="${profile.minRange ?? 0}" placeholder="${t('profileMinRange')}" /><input data-profile-max-range="${profileId}" type="number" min="0" value="${profile.maxRange ?? 0}" placeholder="${t('profileMaxRange')}" /><input data-profile-projectiles="${profileId}" value="${profile.projectiles ?? ''}" placeholder="${t('profileProjectiles')}" /><input data-profile-tables="${profileId}" value="${profile.tables ?? ''}" placeholder="${t('profileTables')}" /></div>`;
+    profilesEditor.append(row);
+  });
 }
 
 function syncObserverBindingVisibility(scope) {
@@ -1151,6 +1218,31 @@ function syncMarkerTargetOptions() {
   markerTargetSelect.value = targets[0].id;
 }
 
+function getProfileForGun(batteryId, gunId) {
+  const gunKey = `${batteryId}-${gunId}`;
+  const profiles = getArtilleryProfiles();
+  const gunSetting = getGunSetting(gunKey);
+  const batteryDefault = state.settings.batteryConfig?.[String(batteryId)]?.gunProfile ?? gunProfiles[0];
+  return {
+    profileId: gunSetting.profileId || batteryDefault,
+    profile: profiles[gunSetting.profileId || batteryDefault] ?? profiles[gunProfiles[0]],
+    heading: normalizeAzimuth(gunSetting.heading ?? 0),
+  };
+}
+
+function buildSectorPolygonPoints({ x, y, heading, traverseDeg, radius }) {
+  const half = Math.max(0.5, Number(traverseDeg) / 2);
+  const segments = 20;
+  const points = [{ x, y }];
+  for (let idx = 0; idx <= segments; idx += 1) {
+    const angle = normalizeAzimuth(heading - half + (idx / segments) * (half * 2));
+    const rad = (angle * Math.PI) / 180;
+    points.push({ x: x + Math.sin(rad) * radius, y: y + Math.cos(rad) * radius });
+  }
+  points.push({ x, y });
+  return points;
+}
+
 function formatRulerMeasurement(p1, p2) {
   const dx = Number(p2.x) - Number(p1.x);
   const dy = Number(p2.y) - Number(p1.y);
@@ -1611,7 +1703,7 @@ function refreshMapOverlay() {
 
   const battery = Number(missionBatterySelect?.value || 1);
 
-  const legendRows = [];
+  const legendRows = [`<p>${t('mapRotationHint')}</p>`];
   const markerStyle = {
     gun: '#00ff57',
     observer: '#00d4ff',
@@ -1619,8 +1711,51 @@ function refreshMapOverlay() {
     target: '#ff7a1a',
     firePattern: '#ff4df0',
   };
+  const targetPoint = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y')) ?? { x: 0, y: 0 };
+  const targetX = targetPoint.x;
+  const targetY = targetPoint.y;
+  const warnings = [];
   const allGunPoints = getAllGunPoints();
   allGunPoints.forEach(({ batteryId, gunId, x: gunX, y: gunY }) => {
+    const gunKey = `${batteryId}-${gunId}`;
+    const { profile, heading } = getProfileForGun(batteryId, gunId);
+    const traverseDeg = clamp(Number(profile?.traverseDeg) || 360, 1, 360);
+    const minRange = Math.max(0, Number(profile?.minRange) || 0);
+    const maxRange = Math.max(minRange, Number(profile?.maxRange) || 0);
+
+    if (maxRange > 0) {
+      const maxCircle = window.L.circle(gamePointToLatLng(gunX, gunY), {
+        radius: maxRange,
+        color: '#5fd1ff',
+        fillColor: '#5fd1ff',
+        fillOpacity: 0.05,
+        weight: 1,
+      }).addTo(leafletMap);
+      gunMarkers.push(maxCircle);
+    }
+    if (minRange > 0) {
+      const minCircle = window.L.circle(gamePointToLatLng(gunX, gunY), {
+        radius: minRange,
+        color: '#ff4d4d',
+        fillColor: '#ff4d4d',
+        fillOpacity: 0.08,
+        weight: 1,
+        dashArray: '4 6',
+      }).addTo(leafletMap);
+      gunMarkers.push(minCircle);
+    }
+
+    if (traverseDeg < 360 && maxRange > 0) {
+      const sector = buildSectorPolygonPoints({ x: gunX, y: gunY, heading, traverseDeg, radius: maxRange });
+      const sectorPolygon = window.L.polygon(sector.map((point) => gamePointToLatLng(point.x, point.y)), {
+        color: '#ffe066',
+        fillColor: '#ffe066',
+        fillOpacity: 0.08,
+        weight: 1,
+      }).addTo(leafletMap);
+      gunMarkers.push(sectorPolygon);
+    }
+
     const marker = window.L.circleMarker(gamePointToLatLng(gunX, gunY), {
       radius: 8,
       color: markerStyle.gun,
@@ -1628,12 +1763,46 @@ function refreshMapOverlay() {
       fillOpacity: 0.9,
       weight: 2,
     }).addTo(leafletMap);
+    const headingRad = (heading * Math.PI) / 180;
+    const stickLength = 140;
+    const headingLine = window.L.polyline([
+      gamePointToLatLng(gunX, gunY),
+      gamePointToLatLng(gunX + Math.sin(headingRad) * stickLength, gunY + Math.cos(headingRad) * stickLength),
+    ], { color: '#ffffff', weight: 2 }).addTo(leafletMap);
+
+    const dx = targetX - gunX;
+    const dy = targetY - gunY;
+    const targetAz = normalizeAzimuth((Math.atan2(dx, dy) * 180) / Math.PI);
+    const targetDistance = Math.hypot(dx, dy);
+    const offset = Math.abs(((targetAz - heading + 540) % 360) - 180);
+    const inSector = traverseDeg >= 360 || offset <= traverseDeg / 2;
+    const inRange = targetDistance >= minRange && (maxRange <= 0 || targetDistance <= maxRange);
+    if (!inSector || !inRange) {
+      warnings.push(`${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}: Az ${targetAz.toFixed(1)}°${inSector ? '' : `, rotate to ${targetAz.toFixed(1)}°`}${inRange ? '' : `, D=${targetDistance.toFixed(0)}m`}`);
+    }
+
+    marker.on('mousedown', (event) => {
+      if (event.originalEvent?.button !== 0 || !event.originalEvent?.shiftKey) return;
+      const latlng = event.latlng;
+      const mapPoint = latLngToMapPoint(latlng.lat, latlng.lng);
+      const mousePoint = imagePointToGamePoint(mapPoint.x, mapPoint.y);
+      const azimuthDeg = normalizeAzimuth((Math.atan2(mousePoint.x - gunX, mousePoint.y - gunY) * 180) / Math.PI);
+      state.settings.gunSettings = { ...(state.settings.gunSettings ?? {}), [gunKey]: { ...getGunSetting(gunKey), heading: azimuthDeg, profileId: getGunSetting(gunKey).profileId || state.settings.batteryConfig?.[String(batteryId)]?.gunProfile || gunProfiles[0] } };
+      persistLauncherSettings();
+      refreshMapOverlay();
+    });
+
     const gunLabel = `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}`;
-    marker.bindPopup(`${gunLabel}<br>X: ${gunX}, Y: ${gunY}`);
+    marker.bindPopup(`${gunLabel}<br>X: ${gunX}, Y: ${gunY}<br>Az: ${heading.toFixed(1)}°<br>${profile?.name ?? ''}`);
     addPersistentLabel(marker, gunLabel);
-    gunMarkers.push(marker);
-    legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.gun}"></span>${gunLabel}: X=${gunX}, Y=${gunY}</p>`);
+    gunMarkers.push(marker, headingLine);
+    legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.gun}"></span>${gunLabel}: X=${gunX}, Y=${gunY}, Az=${heading.toFixed(1)}°, ${profile?.name ?? ''}</p>`);
   });
+
+
+  if (warnings.length && mapToolsOutput) {
+    mapToolsOutput.textContent = `${t('mapWarningPrefix')}:\n${warnings.join('\n')}`;
+  }
 
   const batteries = Number(batteryCountInput?.value || 1);
   for (let batteryId = 1; batteryId <= batteries; batteryId += 1) {
@@ -1672,9 +1841,6 @@ function refreshMapOverlay() {
     legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.observer}"></span>${observerLabel}: X=${x}, Y=${y}</p>`);
   });
 
-  const targetPoint = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y')) ?? { x: 0, y: 0 };
-  const targetX = targetPoint.x;
-  const targetY = targetPoint.y;
   if (!targetMarker) {
     targetMarker = window.L.circleMarker(gamePointToLatLng(targetX, targetY), {
       radius: 9,
@@ -1864,6 +2030,7 @@ batteryCountInput?.addEventListener('change', () => {
   if (batteryCountInput) batteryCountInput.value = String(state.settings.batteryCount);
   renderGlobalConfig();
   renderGunsGrid();
+  renderProfilesEditor();
   renderObservers();
   renderMissionSelectors();
   renderCounterBatterySection();
@@ -1891,9 +2058,19 @@ document.addEventListener('change', (event) => {
   persistLauncherSettings();
 });
 document.addEventListener('change', (event) => {
+  if (!(event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement)) return;
+  if (!event.target.matches('[data-gun-profile], [data-profile-traverse], [data-profile-min-range], [data-profile-max-range], [data-profile-projectiles], [data-profile-tables]')) return;
+  persistLauncherSettings();
+  renderProfilesEditor();
+  renderGunsGrid();
+  refreshMapOverlay();
+});
+
+document.addEventListener('change', (event) => {
   if (!(event.target instanceof HTMLInputElement) || !event.target.matches('[data-battery-guns-count]')) return;
   event.target.value = String(getGunCountForBattery(event.target.dataset.batteryGunsCount));
   renderGunsGrid();
+  renderProfilesEditor();
   renderObservers();
   renderMissionSelectors();
   renderCounterBatterySection();
