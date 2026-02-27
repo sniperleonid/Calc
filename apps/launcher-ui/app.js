@@ -197,7 +197,6 @@ function getGunSetting(gunKey) {
   const heading = Number(settings.heading);
   return {
     heading: Number.isFinite(heading) ? normalizeAzimuth(heading) : null,
-    profileId: settings.profileId || null,
   };
 }
 
@@ -378,14 +377,12 @@ function persistLauncherSettings() {
   });
 
   state.settings.gunSettings = { ...(state.settings.gunSettings ?? {}) };
-  document.querySelectorAll('[data-gun-profile]').forEach((select) => {
-    const key = select.dataset.gunProfile;
+  document.querySelectorAll('[data-gun-heading]').forEach((headingInput) => {
+    const key = headingInput.dataset.gunHeading;
     const prev = state.settings.gunSettings[key] ?? {};
-    const headingInput = document.querySelector(`[data-gun-heading="${key}"]`);
     const headingNumber = Number(headingInput?.value);
     state.settings.gunSettings[key] = {
       ...prev,
-      profileId: select.value || gunProfiles[0],
       heading: headingInput && headingInput.value !== '' && Number.isFinite(headingNumber)
         ? normalizeAzimuth(headingNumber)
         : null,
@@ -744,8 +741,6 @@ function renderGunsGrid() {
   const container = document.querySelector('#guns-coordinates');
   if (!container) return;
   const batteries = Number(batteryCountInput?.value || 1);
-  const profiles = getArtilleryProfiles();
-  const profileOptions = Object.entries(profiles).map(([id, profile]) => `<option value="${id}">${profile.name ?? id}</option>`).join('');
   container.innerHTML = '';
   for (let b = 1; b <= batteries; b += 1) {
     const batteryTitle = document.createElement('h3');
@@ -757,17 +752,11 @@ function renderGunsGrid() {
       const key = `${b}-${g}`;
       const saved = state.settings.gunCoords[key] ?? {};
       const gunState = getGunSetting(key);
-      const batteryDefaultProfile = state.settings.batteryConfig?.[String(b)]?.gunProfile ?? gunProfiles[0];
-      const activeProfileId = gunState.profileId || batteryDefaultProfile;
-      const activeProfile = profiles[activeProfileId] ?? profiles[gunProfiles[0]];
-      const traverseDeg = clamp(Number(activeProfile?.traverseDeg) || 360, 1, 360);
       const row = document.createElement('div');
       row.className = 'pair';
       const headingValue = Number.isFinite(gunState.heading) ? normalizeAzimuth(gunState.heading).toFixed(1) : '';
-      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><select data-gun-profile="${key}">${profileOptions}</select><input data-gun-heading="${key}" type="number" min="0" max="360" step="0.1" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`;
+      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><input data-gun-heading="${key}" type="number" min="0" max="360" step="0.1" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`;
       container.append(row);
-      const profileSelect = row.querySelector(`[data-gun-profile="${key}"]`);
-      if (profileSelect) profileSelect.value = gunState.profileId || batteryDefaultProfile;
     }
   }
 }
@@ -1299,10 +1288,11 @@ function getProfileForGun(batteryId, gunId) {
   const profiles = getArtilleryProfiles();
   const gunSetting = getGunSetting(gunKey);
   const batteryDefault = state.settings.batteryConfig?.[String(batteryId)]?.gunProfile ?? gunProfiles[0];
+  const activeProfile = profiles[batteryDefault] ?? profiles[gunProfiles[0]];
   return {
-    profileId: gunSetting.profileId || batteryDefault,
-    profile: profiles[gunSetting.profileId || batteryDefault] ?? profiles[gunProfiles[0]],
-    heading: clamp(Number((profiles[gunSetting.profileId || batteryDefault] ?? profiles[gunProfiles[0]])?.traverseDeg) || 360, 1, 360) < 360 && Number.isFinite(gunSetting.heading)
+    profileId: batteryDefault,
+    profile: activeProfile,
+    heading: clamp(Number(activeProfile?.traverseDeg) || 360, 1, 360) < 360 && Number.isFinite(gunSetting.heading)
       ? normalizeAzimuth(gunSetting.heading)
       : 0,
   };
@@ -1868,7 +1858,7 @@ function refreshMapOverlay() {
       const mapPoint = latLngToMapPoint(latlng.lat, latlng.lng);
       const mousePoint = imagePointToGamePoint(mapPoint.x, mapPoint.y);
       const azimuthDeg = normalizeAzimuth((Math.atan2(mousePoint.x - gunX, mousePoint.y - gunY) * 180) / Math.PI);
-      state.settings.gunSettings = { ...(state.settings.gunSettings ?? {}), [gunKey]: { ...getGunSetting(gunKey), heading: azimuthDeg, profileId: getGunSetting(gunKey).profileId || state.settings.batteryConfig?.[String(batteryId)]?.gunProfile || gunProfiles[0] } };
+      state.settings.gunSettings = { ...(state.settings.gunSettings ?? {}), [gunKey]: { ...getGunSetting(gunKey), heading: azimuthDeg } };
       persistLauncherSettings();
       refreshMapOverlay();
     });
@@ -2141,7 +2131,7 @@ document.addEventListener('change', (event) => {
 });
 document.addEventListener('change', (event) => {
   if (!(event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement)) return;
-  if (!event.target.matches('[data-gun-profile], [data-gun-heading], [data-profile-traverse], [data-profile-min-range], [data-profile-max-range], [data-profile-projectiles], [data-profile-tables]')) return;
+  if (!event.target.matches('[data-gun-heading], [data-profile-traverse], [data-profile-min-range], [data-profile-max-range], [data-profile-projectiles], [data-profile-tables]')) return;
   persistLauncherSettings();
   renderProfilesEditor();
   renderGunsGrid();
