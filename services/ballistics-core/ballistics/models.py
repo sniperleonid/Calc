@@ -79,6 +79,7 @@ class CorrectionRequest:
 class TriangulationPoint:
     observer: Coordinates
     bearing_deg: float
+    distance_m: float | None = None
 
 
 @dataclass

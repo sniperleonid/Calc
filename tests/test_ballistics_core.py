@@ -1,6 +1,8 @@
 from pathlib import Path
 import sys
 
+import pytest
+
 sys.path.append("services/ballistics-core")
 
 from app import apply_correction_endpoint, solve_fire_mission_endpoint, triangulation_endpoint  # noqa: E402
@@ -60,3 +62,43 @@ def test_apply_correction_and_triangulation():
     )
     triangulation_response = triangulation_endpoint("sound", triangulation_req)
     assert triangulation_response["result"].confidence > 0
+
+
+def test_triangulation_from_single_observer_polar_measurement():
+    triangulation_req = TriangulationRequest(
+        mission_id="m-2",
+        method="crater",
+        points=[
+            TriangulationPoint(
+                observer=Coordinates(x=100, y=200),
+                bearing_deg=90,
+                distance_m=300,
+            )
+        ],
+    )
+
+    triangulation_response = triangulation_endpoint("crater", triangulation_req)
+    estimated = triangulation_response["result"].estimated_position
+
+    assert estimated.x == 400
+    assert estimated.y == 200
+    assert triangulation_response["result"].confidence > 0
+
+
+def test_triangulation_rejects_negative_polar_distance():
+    triangulation_req = TriangulationRequest(
+        mission_id="m-3",
+        method="crater",
+        points=[
+            TriangulationPoint(
+                observer=Coordinates(x=100, y=200),
+                bearing_deg=90,
+                distance_m=-10,
+            )
+        ],
+    )
+
+    with pytest.raises(Exception) as exc:
+        triangulation_endpoint("crater", triangulation_req)
+
+    assert "distance_m must be >= 0" in str(exc.value)
