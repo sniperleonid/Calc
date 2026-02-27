@@ -11,7 +11,7 @@ def _distance(shooter_x: float, shooter_y: float, target_x: float, target_y: flo
 
 
 def solve_fire_mission(req: FireMissionRequest) -> FireMissionResult:
-    ballistic = load_ballistic_table(req.ammo_type.value, req.charge)
+    ballistic = load_ballistic_table(req.ammo_type.value, req.charge, req.barrel_profile_id)
     profile = load_gun_profile(req.barrel_profile_id)
 
     dx = req.target.x - req.shooter.x

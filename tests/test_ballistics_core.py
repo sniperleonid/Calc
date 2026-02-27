@@ -34,7 +34,7 @@ def test_solve_fire_mission_and_protocol_saved():
         ),
         ammo_type=AmmoType.HE,
         charge=3,
-        barrel_profile_id="mortar-120-standard",
+        barrel_profile_id="m777",
     )
     response = solve_fire_mission_endpoint(req)
 
