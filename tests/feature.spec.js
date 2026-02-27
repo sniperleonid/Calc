@@ -302,6 +302,51 @@ test('safety data module supports NFA checks, settings and reset', () => {
   assert.equal(safety.listNoFireAreas().length, 0);
 });
 
+test('safety data supports polygon zones and can skip linear pattern segments', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-safety-poly' });
+  const safety = workspace.getModule('safetyData');
+
+  safety.addNoFireArea({
+    id: 'nfa-poly-1',
+    name: 'School',
+    vertices: [
+      { x: 90, y: 90 },
+      { x: 130, y: 90 },
+      { x: 130, y: 130 },
+      { x: 90, y: 130 },
+    ],
+  });
+  safety.configure({ cancelFireOnNfaHit: false, skipNfaInLinearPattern: true });
+
+  const decision = safety.assessTrajectory({
+    start: { x: 80, y: 100 },
+    end: { x: 160, y: 100 },
+    patternMode: 'single',
+  });
+  assert.equal(decision.hasViolation, true);
+  assert.equal(decision.canOverride, true);
+  assert.equal(decision.action, 'warn-only');
+
+  const filtered = safety.filterLinearPatternSegments([
+    { id: 'seg-1', start: { x: 80, y: 100 }, end: { x: 160, y: 100 } },
+    { id: 'seg-2', start: { x: 10, y: 10 }, end: { x: 20, y: 20 } },
+  ]);
+  assert.equal(filtered[0].skipped, true);
+  assert.equal(filtered[1].skipped, false);
+});
+
+test('fire mission can bind known point for quick target selection', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-known-point' });
+  const knownPoints = workspace.getModule('knownPoints');
+  const fireMissions = workspace.getModule('fireMissions');
+
+  knownPoints.placeOnMap({ id: 'kp-1', name: 'Bridge A', position: { x: 250, y: 700 } });
+  fireMissions.upsertMission({ id: 'fm-kp-1', title: 'Quick mission' });
+  const mission = fireMissions.bindKnownPoint({ missionId: 'fm-kp-1', knownPointId: 'kp-1' });
+
+  assert.equal(mission.knownPointId, 'kp-1');
+});
+
 test('fire missions keep only last 10 history entries', () => {
   const workspace = new TacticalWorkspace({ missionId: 'm-fire' });
   const fireMissions = workspace.getModule('fireMissions');

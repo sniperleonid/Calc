@@ -123,6 +123,50 @@ function segmentCircleIntersection({ start, end, center, radius }) {
   return Math.hypot(closestX - center.x, closestY - center.y) <= radius;
 }
 
+function pointInPolygon(point, vertices) {
+  let inside = false;
+  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+    const xi = vertices[i].x;
+    const yi = vertices[i].y;
+    const xj = vertices[j].x;
+    const yj = vertices[j].y;
+
+    const intersects = yi > point.y !== yj > point.y
+      && point.x < ((xj - xi) * (point.y - yi)) / ((yj - yi) || Number.EPSILON) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function ccw(a, b, c) {
+  return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x);
+}
+
+function segmentsIntersect(startA, endA, startB, endB) {
+  return ccw(startA, startB, endB) !== ccw(endA, startB, endB)
+    && ccw(startA, endA, startB) !== ccw(startA, endA, endB);
+}
+
+function segmentPolygonIntersection({ start, end, vertices }) {
+  if (!Array.isArray(vertices) || vertices.length < 3) {
+    return false;
+  }
+
+  if (pointInPolygon(start, vertices) || pointInPolygon(end, vertices)) {
+    return true;
+  }
+
+  for (let i = 0; i < vertices.length; i += 1) {
+    const edgeStart = vertices[i];
+    const edgeEnd = vertices[(i + 1) % vertices.length];
+    if (segmentsIntersect(start, end, edgeStart, edgeEnd)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 class SafetyDataModule {
   constructor({ createId }) {
     this.createId = createId;
@@ -134,16 +178,20 @@ class SafetyDataModule {
   }
 
   addNoFireArea(input) {
-    if (!input?.center || !Number.isFinite(input.radius) || input.radius <= 0) {
-      throw new Error('NFA requires center and positive radius');
+    const hasCircle = input?.center && Number.isFinite(input.radius) && input.radius > 0;
+    const hasPolygon = Array.isArray(input?.vertices) && input.vertices.length >= 3;
+    if (!hasCircle && !hasPolygon) {
+      throw new Error('NFA requires either center/radius or polygon vertices');
     }
 
     const id = input.id ?? this.createId();
     const zone = {
       id,
       name: input.name ?? `NFA ${id}`,
-      center: { ...input.center },
-      radius: input.radius,
+      shape: hasPolygon ? 'polygon' : 'circle',
+      center: hasCircle ? { ...input.center } : null,
+      radius: hasCircle ? input.radius : null,
+      vertices: hasPolygon ? input.vertices.map((point) => ({ ...point })) : [],
       notes: input.notes ?? '',
       createdAt: input.createdAt ?? new Date().toISOString(),
     };
@@ -156,7 +204,11 @@ class SafetyDataModule {
   }
 
   listNoFireAreas() {
-    return [...this.noFireAreas.values()].map((zone) => ({ ...zone, center: { ...zone.center } }));
+    return [...this.noFireAreas.values()].map((zone) => ({
+      ...zone,
+      center: zone.center ? { ...zone.center } : null,
+      vertices: (zone.vertices ?? []).map((point) => ({ ...point })),
+    }));
   }
 
   configure(settings = {}) {
@@ -173,9 +225,12 @@ class SafetyDataModule {
   }
 
   assessTrajectory({ start, end, patternMode = 'single' }) {
-    const impacted = this.listNoFireAreas().filter((zone) =>
-      segmentCircleIntersection({ start, end, center: zone.center, radius: zone.radius })
-    );
+    const impacted = this.listNoFireAreas().filter((zone) => {
+      if (zone.shape === 'polygon') {
+        return segmentPolygonIntersection({ start, end, vertices: zone.vertices });
+      }
+      return segmentCircleIntersection({ start, end, center: zone.center, radius: zone.radius });
+    });
 
     const hasViolation = impacted.length > 0;
     return {
@@ -188,8 +243,24 @@ class SafetyDataModule {
           : patternMode === 'linear' && this.settings.skipNfaInLinearPattern
             ? 'skip-nfa-segment'
             : 'warn-only',
+      canOverride: hasViolation,
       impactedZones: impacted,
     };
+  }
+
+  filterLinearPatternSegments(segments = []) {
+    return segments.map((segment) => {
+      const decision = this.assessTrajectory({
+        start: segment.start,
+        end: segment.end,
+        patternMode: 'linear',
+      });
+      return {
+        ...segment,
+        safety: decision,
+        skipped: decision.action === 'skip-nfa-segment',
+      };
+    });
   }
 
   resetAllData({ keepBallisticTables = true }) {
@@ -213,7 +284,12 @@ class SafetyDataModule {
   restore(snapshot = {}) {
     this.noFireAreas.clear();
     for (const zone of snapshot.noFireAreas ?? []) {
-      this.noFireAreas.set(zone.id, { ...zone, center: { ...zone.center } });
+      this.noFireAreas.set(zone.id, {
+        ...zone,
+        shape: zone.shape ?? 'circle',
+        center: zone.center ? { ...zone.center } : null,
+        vertices: (zone.vertices ?? []).map((point) => ({ ...point })),
+      });
     }
     this.settings = {
       cancelFireOnNfaHit: true,
@@ -278,6 +354,19 @@ class FireMissionsModule {
 
   listMissions() {
     return [...this.missions.values()].map((mission) => ({ ...mission, assignments: mission.assignments.map((item) => ({ ...item })) }));
+  }
+
+  bindKnownPoint({ missionId, knownPointId, targetFallback = null }) {
+    const mission = this.missions.get(missionId);
+    if (!mission) {
+      throw new Error(`Mission not found: ${missionId}`);
+    }
+
+    mission.knownPointId = knownPointId;
+    mission.targetId = targetFallback ?? mission.targetId;
+    mission.updatedAt = new Date().toISOString();
+    this.missions.set(missionId, mission);
+    return { ...mission, assignments: mission.assignments.map((item) => ({ ...item })) };
   }
 
   toSnapshot() {
