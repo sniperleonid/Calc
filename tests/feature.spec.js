@@ -505,6 +505,54 @@ test('battery can solve different weapons with own projectile tables', () => {
   assert.equal(results[1].solution.inRange, false);
 });
 
+test('ballistics selects direct/indirect trajectory by weapon capability and requested arc', () => {
+  const workspace = new TacticalWorkspace({ missionId: 'm-trajectory-modes' });
+  const ballistics = workspace.getModule('ballistics');
+
+  ballistics.upsertManual({ id: 'gun-art', type: 'M777', position: { x: 0, y: 0 }, heading: 90, sectorStart: 0, sectorEnd: 360, minElevationMil: 200, maxElevationMil: 1500 });
+  ballistics.upsertManual({ id: 'gun-mort', type: 'Mortar', position: { x: 0, y: 0 }, heading: 90, sectorStart: 0, sectorEnd: 360, minElevationMil: 600, maxElevationMil: 1600 });
+
+  ballistics.registerProjectile({ id: 'he-art', shellType: 'HE', systemType: 'artillery' });
+  ballistics.registerProjectile({ id: 'he-mort', shellType: 'HE', systemType: 'mortar' });
+
+  ballistics.bindProjectileToGun({ gunId: 'gun-art', projectileId: 'he-art' });
+  ballistics.bindProjectileToGun({ gunId: 'gun-mort', projectileId: 'he-mort' });
+
+  ballistics.bindTableToProjectile({ projectileId: 'he-art', chargeLevel: 1, trajectoryVariant: 'direct', fireType: 'direct', table: [
+    { range: 500, elevation: 420, tof: 3, dElev: 8, tofPer100m: 0.1 },
+    { range: 1500, elevation: 380, tof: 5, dElev: 10, tofPer100m: 0.12 },
+  ]});
+  ballistics.bindTableToProjectile({ projectileId: 'he-art', chargeLevel: 1, trajectoryVariant: 'low', fireType: 'indirect', table: [
+    { range: 1200, elevation: 700, tof: 8, dElev: 12, tofPer100m: 0.14 },
+    { range: 2500, elevation: 640, tof: 11, dElev: 14, tofPer100m: 0.16 },
+  ]});
+  ballistics.bindTableToProjectile({ projectileId: 'he-art', chargeLevel: 1, trajectoryVariant: 'high', fireType: 'indirect', table: [
+    { range: 1200, elevation: 960, tof: 10, dElev: 14, tofPer100m: 0.2 },
+    { range: 2500, elevation: 900, tof: 14, dElev: 17, tofPer100m: 0.24 },
+  ]});
+
+  ballistics.bindTableToProjectile({ projectileId: 'he-mort', chargeLevel: 2, trajectoryVariant: 'high', fireType: 'indirect', table: [
+    { range: 800, elevation: 1320, tof: 11, dElev: 24, tofPer100m: 0.18 },
+    { range: 1800, elevation: 1180, tof: 19, dElev: 28, tofPer100m: 0.24 },
+  ]});
+
+  const highArc = ballistics.calculateGunSolution({ gunId: 'gun-art', projectileId: 'he-art', distance: 1400, bearing: 90, trajectoryType: 'indirect', arcPreference: 'high' });
+  assert.equal(highArc.inRange, true);
+  assert.equal(highArc.trajectoryVariant, 'high');
+
+  const direct = ballistics.calculateGunSolution({ gunId: 'gun-art', projectileId: 'he-art', distance: 900, bearing: 90, trajectoryType: 'direct' });
+  assert.equal(direct.inRange, true);
+  assert.equal(direct.fireType, 'direct');
+
+  const mortarDirect = ballistics.calculateGunSolution({ gunId: 'gun-mort', projectileId: 'he-mort', distance: 1200, bearing: 90, trajectoryType: 'direct' });
+  assert.equal(mortarDirect.inRange, true);
+  assert.equal(mortarDirect.trajectorySelection.effectiveType, 'indirect');
+
+  const unsupportedDirect = ballistics.calculateGunSolution({ gunId: 'gun-mort', projectileId: 'he-mort', distance: 1200, bearing: 90, trajectoryType: 'direct', arcPreference: 'direct' });
+  assert.equal(unsupportedDirect.inRange, false);
+  assert.equal(unsupportedDirect.reason, 'trajectory-not-supported');
+});
+
 test('ballistics module supports toggleable environmental corrections (wind/temp/humidity/pressure/spin)', () => {
   const workspace = new TacticalWorkspace({ missionId: 'm-env-corrections' });
   const ballistics = workspace.getModule('ballistics');

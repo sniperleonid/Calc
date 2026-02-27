@@ -53,6 +53,14 @@ function interpolateByRange(rangeTable, distance) {
   return { ...last, interpolation: 'fallback-max' };
 }
 
+function normalizeTrajectoryVariant(value) {
+  const normalized = String(value ?? 'standard').toLowerCase();
+  if (['direct', 'flat'].includes(normalized)) return 'direct';
+  if (['low', 'low_angle', 'low-angle'].includes(normalized)) return 'low';
+  if (['high', 'high_angle', 'high-angle'].includes(normalized)) return 'high';
+  return 'standard';
+}
+
 function buildSectorEnvelope({ gun, charge, bearing }) {
   const minRange = charge.minRange ?? 0;
   const maxRange = charge.maxRange ?? 0;
@@ -495,6 +503,7 @@ class BallisticsModule extends UnitModule {
       id: projectile.id,
       label: projectile.label ?? projectile.id,
       shellType: projectile.shellType ?? 'HE',
+      systemType: projectile.systemType ?? null,
       charges: projectile.charges ?? [],
       dragModel: projectile.dragModel ?? null,
       windDriftFactor: projectile.windDriftFactor ?? 0,
@@ -521,19 +530,23 @@ class BallisticsModule extends UnitModule {
     return [...gun.projectiles];
   }
 
-  bindTableToProjectile({ projectileId, chargeLevel, table }) {
+  bindTableToProjectile({ projectileId, chargeLevel, table, trajectoryVariant = 'standard', fireType = null }) {
     if (!this.projectiles.has(projectileId)) {
       throw new Error(`Projectile not found: ${projectileId}`);
     }
 
-    const key = `${projectileId}:${chargeLevel}`;
+    const normalizedVariant = normalizeTrajectoryVariant(trajectoryVariant);
+    const normalizedFireType = fireType ?? (normalizedVariant === 'direct' ? 'direct' : 'indirect');
+    const key = `${projectileId}:${chargeLevel}:${normalizedVariant}`;
     const storedTable = (table ?? []).map((row) => ({ ...row }));
     this.tableBindings.set(key, storedTable);
 
     const projectile = this.projectiles.get(projectileId);
-    projectile.charges = projectile.charges.filter((charge) => charge.level !== chargeLevel);
+    projectile.charges = projectile.charges.filter((charge) => !(charge.level === chargeLevel && (charge.variant ?? 'standard') === normalizedVariant));
     projectile.charges.push({
       level: chargeLevel,
+      variant: normalizedVariant,
+      fireType: normalizedFireType,
       minRange: Math.min(...storedTable.map((row) => row.range)),
       maxRange: Math.max(...storedTable.map((row) => row.range)),
       rangeTable: storedTable,
@@ -568,6 +581,8 @@ class BallisticsModule extends UnitModule {
     wind = { speed: 0, direction: 0, crosswind: null, headwind: null },
     weather = { temperatureC: 15, humidityPct: 50, pressureHpa: 1013.25 },
     spin = { driftDirection: 'right' },
+    trajectoryType = 'auto',
+    arcPreference = 'auto',
   }) {
     const gun = this.entities.get(gunId);
     if (!gun) {
@@ -583,8 +598,35 @@ class BallisticsModule extends UnitModule {
       throw new Error(`Projectile not found: ${projectileId}`);
     }
 
-    const availableCharge = projectile.charges
-      .filter((charge) => distance >= charge.minRange && distance <= charge.maxRange)
+    const isMortar = /mortar|мином/i.test(`${gun.type ?? ''} ${projectile.systemType ?? ''}`);
+    const normalizedTrajectoryType = String(trajectoryType ?? 'auto').toLowerCase();
+    const effectiveTrajectoryType = isMortar ? 'indirect' : normalizedTrajectoryType;
+    const normalizedArcPreference = normalizeTrajectoryVariant(arcPreference);
+
+    const inDistanceCharges = projectile.charges
+      .filter((charge) => distance >= charge.minRange && distance <= charge.maxRange);
+
+    const filteredByTrajectory = inDistanceCharges.filter((charge) => {
+      if (effectiveTrajectoryType === 'auto') return true;
+      if (effectiveTrajectoryType === 'direct') return (charge.fireType ?? 'indirect') === 'direct';
+      if (effectiveTrajectoryType === 'indirect') return (charge.fireType ?? 'indirect') !== 'direct';
+      return true;
+    });
+
+    const byArcPreference = filteredByTrajectory.filter((charge) => {
+      const variant = charge.variant ?? 'standard';
+      if (normalizedArcPreference === 'standard') return true;
+      if (normalizedArcPreference === 'direct') return variant === 'direct';
+      if (normalizedArcPreference === 'low') return variant === 'low';
+      if (normalizedArcPreference === 'high') return variant === 'high';
+      return true;
+    });
+
+    const strictArcSelection = normalizedArcPreference !== 'standard';
+    const chargePool = strictArcSelection
+      ? byArcPreference
+      : (byArcPreference.length ? byArcPreference : filteredByTrajectory);
+    const availableCharge = chargePool
       .sort((left, right) => left.maxRange - right.maxRange)[0];
 
     if (!availableCharge) {
@@ -592,7 +634,7 @@ class BallisticsModule extends UnitModule {
         gunId,
         projectileId,
         inRange: false,
-        reason: 'distance-out-of-range',
+        reason: inDistanceCharges.length > 0 ? 'trajectory-not-supported' : 'distance-out-of-range',
       };
     }
 
@@ -645,6 +687,13 @@ class BallisticsModule extends UnitModule {
       inSector: sectorEnvelope.inSector,
       inElevationLimits,
       chargeLevel: availableCharge.level,
+      fireType: availableCharge.fireType ?? (availableCharge.variant === 'direct' ? 'direct' : 'indirect'),
+      trajectoryVariant: availableCharge.variant ?? 'standard',
+      trajectorySelection: {
+        requestedType: normalizedTrajectoryType,
+        effectiveType: effectiveTrajectoryType,
+        requestedArc: arcPreference,
+      },
       elevationMil: elevation,
       azimuth: clampAngle(bearing),
       timeOfFlight: base.tof + tofCorrection,
@@ -672,6 +721,8 @@ class BallisticsModule extends UnitModule {
     wind = { speed: 0, direction: 0, crosswind: null, headwind: null },
     weather = { temperatureC: 15, humidityPct: 50, pressureHpa: 1013.25 },
     spin = { driftDirection: 'right' },
+    trajectoryType = 'auto',
+    arcPreference = 'auto',
   }) {
     return assignments.map((assignment) => ({
       gunId: assignment.gunId,
