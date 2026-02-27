@@ -1,5 +1,6 @@
 {
   "profile_id": "m777",
+  "traverse_sector_deg": 30,
   "barrel_length_mm": 5080,
   "wear_factor": 0.98,
   "twist_rate": "1:20",
