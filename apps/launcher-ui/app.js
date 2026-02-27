@@ -180,6 +180,7 @@ let selectedManualMarkerId = null;
 let rightMousePanState = null;
 let lastOverlayBoundsKey = '';
 let lastCtrlPressAt = 0;
+let mapImageSize = null;
 
 function parseCoordinateValue(rawValue) {
   const text = String(rawValue ?? '').trim();
@@ -622,7 +623,13 @@ function saveMission() {
 
 function initializeMap() {
   if (leafletMap || !window.L) return;
-  leafletMap = window.L.map('leaflet-map', { zoomControl: true, doubleClickZoom: false, crs: window.L.CRS.Simple, minZoom: -6 }).setView([0, 0], 0);
+  leafletMap = window.L.map('leaflet-map', {
+    zoomControl: true,
+    doubleClickZoom: false,
+    crs: window.L.CRS.Simple,
+    minZoom: -6,
+    maxZoom: 6,
+  }).setView([0, 0], 0);
   leafletMap.dragging.disable();
   leafletMap.on('dblclick', (event) => {
     window.L.DomEvent.stop(event);
@@ -731,7 +738,8 @@ function setCalibrationMode(isEnabled) {
 }
 
 function addManualMarker(type, latlng) {
-  const point = latLngToMapPoint(latlng.lat, latlng.lng);
+  const imagePoint = latLngToMapPoint(latlng.lat, latlng.lng);
+  const point = imagePointToGamePoint(imagePoint.x, imagePoint.y);
   const targetId = markerTargetSelect?.value || '';
 
   if (type === 'gun' && targetId) {
@@ -759,7 +767,15 @@ function addManualMarker(type, latlng) {
   }
 
   const tools = getMapToolsSettings();
-  const marker = { id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`, type, targetId, x: point.x, y: point.y };
+  const marker = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    type,
+    targetId,
+    x: point.x,
+    y: point.y,
+    mapX: imagePoint.x,
+    mapY: imagePoint.y,
+  };
   state.settings.mapTools = { ...tools, manualMarkers: [...(tools.manualMarkers ?? []).filter((item) => !(item.type === type && item.targetId === targetId)), marker] };
   persistLauncherSettings();
   refreshMapOverlay();
@@ -770,27 +786,28 @@ function onMapDoubleClick(event) {
   event.originalEvent?.preventDefault?.();
   event.originalEvent?.stopPropagation?.();
   const tools = getMapToolsSettings();
+  const imagePoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+  logMapClickDiagnostics(event.latlng, imagePoint);
   if (!tools.calibrationMode) {
     const toolType = markerToolSelect?.value || 'gun';
     if (toolType === 'coords') {
-      const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
-      if (mapToolsOutput) mapToolsOutput.textContent = `${t('coordsCaptured')}: X=${point.x.toFixed(2)}, Y=${point.y.toFixed(2)}`;
+      const gamePoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
+      if (mapToolsOutput) mapToolsOutput.textContent = `${t('coordsCaptured')}: X=${gamePoint.x.toFixed(2)}, Y=${gamePoint.y.toFixed(2)}`;
       return;
     }
     if (toolType === 'ruler') {
-      const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
       const nextRuler = tools.ruler?.p1 && tools.ruler?.p2
-        ? { p1: point, p2: null }
+        ? { p1: imagePoint, p2: null }
         : tools.ruler?.p1
-          ? { p1: tools.ruler.p1, p2: point }
-          : { p1: point, p2: null };
+          ? { p1: tools.ruler.p1, p2: imagePoint }
+          : { p1: imagePoint, p2: null };
       state.settings.mapTools = { ...tools, ruler: nextRuler };
       persistLauncherSettings();
       refreshMapOverlay();
       if (mapToolsOutput) {
         mapToolsOutput.textContent = nextRuler.p1 && nextRuler.p2
           ? formatRulerMeasurement(nextRuler.p1, nextRuler.p2)
-          : `${t('rulerPointSet')}: P1 (${point.x.toFixed(2)}, ${point.y.toFixed(2)})`;
+          : `${t('rulerPointSet')}: P1 (${imagePoint.x.toFixed(2)}, ${imagePoint.y.toFixed(2)})`;
       }
       return;
     }
@@ -798,16 +815,16 @@ function onMapDoubleClick(event) {
     return;
   }
 
-  const point = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
   const label = getNextCalibrationPointLabel();
   const current = [...(tools.calibrationPoints ?? [])].filter((item) => item.label !== label);
-  current.push({ label, mapX: point.x, mapY: point.y });
+  current.push({ label, mapX: imagePoint.x, mapY: imagePoint.y });
   state.settings.mapTools = { ...tools, calibrationPoints: current, nextCalibrationPointIndex: (Number(tools.nextCalibrationPointIndex ?? 0) + 1) % 3 };
   if (label === 'P0') {
     const xInput = document.querySelector('#cal-p0-x');
     const yInput = document.querySelector('#cal-p0-y');
-    if (xInput) xInput.value = point.x.toFixed(2);
-    if (yInput) yInput.value = point.y.toFixed(2);
+    const gamePoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
+    if (xInput) xInput.value = gamePoint.x.toFixed(2);
+    if (yInput) yInput.value = gamePoint.y.toFixed(2);
   }
   persistLauncherSettings();
   refreshMapOverlay();
@@ -837,21 +854,34 @@ function upsertMapOverlay() {
   }
   if (!tools.imageDataUrl) {
     leafletMap.setMaxBounds(null);
+    mapImageSize = null;
     lastOverlayBoundsKey = '';
     return;
   }
-  const { minX, minY, maxX, maxY } = tools.imageBounds;
-  const southWest = mapPointToLatLng(Number(minX), Number(minY));
-  const northEast = mapPointToLatLng(Number(maxX), Number(maxY));
-  const bounds = window.L.latLngBounds(southWest, northEast);
-  mapImageOverlay = window.L.imageOverlay(tools.imageDataUrl, bounds, { opacity: 0.85 });
-  mapImageOverlay.addTo(leafletMap);
-  leafletMap.setMaxBounds(bounds.pad(0.05));
-  const boundsKey = `${tools.imageDataUrl.length}:${minX}:${minY}:${maxX}:${maxY}`;
-  if (lastOverlayBoundsKey !== boundsKey) {
+  const image = new Image();
+  image.onload = () => {
+    if (!leafletMap) return;
+    const naturalWidth = image.naturalWidth || image.width;
+    const naturalHeight = image.naturalHeight || image.height;
+    const z = getFixedProjectionZoom();
+    mapImageSize = { naturalWidth, naturalHeight };
+
+    const southWest = leafletMap.unproject([0, naturalHeight], z);
+    const northEast = leafletMap.unproject([naturalWidth, 0], z);
+    const bounds = window.L.latLngBounds(southWest, northEast);
+    mapImageOverlay = window.L.imageOverlay(tools.imageDataUrl, bounds, { opacity: 0.85 }).addTo(leafletMap);
+
+    state.settings.mapTools = {
+      ...tools,
+      imageBounds: { minX: 0, minY: 0, maxX: naturalWidth, maxY: naturalHeight },
+    };
+    persistLauncherSettings();
+    hydrateMapToolsForm();
     leafletMap.fitBounds(bounds);
-    lastOverlayBoundsKey = boundsKey;
-  }
+    leafletMap.setMaxBounds(bounds);
+    lastOverlayBoundsKey = `${tools.imageDataUrl.length}:${naturalWidth}:${naturalHeight}`;
+  };
+  image.src = tools.imageDataUrl;
 }
 
 function applyCalibration() {
@@ -925,11 +955,37 @@ function clearManualMarkers() {
   if (mapToolsOutput) mapToolsOutput.textContent = t('clearManualMarkers');
 }
 
-function mapPointToLatLng(x, y) {
+function getFixedProjectionZoom() {
+  if (!leafletMap) return 0;
+  const maxZoom = leafletMap.getMaxZoom();
+  return Number.isFinite(maxZoom) ? maxZoom : 0;
+}
+
+function imagePointToGamePoint(x, y) {
   const { calibration } = getMapToolsSettings();
-  const lat = (y - Number(calibration.originMapY)) * Number(calibration.scale) + Number(calibration.originWorldY);
-  const lng = (x - Number(calibration.originMapX)) * Number(calibration.scale) + Number(calibration.originWorldX);
-  return [lat, lng];
+  return {
+    x: (Number(x) - Number(calibration.originMapX)) * Number(calibration.scale) + Number(calibration.originWorldX),
+    y: (Number(y) - Number(calibration.originMapY)) * Number(calibration.scale) + Number(calibration.originWorldY),
+  };
+}
+
+function gamePointToImagePoint(x, y) {
+  const { calibration } = getMapToolsSettings();
+  const scale = Number(calibration.scale) || 1;
+  return {
+    x: (Number(x) - Number(calibration.originWorldX)) / scale + Number(calibration.originMapX),
+    y: (Number(y) - Number(calibration.originWorldY)) / scale + Number(calibration.originMapY),
+  };
+}
+
+function mapPointToLatLng(x, y) {
+  if (!leafletMap) return [0, 0];
+  return leafletMap.unproject([Number(x), Number(y)], getFixedProjectionZoom());
+}
+
+function gamePointToLatLng(x, y) {
+  const point = gamePointToImagePoint(x, y);
+  return mapPointToLatLng(point.x, point.y);
 }
 
 function getAllGunPoints() {
@@ -964,12 +1020,35 @@ function getObserverPoints() {
 }
 
 function latLngToMapPoint(lat, lng) {
-  const { calibration } = getMapToolsSettings();
-  const scale = Number(calibration.scale) || 1;
+  if (!leafletMap) return { x: Number(lng), y: Number(lat) };
+  const projected = leafletMap.project(window.L.latLng(lat, lng), getFixedProjectionZoom());
   return {
-    x: (Number(lng) - Number(calibration.originWorldX)) / scale + Number(calibration.originMapX),
-    y: (Number(lat) - Number(calibration.originWorldY)) / scale + Number(calibration.originMapY),
+    x: projected.x,
+    y: projected.y,
   };
+}
+
+function logMapClickDiagnostics(latlng, imagePoint) {
+  if (!leafletMap) return;
+  const container = leafletMap.getContainer();
+  const bounds = mapImageOverlay?.getBounds?.();
+  console.info('[map-click-diagnostics]', {
+    mapX: Number(imagePoint.x.toFixed(2)),
+    mapY: Number(imagePoint.y.toFixed(2)),
+    zoom: leafletMap.getZoom(),
+    containerSize: {
+      width: container?.clientWidth ?? null,
+      height: container?.clientHeight ?? null,
+    },
+    naturalSize: mapImageSize,
+    latlng,
+    bounds: bounds
+      ? {
+          southWest: bounds.getSouthWest(),
+          northEast: bounds.getNorthEast(),
+        }
+      : null,
+  });
 }
 
 function getBatteryCustomName(batteryId) {
@@ -1059,7 +1138,7 @@ function refreshMapOverlay() {
   };
   const allGunPoints = getAllGunPoints();
   allGunPoints.forEach(({ batteryId, gunId, x: gunX, y: gunY }) => {
-    const marker = window.L.circleMarker(mapPointToLatLng(gunX, gunY), {
+    const marker = window.L.circleMarker(gamePointToLatLng(gunX, gunY), {
       radius: 8,
       color: markerStyle.gun,
       fillColor: markerStyle.gun,
@@ -1081,7 +1160,7 @@ function refreshMapOverlay() {
     center.x /= batteryGunPoints.length;
     center.y /= batteryGunPoints.length;
     const isSelectedBattery = batteryId === battery;
-    const batteryMarker = window.L.circleMarker(mapPointToLatLng(center.x, center.y), {
+    const batteryMarker = window.L.circleMarker(gamePointToLatLng(center.x, center.y), {
       radius: 11,
       color: markerStyle.battery,
       fillColor: markerStyle.battery,
@@ -1096,7 +1175,7 @@ function refreshMapOverlay() {
   }
 
   getObserverPoints().forEach(({ observerId, x, y }) => {
-    const observerMarker = window.L.circleMarker(mapPointToLatLng(x, y), {
+    const observerMarker = window.L.circleMarker(gamePointToLatLng(x, y), {
       radius: 7,
       color: markerStyle.observer,
       fillColor: markerStyle.observer,
@@ -1114,7 +1193,7 @@ function refreshMapOverlay() {
   const targetX = targetPoint.x;
   const targetY = targetPoint.y;
   if (!targetMarker) {
-    targetMarker = window.L.circleMarker(mapPointToLatLng(targetX, targetY), {
+    targetMarker = window.L.circleMarker(gamePointToLatLng(targetX, targetY), {
       radius: 9,
       color: markerStyle.target,
       fillColor: markerStyle.target,
@@ -1122,7 +1201,7 @@ function refreshMapOverlay() {
       weight: 3,
     }).addTo(leafletMap);
   } else {
-    targetMarker.setLatLng(mapPointToLatLng(targetX, targetY));
+    targetMarker.setLatLng(gamePointToLatLng(targetX, targetY));
   }
   targetMarker.bindPopup(`${t('target')}: X=${targetX}, Y=${targetY}`);
   addPersistentLabel(targetMarker, t('target'));
@@ -1149,7 +1228,7 @@ function refreshMapOverlay() {
   (tools.manualMarkers ?? []).forEach((item) => {
     const color = markerStyle[item.type] ?? '#ffffff';
     const isSelected = selectedManualMarkerId === item.id;
-    const marker = window.L.circleMarker(mapPointToLatLng(Number(item.x), Number(item.y)), {
+    const marker = window.L.circleMarker(gamePointToLatLng(Number(item.x), Number(item.y)), {
       radius: isSelected ? 10 : 8,
       color,
       fillColor: color,
