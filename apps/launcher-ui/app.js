@@ -752,10 +752,16 @@ function renderGunsGrid() {
       const key = `${b}-${g}`;
       const saved = state.settings.gunCoords[key] ?? {};
       const gunState = getGunSetting(key);
+      const { profile } = getProfileForGun(b, g);
+      const traverseDeg = clamp(Number(profile?.traverseDeg) || 360, 1, 360);
+      const hasLimitedTraverse = traverseDeg < 360;
       const row = document.createElement('div');
       row.className = 'pair';
       const headingValue = Number.isFinite(gunState.heading) ? normalizeAzimuth(gunState.heading).toFixed(1) : '';
-      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><input data-gun-heading="${key}" type="number" min="0" max="360" step="0.1" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`;
+      const headingField = hasLimitedTraverse
+        ? `<input data-gun-heading="${key}" type="number" min="0" max="360" step="0.1" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`
+        : '';
+      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" />${headingField}`;
       container.append(row);
     }
   }
