@@ -87,7 +87,7 @@ const i18n = {
     correctionApplied: 'Поправка сохранена', correctionResetDone: 'Поправка сброшена', observerTargetingApplied: 'Координаты цели обновлены от наблюдателя', observerTargetingUnavailable: 'Нет координат наблюдателя для наведения',
     missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', targetX: 'Координата цели X', targetY: 'Координата цели Y',
     fireMode: 'Тип огня', fireModeLinear: 'Линейный сноп', fireModeParallel: 'Параллельный', fireModeConverging: 'Сходящийся', fireModeOpen: 'Открытый', fireModeCircular: 'Круговой',
-    counterBatteryTitle: 'Контрбатарейное обнаружение', counterBatteryHint: 'Реальные методы: звукопеленгация, анализ воронок с обратным азимутом, триангуляция по азимутам и гипербола TDOA.', counterBatteryMethod: 'Метод определения', cbMethodSound: 'Звукопеленгация (sound ranging)', cbMethodCrater: 'Анализ воронок и обратный азимут', cbMethodTriangulation: 'Триангуляция по азимутам наблюдателей', cbMethodHyperbola: 'Гипербола по разности времени прихода (TDOA)', cbBearing: 'Азимут на источник (°)', cbEstimatedDistance: 'Оценочная дальность (м)', cbTdoaDelta: 'Разница времени прихода (мс)', cbImpactBearing: 'Обратный азимут от воронки (°)', counterBatteryObservers: 'Данные наблюдателей', counterBatteryObserversHint: 'Чем больше точек наблюдения, тем точнее координаты вражеского орудия.', cbAddPoint: 'Добавить точку', cbClearPoints: 'Очистить точки', cbLocateTarget: 'Найти вражеское орудие', cbCalculateResponse: 'Рассчитать ответный огонь', cbObserverPoint: 'Точка', cbObserver: 'Наблюдатель', cbObservationAzimuth: 'Азимут наблюдения (°)', cbObservationDelay: 'Задержка звука (с)', cbNeedTwoPoints: 'Нужно минимум две валидные точки наблюдения.', cbTargetLocated: 'Цель определена', cbTargetNotFound: 'Не удалось определить координаты цели по выбранному методу.', cbResponseHeader: 'Ответный огонь (доступные орудия в зоне досягаемости)', cbNoReachableGuns: 'Нет доступных орудий в зоне досягаемости.', cbMethodUsed: 'Метод',
+    counterBatteryTitle: 'Контрбатарейное обнаружение', counterBatteryHint: 'Реальные методы: звукопеленгация, анализ воронок с обратным азимутом, триангуляция по азимутам и гипербола TDOA.', counterBatteryMethod: 'Метод определения', cbMethodSound: 'Звукопеленгация (sound ranging)', cbMethodCrater: 'Анализ воронок и обратный азимут', cbMethodTriangulation: 'Триангуляция по азимутам наблюдателей', cbMethodHyperbola: 'Гипербола по разности времени прихода (TDOA)', cbBearing: 'Азимут на источник (°)', cbEstimatedDistance: 'Оценочная дальность (м)', cbTdoaDelta: 'Разница времени прихода (мс)', cbImpactBearing: 'Обратный азимут от воронки (°)', counterBatteryObservers: 'Данные наблюдателей', counterBatteryObserversHint: 'Чем больше точек наблюдения, тем точнее координаты вражеского орудия.', cbAddPoint: 'Добавить точку', cbClearPoints: 'Очистить точки', cbLocateTarget: 'Найти вражеское орудие', cbCalculateResponse: 'Рассчитать ответный огонь', cbObserverPoint: 'Точка', cbObserver: 'Наблюдатель', cbObservationAzimuth: 'Азимут наблюдения (°)', cbObservationDelay: 'Задержка звука (с)', cbNeedTwoPoints: 'Нужно минимум две валидные точки наблюдения.', cbTargetLocated: 'Цель определена', cbTargetNotFound: 'Не удалось определить координаты цели по выбранному методу.', cbResponseHeader: 'Ответный огонь (доступные орудия в зоне досягаемости)', cbNoReachableGuns: 'Нет доступных орудий в зоне досягаемости.', cbMethodUsed: 'Метод', cbRecommendedGun: 'Рекомендуем:', cbGunFacing: 'направление ', cbNeedsReposition: '(понадобится разворот вне сектора)',
     mapPanelTitle: 'Тактическая карта (Leaflet)', mapLegendTitle: 'Легенда', mapLegendHint: 'Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».',
     syncMap: 'Синхронизировать с координатами', centerTarget: 'Центр на цели',
     safeDataTitle: 'Контроль данных', safeDataDescription: 'Проверка журналов и экспорт служебных данных.', openLogs: 'Открыть логи', exportData: 'Экспорт данных', clearAllData: 'Очистить данные',
@@ -125,7 +125,7 @@ const i18n = {
     correctionApplied: 'Correction saved', correctionResetDone: 'Correction reset', observerTargetingApplied: 'Target coordinates updated from observer', observerTargetingUnavailable: 'Observer coordinates are unavailable',
     missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', targetX: 'Target X coordinate', targetY: 'Target Y coordinate',
     fireMode: 'Fire mode', fireModeLinear: 'Linear sheaf', fireModeParallel: 'Parallel', fireModeConverging: 'Converging', fireModeOpen: 'Open', fireModeCircular: 'Circular',
-    counterBatteryTitle: 'Counter-battery detection', counterBatteryHint: 'Real techniques: sound ranging, crater analysis with reverse azimuth, observer azimuth triangulation, and TDOA hyperbola.', counterBatteryMethod: 'Detection method', cbMethodSound: 'Sound ranging', cbMethodCrater: 'Crater analysis + reverse azimuth', cbMethodTriangulation: 'Observer azimuth triangulation', cbMethodHyperbola: 'TDOA hyperbola', cbBearing: 'Bearing to source (°)', cbEstimatedDistance: 'Estimated range (m)', cbTdoaDelta: 'Arrival time difference (ms)', cbImpactBearing: 'Reverse azimuth from crater (°)', counterBatteryObservers: 'Observer data', counterBatteryObserversHint: 'More observation points produce better enemy gun localization.', cbAddPoint: 'Add point', cbClearPoints: 'Clear points', cbLocateTarget: 'Locate enemy gun', cbCalculateResponse: 'Calculate counter-fire', cbObserverPoint: 'Point', cbObserver: 'Observer', cbObservationAzimuth: 'Observation azimuth (°)', cbObservationDelay: 'Sound delay (s)', cbNeedTwoPoints: 'At least two valid observation points are required.', cbTargetLocated: 'Target localized', cbTargetNotFound: 'Unable to compute target coordinates with selected method.', cbResponseHeader: 'Counter-fire (reachable friendly guns)', cbNoReachableGuns: 'No reachable guns in range.', cbMethodUsed: 'Method',
+    counterBatteryTitle: 'Counter-battery detection', counterBatteryHint: 'Real techniques: sound ranging, crater analysis with reverse azimuth, observer azimuth triangulation, and TDOA hyperbola.', counterBatteryMethod: 'Detection method', cbMethodSound: 'Sound ranging', cbMethodCrater: 'Crater analysis + reverse azimuth', cbMethodTriangulation: 'Observer azimuth triangulation', cbMethodHyperbola: 'TDOA hyperbola', cbBearing: 'Bearing to source (°)', cbEstimatedDistance: 'Estimated range (m)', cbTdoaDelta: 'Arrival time difference (ms)', cbImpactBearing: 'Reverse azimuth from crater (°)', counterBatteryObservers: 'Observer data', counterBatteryObserversHint: 'More observation points produce better enemy gun localization.', cbAddPoint: 'Add point', cbClearPoints: 'Clear points', cbLocateTarget: 'Locate enemy gun', cbCalculateResponse: 'Calculate counter-fire', cbObserverPoint: 'Point', cbObserver: 'Observer', cbObservationAzimuth: 'Observation azimuth (°)', cbObservationDelay: 'Sound delay (s)', cbNeedTwoPoints: 'At least two valid observation points are required.', cbTargetLocated: 'Target localized', cbTargetNotFound: 'Unable to compute target coordinates with selected method.', cbResponseHeader: 'Counter-fire (reachable friendly guns)', cbNoReachableGuns: 'No reachable guns in range.', cbMethodUsed: 'Method', cbRecommendedGun: 'Recommended:', cbGunFacing: 'facing ', cbNeedsReposition: '(requires reposition outside traverse)',
     mapPanelTitle: 'Tactical map (Leaflet)', mapLegendTitle: 'Legend', mapLegendHint: 'The map shows guns in selected battery and the current target from Fire Missions tab.',
     syncMap: 'Sync with coordinates', centerTarget: 'Center on target',
     safeDataTitle: 'Data control', safeDataDescription: 'Check logs and export service data.', openLogs: 'Open logs', exportData: 'Export data', clearAllData: 'Clear data',
@@ -195,8 +195,9 @@ function getArtilleryProfiles() {
 
 function getGunSetting(gunKey) {
   const settings = state.settings.gunSettings?.[gunKey] ?? {};
+  const heading = Number(settings.heading);
   return {
-    heading: Number.isFinite(Number(settings.heading)) ? Number(settings.heading) : 0,
+    heading: Number.isFinite(heading) ? heading : 360,
     isCritical: settings.isCritical !== false,
     profileId: settings.profileId || null,
   };
@@ -388,7 +389,9 @@ function persistLauncherSettings() {
     state.settings.gunSettings[key] = {
       ...prev,
       profileId: select.value || gunProfiles[0],
-      heading: Number(headingInput?.value ?? prev.heading ?? 0) || 0,
+      heading: headingInput && headingInput.value !== ''
+        ? clamp(Number(headingInput.value) || 0, 0, 360)
+        : (Number.isFinite(Number(prev.heading)) ? Number(prev.heading) : 360),
       isCritical: criticalInput ? criticalInput.checked : prev.isCritical !== false,
     };
   });
@@ -514,6 +517,10 @@ function bearingToDirection(azimuthDeg) {
   return { x: Math.sin(rad), y: Math.cos(rad) };
 }
 
+function getAzimuthDelta(fromAzimuth, toAzimuth) {
+  return Math.abs(((toAzimuth - fromAzimuth + 540) % 360) - 180);
+}
+
 function intersectBearings(p1, az1, p2, az2) {
   const d1 = bearingToDirection(az1);
   const d2 = bearingToDirection(az2);
@@ -633,14 +640,27 @@ function calculateCounterBatteryResponse() {
   if (!target) return;
   const rows = [];
   getAllGunPoints().forEach((gun) => {
-    const profile = state.settings.batteryConfig?.[String(gun.batteryId)]?.gunProfile ?? gunProfiles[0];
-    const maxRange = getBatteryGunMaxRange(profile);
+    const profileId = state.settings.batteryConfig?.[String(gun.batteryId)]?.gunProfile ?? gunProfiles[0];
+    const profile = getArtilleryProfiles()[profileId] ?? {};
+    const maxRange = Math.max(0, Number(profile.maxRange) || getBatteryGunMaxRange(profileId));
+    const minRange = Math.max(0, Number(profile.minRange) || 0);
+    const traverseDeg = clamp(Number(profile.traverseDeg) || 360, 1, 360);
+    const heading = getGunSetting(`${gun.batteryId}-${gun.gunId}`).heading;
     const dx = target.x - gun.x;
     const dy = target.y - gun.y;
     const distance = Math.hypot(dx, dy);
-    if (distance > maxRange) return;
+    if (distance > maxRange || distance < minRange) return;
     const azimuth = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
-    rows.push(`${getBatteryDisplayName(gun.batteryId)} ${t('gun')} ${gun.gunId}: D=${distance.toFixed(1)}m Az=${azimuth.toFixed(1)}° (Rmax ${maxRange}m)`);
+    const headingSet = heading < 360;
+    const rotateDelta = headingSet ? getAzimuthDelta(heading, azimuth) : 180;
+    const inTraverse = !headingSet || traverseDeg >= 360 || rotateDelta <= traverseDeg / 2;
+    rows.push({
+      distance,
+      rotateDelta,
+      headingSet,
+      inTraverse,
+      text: `${getBatteryDisplayName(gun.batteryId)} ${t('gun')} ${gun.gunId}: D=${distance.toFixed(1)}m Az=${azimuth.toFixed(1)}°${headingSet ? ` ${t('cbGunFacing')}${heading.toFixed(1)}° Δ=${rotateDelta.toFixed(1)}°` : ''}${inTraverse ? '' : ` ${t('cbNeedsReposition')}`}`,
+    });
   });
 
   if (!rows.length) {
@@ -648,7 +668,15 @@ function calculateCounterBatteryResponse() {
     return;
   }
 
-  cbOutput.textContent = `${cbOutput.textContent}\n\n${t('cbResponseHeader')}:\n${rows.join('\n')}`;
+  rows.sort((a, b) => {
+    if (a.inTraverse !== b.inTraverse) return Number(b.inTraverse) - Number(a.inTraverse);
+    if (a.rotateDelta !== b.rotateDelta) return a.rotateDelta - b.rotateDelta;
+    return a.distance - b.distance;
+  });
+
+  const lines = rows.map((entry, index) => `${index === 0 ? `${t('cbRecommendedGun')} ` : ''}${entry.text}`);
+
+  cbOutput.textContent = `${cbOutput.textContent}\n\n${t('cbResponseHeader')}:\n${lines.join('\n')}`;
 }
 
 function switchTab(tabName) {
@@ -735,10 +763,10 @@ function renderGunsGrid() {
       const activeProfileId = gunState.profileId || batteryDefaultProfile;
       const activeProfile = profiles[activeProfileId] ?? profiles[gunProfiles[0]];
       const traverseDeg = clamp(Number(activeProfile?.traverseDeg) || 360, 1, 360);
-      const canSetDirection = gunState.isCritical && traverseDeg < 360;
       const row = document.createElement('div');
       row.className = 'pair';
-      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><select data-gun-profile="${key}">${profileOptions}</select><label><input data-gun-critical="${key}" type="checkbox" ${gunState.isCritical ? 'checked' : ''} /> ${t('gunCritical')}</label>${canSetDirection ? `<input data-gun-heading="${key}" type="number" min="0" max="359.9" step="0.1" placeholder="${t('gunDirectionAzimuth')}" value="${normalizeAzimuth(gunState.heading)}" />` : ''}`;
+      const headingValue = gunState.heading < 360 ? normalizeAzimuth(gunState.heading).toFixed(1) : '';
+      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><select data-gun-profile="${key}">${profileOptions}</select><label><input data-gun-critical="${key}" type="checkbox" ${gunState.isCritical ? 'checked' : ''} /> ${t('gunCritical')}</label><input data-gun-heading="${key}" type="number" min="0" max="360" step="0.1" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`;
       container.append(row);
       const profileSelect = row.querySelector(`[data-gun-profile="${key}"]`);
       if (profileSelect) profileSelect.value = gunState.profileId || batteryDefaultProfile;
@@ -1778,8 +1806,8 @@ function refreshMapOverlay() {
       weight: 2,
     }).addTo(leafletMap);
     let headingLine = null;
-    if (traverseDeg < 360) {
-      const headingRad = (heading * Math.PI) / 180;
+    if (heading < 360) {
+      const headingRad = (normalizeAzimuth(heading) * Math.PI) / 180;
       const stickLength = 140;
       headingLine = window.L.polyline([
         gamePointToLatLng(gunX, gunY),
@@ -1791,8 +1819,8 @@ function refreshMapOverlay() {
     const dy = targetY - gunY;
     const targetAz = normalizeAzimuth((Math.atan2(dx, dy) * 180) / Math.PI);
     const targetDistance = Math.hypot(dx, dy);
-    const offset = Math.abs(((targetAz - heading + 540) % 360) - 180);
-    const inSector = traverseDeg >= 360 || offset <= traverseDeg / 2;
+    const offset = heading < 360 ? getAzimuthDelta(heading, targetAz) : 0;
+    const inSector = heading >= 360 || traverseDeg >= 360 || offset <= traverseDeg / 2;
     const inRange = targetDistance >= minRange && (maxRange <= 0 || targetDistance <= maxRange);
     if (!inSector || !inRange) {
       warnings.push(`${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}: Az ${targetAz.toFixed(1)}°${inSector ? '' : `, rotate to ${targetAz.toFixed(1)}°`}${inRange ? '' : `, D=${targetDistance.toFixed(0)}m`}`);
@@ -1800,7 +1828,6 @@ function refreshMapOverlay() {
 
     marker.on('mousedown', (event) => {
       if (event.originalEvent?.button !== 0 || !event.originalEvent?.shiftKey) return;
-      if (traverseDeg >= 360) return;
       const latlng = event.latlng;
       const mapPoint = latLngToMapPoint(latlng.lat, latlng.lng);
       const mousePoint = imagePointToGamePoint(mapPoint.x, mapPoint.y);
