@@ -21,6 +21,7 @@
         <button class="tab active" data-tab="home" data-i18n="tabHome" data-i18n-title="tipTabHome">Главная</button>
         <button class="tab" data-tab="global" data-i18n="tabGlobal" data-i18n-title="tipTabGlobal">Глобальные настройки</button>
         <button class="tab" data-tab="fire" data-i18n="tabFire" data-i18n-title="tipTabFire">Огневые задачи</button>
+        <button class="tab" data-tab="counter-battery" data-i18n="tabCounterBattery">Контрбатарейная борьба</button>
         <button class="tab" data-tab="map" data-i18n="tabMap" data-i18n-title="tipTabMap">Карта</button>
         <button class="tab" data-tab="safety" data-i18n="tabSafety" data-i18n-title="tipTabSafety">Безопасность и данные</button>
         <button class="tab" data-tab="settings" data-i18n="tabSettings" data-i18n-title="tipTabSettings">Настройки</button>
@@ -222,6 +223,44 @@
               </div>
             </div>
             <pre id="map-tools-output" class="output compact-output"></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="counter-battery">
+        <div class="section-layout">
+          <article class="card">
+            <h2 data-i18n="counterBatteryTitle">Контрбатарейное обнаружение</h2>
+            <p class="hint" data-i18n="counterBatteryHint">Используйте наблюдения для определения вражеского орудия: звук, воронки, триангуляция по азимутам и гиперболический TDOA.</p>
+            <label for="cb-method" data-i18n="counterBatteryMethod">Метод определения</label>
+            <select id="cb-method">
+              <option value="sound-ranging" data-i18n="cbMethodSound">Звукопеленгация (sound ranging)</option>
+              <option value="crater-analysis" data-i18n="cbMethodCrater">Анализ воронок и обратный азимут</option>
+              <option value="azimuth-triangulation" data-i18n="cbMethodTriangulation">Триангуляция по азимутам наблюдателей</option>
+              <option value="hyperbola-tdoa" data-i18n="cbMethodHyperbola">Гипербола по разности времени прихода (TDOA)</option>
+            </select>
+            <label for="cb-sound-bearing" data-i18n="cbBearing">Азимут на источник (°)</label>
+            <input id="cb-sound-bearing" type="number" min="0" max="359.9" step="0.1" placeholder="52.5" />
+            <label for="cb-est-distance" data-i18n="cbEstimatedDistance">Оценочная дальность (м)</label>
+            <input id="cb-est-distance" type="number" min="0" step="10" placeholder="5200" />
+            <label for="cb-tdoa-delta" data-i18n="cbTdoaDelta">Разница времени прихода (мс)</label>
+            <input id="cb-tdoa-delta" type="number" step="1" placeholder="45" />
+            <label for="cb-impact-bearing" data-i18n="cbImpactBearing">Обратный азимут от воронки (°)</label>
+            <input id="cb-impact-bearing" type="number" min="0" max="359.9" step="0.1" placeholder="231" />
+          </article>
+          <article class="card">
+            <h2 data-i18n="counterBatteryObservers">Данные наблюдателей</h2>
+            <p class="hint" data-i18n="counterBatteryObserversHint">Наблюдатель докладывает азимут. Чем больше точек, тем точнее местоположение врага.</p>
+            <div id="cb-observations" class="stack"></div>
+            <div class="card-actions inline-actions">
+              <button class="btn ghost" id="cb-add-point" data-i18n="cbAddPoint">Добавить точку</button>
+              <button class="btn ghost" id="cb-clear-points" data-i18n="cbClearPoints">Очистить точки</button>
+            </div>
+            <div class="card-actions top-gap">
+              <button class="btn" id="cb-locate-target" data-i18n="cbLocateTarget">Найти вражеское орудие</button>
+              <button class="btn ghost" id="cb-calculate-response" data-i18n="cbCalculateResponse">Рассчитать ответный огонь</button>
+            </div>
+            <pre id="cb-output" class="output"></pre>
           </article>
         </div>
       </section>

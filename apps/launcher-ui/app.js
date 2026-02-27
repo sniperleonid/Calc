@@ -37,6 +37,7 @@ function loadLauncherSettings() {
       observerNames: parsed.observerNames ?? {},
       mission: parsed.mission ?? {},
       mapTools: parsed.mapTools ?? {},
+      counterBattery: parsed.counterBattery ?? {},
     };
   } catch {
     return {
@@ -50,6 +51,7 @@ function loadLauncherSettings() {
       observerNames: {},
       mission: {},
       mapTools: {},
+      counterBattery: {},
     };
   }
 }
@@ -64,7 +66,7 @@ const state = {
 const i18n = {
   ru: {
     appVersion: 'Calc v1', appTitle: 'Баллистический калькулятор', appSubtitle: 'Единая оболочка для планирования огневых задач и оперативных данных.',
-    tabHome: 'Главная', tabGlobal: 'Глобальные настройки', tabFire: 'Огневые задачи', tabMap: 'Карта', tabSafety: 'Безопасность и данные', tabSettings: 'Настройки',
+    tabHome: 'Главная', tabGlobal: 'Глобальные настройки', tabFire: 'Огневые задачи', tabCounterBattery: 'Контрбатарейный огонь', tabMap: 'Карта', tabSafety: 'Безопасность и данные', tabSettings: 'Настройки',
     tipTabHome: 'Быстрый обзор состояния системы и ключевых переходов.', tipTabGlobal: 'Настройка состава батарей, орудий и наблюдателей перед расчётами.', tipTabFire: 'Подготовка и расчёт параметров для огневой задачи.', tipTabMap: 'Работа с тактической картой, метками и калибровкой.', tipTabSafety: 'Проверка логов, экспорт данных и служебные операции.', tipTabSettings: 'Переключение языка и визуальной темы интерфейса.',
     homeConfiguration: 'Глобальные настройки', homeFire: 'Огневые задачи', homeMap: 'Карта и интеграции', openApi: 'Открыть API', editGlobalData: 'Настроить орудия, батареи и наблюдателей',
     tipHomeGlobalCard: 'Карточка для первичной настройки структуры подразделения.', tipHomeFireCard: 'Карточка с быстрым переходом к расчётам и проверке доступности сервисов.', tipHomeMapCard: 'Карточка открытия внешней карты и интеграции с оболочкой.', tipMapCanvasCard: 'Основное рабочее окно карты: масштабирование, метки и позиционирование.', tipMapToolsCard: 'Панель вспомогательных инструментов карты и калибровки.',
@@ -81,6 +83,7 @@ const i18n = {
     correctionApplied: 'Поправка сохранена', correctionResetDone: 'Поправка сброшена', observerTargetingApplied: 'Координаты цели обновлены от наблюдателя', observerTargetingUnavailable: 'Нет координат наблюдателя для наведения',
     missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', targetX: 'Координата цели X', targetY: 'Координата цели Y',
     fireMode: 'Тип огня', fireModeLinear: 'Линейный сноп', fireModeParallel: 'Параллельный', fireModeConverging: 'Сходящийся', fireModeOpen: 'Открытый', fireModeCircular: 'Круговой',
+    counterBatteryTitle: 'Контрбатарейное обнаружение', counterBatteryHint: 'Реальные методы: звукопеленгация, анализ воронок с обратным азимутом, триангуляция по азимутам и гипербола TDOA.', counterBatteryMethod: 'Метод определения', cbMethodSound: 'Звукопеленгация (sound ranging)', cbMethodCrater: 'Анализ воронок и обратный азимут', cbMethodTriangulation: 'Триангуляция по азимутам наблюдателей', cbMethodHyperbola: 'Гипербола по разности времени прихода (TDOA)', cbBearing: 'Азимут на источник (°)', cbEstimatedDistance: 'Оценочная дальность (м)', cbTdoaDelta: 'Разница времени прихода (мс)', cbImpactBearing: 'Обратный азимут от воронки (°)', counterBatteryObservers: 'Данные наблюдателей', counterBatteryObserversHint: 'Чем больше точек наблюдения, тем точнее координаты вражеского орудия.', cbAddPoint: 'Добавить точку', cbClearPoints: 'Очистить точки', cbLocateTarget: 'Найти вражеское орудие', cbCalculateResponse: 'Рассчитать ответный огонь', cbObserverPoint: 'Точка', cbObserver: 'Наблюдатель', cbObservationAzimuth: 'Азимут наблюдения (°)', cbObservationDelay: 'Задержка звука (с)', cbNeedTwoPoints: 'Нужно минимум две валидные точки наблюдения.', cbTargetLocated: 'Цель определена', cbTargetNotFound: 'Не удалось определить координаты цели по выбранному методу.', cbResponseHeader: 'Ответный огонь (доступные орудия в зоне досягаемости)', cbNoReachableGuns: 'Нет доступных орудий в зоне досягаемости.', cbMethodUsed: 'Метод',
     mapPanelTitle: 'Тактическая карта (Leaflet)', mapLegendTitle: 'Легенда', mapLegendHint: 'Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».',
     syncMap: 'Синхронизировать с координатами', centerTarget: 'Центр на цели',
     safeDataTitle: 'Контроль данных', safeDataDescription: 'Проверка журналов и экспорт служебных данных.', openLogs: 'Открыть логи', exportData: 'Экспорт данных', clearAllData: 'Очистить данные',
@@ -118,6 +121,7 @@ const i18n = {
     correctionApplied: 'Correction saved', correctionResetDone: 'Correction reset', observerTargetingApplied: 'Target coordinates updated from observer', observerTargetingUnavailable: 'Observer coordinates are unavailable',
     missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', targetX: 'Target X coordinate', targetY: 'Target Y coordinate',
     fireMode: 'Fire mode', fireModeLinear: 'Linear sheaf', fireModeParallel: 'Parallel', fireModeConverging: 'Converging', fireModeOpen: 'Open', fireModeCircular: 'Circular',
+    counterBatteryTitle: 'Counter-battery detection', counterBatteryHint: 'Real techniques: sound ranging, crater analysis with reverse azimuth, observer azimuth triangulation, and TDOA hyperbola.', counterBatteryMethod: 'Detection method', cbMethodSound: 'Sound ranging', cbMethodCrater: 'Crater analysis + reverse azimuth', cbMethodTriangulation: 'Observer azimuth triangulation', cbMethodHyperbola: 'TDOA hyperbola', cbBearing: 'Bearing to source (°)', cbEstimatedDistance: 'Estimated range (m)', cbTdoaDelta: 'Arrival time difference (ms)', cbImpactBearing: 'Reverse azimuth from crater (°)', counterBatteryObservers: 'Observer data', counterBatteryObserversHint: 'More observation points produce better enemy gun localization.', cbAddPoint: 'Add point', cbClearPoints: 'Clear points', cbLocateTarget: 'Locate enemy gun', cbCalculateResponse: 'Calculate counter-fire', cbObserverPoint: 'Point', cbObserver: 'Observer', cbObservationAzimuth: 'Observation azimuth (°)', cbObservationDelay: 'Sound delay (s)', cbNeedTwoPoints: 'At least two valid observation points are required.', cbTargetLocated: 'Target localized', cbTargetNotFound: 'Unable to compute target coordinates with selected method.', cbResponseHeader: 'Counter-fire (reachable friendly guns)', cbNoReachableGuns: 'No reachable guns in range.', cbMethodUsed: 'Method',
     mapPanelTitle: 'Tactical map (Leaflet)', mapLegendTitle: 'Legend', mapLegendHint: 'The map shows guns in selected battery and the current target from Fire Missions tab.',
     syncMap: 'Sync with coordinates', centerTarget: 'Center on target',
     safeDataTitle: 'Data control', safeDataDescription: 'Check logs and export service data.', openLogs: 'Open logs', exportData: 'Export data', clearAllData: 'Clear data',
@@ -155,6 +159,9 @@ const fireModeSelect = document.querySelector('#fire-mode');
 const correctionObserverSelect = document.querySelector('#correction-observer');
 const correctionAnchorInfo = document.querySelector('#correction-anchor-info');
 const fireOutput = document.querySelector('#fire-output');
+const cbMethodSelect = document.querySelector('#cb-method');
+const cbObservationsContainer = document.querySelector('#cb-observations');
+const cbOutput = document.querySelector('#cb-output');
 const safetyOutput = document.querySelector('#safety-output');
 const mapLegend = document.querySelector('#map-legend');
 const mapToolsOutput = document.querySelector('#map-tools-output');
@@ -400,6 +407,22 @@ function persistLauncherSettings() {
     fireModeSettings,
   };
 
+
+  const counterBatteryObservations = Array.from(document.querySelectorAll('[data-cb-point]')).map((row) => ({
+    observerId: row.querySelector('[data-cb-observer]')?.value ?? '',
+    azimuth: row.querySelector('[data-cb-azimuth]')?.value ?? '',
+    soundDelaySec: row.querySelector('[data-cb-delay]')?.value ?? '',
+  }));
+
+  state.settings.counterBattery = {
+    method: cbMethodSelect?.value ?? 'azimuth-triangulation',
+    soundBearing: document.querySelector('#cb-sound-bearing')?.value ?? '',
+    estimatedDistance: document.querySelector('#cb-est-distance')?.value ?? '',
+    tdoaDeltaMs: document.querySelector('#cb-tdoa-delta')?.value ?? '',
+    impactBearing: document.querySelector('#cb-impact-bearing')?.value ?? '',
+    observations: counterBatteryObservations,
+    target: state.settings.counterBattery?.target ?? null,
+  };
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
 }
 
@@ -417,10 +440,158 @@ function applyI18n() {
   renderGunsGrid();
   renderObservers();
   renderMissionSelectors();
+  renderCounterBatterySection();
   syncFireModeSettingsVisibility();
   hydrateMapToolsForm();
   syncMarkerTargetOptions();
   refreshMapOverlay();
+}
+
+
+function normalizeAzimuth(value) {
+  return ((Number(value) % 360) + 360) % 360;
+}
+
+function bearingToDirection(azimuthDeg) {
+  const rad = (normalizeAzimuth(azimuthDeg) * Math.PI) / 180;
+  return { x: Math.sin(rad), y: Math.cos(rad) };
+}
+
+function intersectBearings(p1, az1, p2, az2) {
+  const d1 = bearingToDirection(az1);
+  const d2 = bearingToDirection(az2);
+  const denom = (d1.x * d2.y) - (d1.y * d2.x);
+  if (Math.abs(denom) < 1e-6) return null;
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const t = ((dx * d2.y) - (dy * d2.x)) / denom;
+  return { x: p1.x + d1.x * t, y: p1.y + d1.y * t };
+}
+
+function getBatteryGunMaxRange(profile) {
+  const ranges = {
+    'mortar-120-standard': 7200,
+    'd30-standard': 15300,
+    'm777-howitzer': 24000,
+  };
+  return ranges[profile] ?? 12000;
+}
+
+function renderCounterBatterySection() {
+  if (!cbMethodSelect || !cbObservationsContainer) return;
+  const cb = state.settings.counterBattery ?? {};
+  cbMethodSelect.value = cb.method ?? 'azimuth-triangulation';
+  document.querySelector('#cb-sound-bearing').value = cb.soundBearing ?? '';
+  document.querySelector('#cb-est-distance').value = cb.estimatedDistance ?? '';
+  document.querySelector('#cb-tdoa-delta').value = cb.tdoaDeltaMs ?? '';
+  document.querySelector('#cb-impact-bearing').value = cb.impactBearing ?? '';
+
+  const source = (cb.observations?.length ? cb.observations : [{ observerId: '1', azimuth: '', soundDelaySec: '' }, { observerId: '2', azimuth: '', soundDelaySec: '' }]);
+  cbObservationsContainer.innerHTML = source.map((entry, index) => {
+    const options = getObserverEntries().map((observerId) => `<option value="${observerId}">${getObserverDisplayName(observerId)}</option>`).join('');
+    return `<div class="observer-row" data-cb-point="${index + 1}"><p class="hint">${t('cbObserverPoint')} ${index + 1}</p><div class="pair pair-3"><select data-cb-observer>${options}</select><input data-cb-azimuth type="number" min="0" max="359.9" step="0.1" placeholder="${t('cbObservationAzimuth')}" value="${entry.azimuth ?? ''}" /><input data-cb-delay type="number" min="0" step="0.01" placeholder="${t('cbObservationDelay')}" value="${entry.soundDelaySec ?? ''}" /></div></div>`;
+  }).join('');
+
+  Array.from(cbObservationsContainer.querySelectorAll('[data-cb-point]')).forEach((row, index) => {
+    const entry = source[index] ?? {};
+    const select = row.querySelector('[data-cb-observer]');
+    if (select) select.value = entry.observerId ?? String(Math.min(index + 1, getObserverEntries().length || 1));
+  });
+}
+
+function collectCounterBatteryObservations() {
+  const observations = Array.from(document.querySelectorAll('[data-cb-point]')).map((row) => {
+    const observerId = Number(row.querySelector('[data-cb-observer]')?.value || 0);
+    const point = readXYFromInputs(
+      document.querySelector(`[data-observer-x="${observerId}"]`),
+      document.querySelector(`[data-observer-y="${observerId}"]`),
+    );
+    if (!point) return null;
+    return {
+      observerId,
+      point,
+      azimuth: Number(row.querySelector('[data-cb-azimuth]')?.value),
+      soundDelaySec: Number(row.querySelector('[data-cb-delay]')?.value),
+    };
+  }).filter(Boolean);
+  return observations;
+}
+
+function locateEnemyGun() {
+  const method = cbMethodSelect?.value ?? 'azimuth-triangulation';
+  const observations = collectCounterBatteryObservations();
+  if (observations.length < 2) {
+    cbOutput.textContent = t('cbNeedTwoPoints');
+    return null;
+  }
+
+  const first = observations[0];
+  const second = observations[1];
+  let estimated = null;
+
+  if (method === 'azimuth-triangulation') {
+    estimated = intersectBearings(first.point, first.azimuth, second.point, second.azimuth);
+  } else if (method === 'crater-analysis') {
+    const craterBearing = Number(document.querySelector('#cb-impact-bearing')?.value);
+    const backAzimuth = normalizeAzimuth(craterBearing + 180);
+    estimated = intersectBearings(first.point, first.azimuth, second.point, backAzimuth);
+  } else if (method === 'sound-ranging') {
+    const bearing = Number(document.querySelector('#cb-sound-bearing')?.value);
+    const distance = Number(document.querySelector('#cb-est-distance')?.value || 0);
+    const d = bearingToDirection(bearing);
+    estimated = {
+      x: first.point.x + d.x * distance,
+      y: first.point.y + d.y * distance,
+    };
+  } else {
+    const deltaMs = Number(document.querySelector('#cb-tdoa-delta')?.value || 0);
+    const distanceDiff = (deltaMs / 1000) * 343;
+    const base = intersectBearings(first.point, first.azimuth, second.point, second.azimuth);
+    if (base) {
+      const mid = { x: (first.point.x + second.point.x) / 2, y: (first.point.y + second.point.y) / 2 };
+      const p1Dist = Math.hypot(base.x - first.point.x, base.y - first.point.y);
+      const correction = distanceDiff / 2;
+      const scale = (p1Dist + correction) / (p1Dist || 1);
+      estimated = { x: mid.x + (base.x - mid.x) * scale, y: mid.y + (base.y - mid.y) * scale };
+    }
+  }
+
+  if (!estimated || !Number.isFinite(estimated.x) || !Number.isFinite(estimated.y)) {
+    cbOutput.textContent = t('cbTargetNotFound');
+    return null;
+  }
+
+  state.settings.counterBattery = {
+    ...(state.settings.counterBattery ?? {}),
+    method,
+    target: estimated,
+  };
+  persistLauncherSettings();
+  cbOutput.textContent = `${t('cbTargetLocated')}: X=${estimated.x.toFixed(1)} Y=${estimated.y.toFixed(1)}\n${t('cbMethodUsed')}: ${t(method === 'sound-ranging' ? 'cbMethodSound' : method === 'crater-analysis' ? 'cbMethodCrater' : method === 'hyperbola-tdoa' ? 'cbMethodHyperbola' : 'cbMethodTriangulation')}`;
+  return estimated;
+}
+
+function calculateCounterBatteryResponse() {
+  const target = state.settings.counterBattery?.target ?? locateEnemyGun();
+  if (!target) return;
+  const rows = [];
+  getAllGunPoints().forEach((gun) => {
+    const profile = state.settings.batteryConfig?.[String(gun.batteryId)]?.gunProfile ?? gunProfiles[0];
+    const maxRange = getBatteryGunMaxRange(profile);
+    const dx = target.x - gun.x;
+    const dy = target.y - gun.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > maxRange) return;
+    const azimuth = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
+    rows.push(`${getBatteryDisplayName(gun.batteryId)} ${t('gun')} ${gun.gunId}: D=${distance.toFixed(1)}m Az=${azimuth.toFixed(1)}° (Rmax ${maxRange}m)`);
+  });
+
+  if (!rows.length) {
+    cbOutput.textContent = `${cbOutput.textContent}\n\n${t('cbNoReachableGuns')}`;
+    return;
+  }
+
+  cbOutput.textContent = `${cbOutput.textContent}\n\n${t('cbResponseHeader')}:\n${rows.join('\n')}`;
 }
 
 function switchTab(tabName) {
@@ -1676,6 +1847,18 @@ document.querySelector('#save-mission')?.addEventListener('click', saveMission);
 document.querySelector('#save-correction')?.addEventListener('click', saveCorrectionSettings);
 document.querySelector('#reset-correction')?.addEventListener('click', resetCorrectionSettings);
 document.querySelector('#apply-observer-targeting')?.addEventListener('click', applyObserverTargeting);
+document.querySelector('#cb-add-point')?.addEventListener('click', () => {
+  const current = state.settings.counterBattery?.observations ?? [];
+  state.settings.counterBattery = { ...(state.settings.counterBattery ?? {}), observations: [...current, { observerId: '1', azimuth: '', soundDelaySec: '' }] };
+  renderCounterBatterySection();
+});
+document.querySelector('#cb-clear-points')?.addEventListener('click', () => {
+  state.settings.counterBattery = { ...(state.settings.counterBattery ?? {}), observations: [] };
+  renderCounterBatterySection();
+  cbOutput.textContent = '';
+});
+document.querySelector('#cb-locate-target')?.addEventListener('click', locateEnemyGun);
+document.querySelector('#cb-calculate-response')?.addEventListener('click', calculateCounterBatteryResponse);
 batteryCountInput?.addEventListener('change', () => {
   state.settings.batteryCount = normalizeCount(batteryCountInput?.value, LIMITS.batteries);
   if (batteryCountInput) batteryCountInput.value = String(state.settings.batteryCount);
@@ -1683,6 +1866,7 @@ batteryCountInput?.addEventListener('change', () => {
   renderGunsGrid();
   renderObservers();
   renderMissionSelectors();
+  renderCounterBatterySection();
   syncMarkerTargetOptions();
   syncMapMarkersWithAvailableTargets();
   persistLauncherSettings();
@@ -1692,6 +1876,7 @@ observerCountInput?.addEventListener('change', () => {
   state.settings.observerCount = normalizeCount(observerCountInput?.value, LIMITS.observers);
   if (observerCountInput) observerCountInput.value = String(state.settings.observerCount);
   renderObservers();
+  renderCounterBatterySection();
   syncCorrectionObserverOptions();
   syncMarkerTargetOptions();
   syncMapMarkersWithAvailableTargets();
@@ -1711,6 +1896,7 @@ document.addEventListener('change', (event) => {
   renderGunsGrid();
   renderObservers();
   renderMissionSelectors();
+  renderCounterBatterySection();
   syncMarkerTargetOptions();
   syncMapMarkersWithAvailableTargets();
   persistLauncherSettings();
