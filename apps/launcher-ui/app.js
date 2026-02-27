@@ -95,7 +95,7 @@ const i18n = {
     ballisticsOk: '✅ Ballistics Core: запущен', ballisticsWarn: '⚠️ Ballistics Core: не отвечает. Проверьте Python и uvicorn.',
     dataCleared: 'Локальные данные очищены', battery: 'Батарея', batteryShort: 'Б', gun: 'Орудие', gunShort: 'О', observer: 'Наблюдатель', observerShort: 'Н', x: 'X', y: 'Y',
     observerHeight: 'Высота наблюдателя (м)', observerName: 'Имя наблюдателя',
-    allGuns: 'Все орудия батареи', gunProfile: 'Профиль орудия', projectileProfile: 'Профиль снаряда', gunCritical: 'Критичное орудие', gunDirectionAzimuth: 'Азимут центрального направления (°)',
+    allGuns: 'Все орудия батареи', gunProfile: 'Профиль орудия', projectileProfile: 'Профиль снаряда', gunDirectionAzimuth: 'Азимут центрального направления (°)',
     calcDone: 'Расчёт выполнен', mtoHeader: 'MTO: расход по выбранным орудиям', missionSaved: 'Миссия сохранена', noMissions: 'Сохранённых миссий нет',
     logsError: 'Не удалось загрузить логи', exportReady: 'Экспорт данных подготовлен', noLogsYet: 'Логи пока не найдены',
     target: 'Цель', openedExternalMap: 'Открыта внешняя карта',
@@ -133,7 +133,7 @@ const i18n = {
     ballisticsOk: '✅ Ballistics Core: online', ballisticsWarn: '⚠️ Ballistics Core: unavailable. Check Python and uvicorn.',
     dataCleared: 'Local data has been cleared', battery: 'Battery', batteryShort: 'B', gun: 'Gun', gunShort: 'G', observer: 'Observer', observerShort: 'O', x: 'X', y: 'Y',
     observerHeight: 'Observer altitude (m)', observerName: 'Observer name',
-    allGuns: 'All guns in battery', gunProfile: 'Gun profile', projectileProfile: 'Projectile profile', gunCritical: 'Critical gun', gunDirectionAzimuth: 'Central azimuth (°)',
+    allGuns: 'All guns in battery', gunProfile: 'Gun profile', projectileProfile: 'Projectile profile', gunDirectionAzimuth: 'Central azimuth (°)',
     calcDone: 'Calculation complete', mtoHeader: 'MTO: ammo usage for selected guns', missionSaved: 'Mission saved', noMissions: 'No saved missions',
     logsError: 'Failed to load logs', exportReady: 'Data export ready', noLogsYet: 'No logs found yet',
     target: 'Target', openedExternalMap: 'Opened external map',
@@ -196,8 +196,7 @@ function getGunSetting(gunKey) {
   const settings = state.settings.gunSettings?.[gunKey] ?? {};
   const heading = Number(settings.heading);
   return {
-    heading: Number.isFinite(heading) ? heading : 360,
-    isCritical: settings.isCritical !== false,
+    heading: Number.isFinite(heading) ? normalizeAzimuth(heading) : null,
     profileId: settings.profileId || null,
   };
 }
@@ -383,14 +382,13 @@ function persistLauncherSettings() {
     const key = select.dataset.gunProfile;
     const prev = state.settings.gunSettings[key] ?? {};
     const headingInput = document.querySelector(`[data-gun-heading="${key}"]`);
-    const criticalInput = document.querySelector(`[data-gun-critical="${key}"]`);
+    const headingNumber = Number(headingInput?.value);
     state.settings.gunSettings[key] = {
       ...prev,
       profileId: select.value || gunProfiles[0],
-      heading: headingInput && headingInput.value !== ''
-        ? clamp(Number(headingInput.value) || 0, 0, 360)
-        : (Number.isFinite(Number(prev.heading)) ? Number(prev.heading) : 360),
-      isCritical: criticalInput ? criticalInput.checked : prev.isCritical !== false,
+      heading: headingInput && headingInput.value !== '' && Number.isFinite(headingNumber)
+        ? normalizeAzimuth(headingNumber)
+        : null,
     };
   });
 
@@ -765,8 +763,8 @@ function renderGunsGrid() {
       const traverseDeg = clamp(Number(activeProfile?.traverseDeg) || 360, 1, 360);
       const row = document.createElement('div');
       row.className = 'pair';
-      const headingValue = gunState.heading < 360 ? normalizeAzimuth(gunState.heading).toFixed(1) : '';
-      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><select data-gun-profile="${key}">${profileOptions}</select><label><input data-gun-critical="${key}" type="checkbox" ${gunState.isCritical ? 'checked' : ''} /> ${t('gunCritical')}</label><input data-gun-heading="${key}" type="number" min="0" max="360" step="0.1" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`;
+      const headingValue = Number.isFinite(gunState.heading) ? normalizeAzimuth(gunState.heading).toFixed(1) : '';
+      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><select data-gun-profile="${key}">${profileOptions}</select><input data-gun-heading="${key}" type="number" min="0" max="360" step="0.1" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`;
       container.append(row);
       const profileSelect = row.querySelector(`[data-gun-profile="${key}"]`);
       if (profileSelect) profileSelect.value = gunState.profileId || batteryDefaultProfile;
@@ -1304,8 +1302,8 @@ function getProfileForGun(batteryId, gunId) {
   return {
     profileId: gunSetting.profileId || batteryDefault,
     profile: profiles[gunSetting.profileId || batteryDefault] ?? profiles[gunProfiles[0]],
-    heading: clamp(Number((profiles[gunSetting.profileId || batteryDefault] ?? profiles[gunProfiles[0]])?.traverseDeg) || 360, 1, 360) < 360 && gunSetting.isCritical
-      ? normalizeAzimuth(gunSetting.heading ?? 0)
+    heading: clamp(Number((profiles[gunSetting.profileId || batteryDefault] ?? profiles[gunProfiles[0]])?.traverseDeg) || 360, 1, 360) < 360 && Number.isFinite(gunSetting.heading)
+      ? normalizeAzimuth(gunSetting.heading)
       : 0,
   };
 }
@@ -2143,7 +2141,7 @@ document.addEventListener('change', (event) => {
 });
 document.addEventListener('change', (event) => {
   if (!(event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement)) return;
-  if (!event.target.matches('[data-gun-profile], [data-gun-critical], [data-gun-heading], [data-profile-traverse], [data-profile-min-range], [data-profile-max-range], [data-profile-projectiles], [data-profile-tables]')) return;
+  if (!event.target.matches('[data-gun-profile], [data-gun-heading], [data-profile-traverse], [data-profile-min-range], [data-profile-max-range], [data-profile-projectiles], [data-profile-tables]')) return;
   persistLauncherSettings();
   renderProfilesEditor();
   renderGunsGrid();
