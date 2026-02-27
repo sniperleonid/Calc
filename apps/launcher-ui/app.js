@@ -75,6 +75,10 @@ const i18n = {
     observerTitle: 'Наблюдатели и привязки', observerCount: 'Количество наблюдателей (до 5)', observerBinding: 'Привязка наблюдателя',
     bindToGun: 'К орудию', bindToBattery: 'К батарее', gunnerHint: 'Все расчёты выполняются на основе глобальных настроек.',
     actionsTitle: 'Действия', calculate: 'Рассчитать', showMto: 'Показать MTO', logMission: 'Сохранить миссию',
+    correctionTitle: 'Корректировка', correctionObserver: 'Наблюдатель корректировки', saveCorrection: 'Сохранить поправку', resetCorrection: 'Сбросить поправку',
+    correctionAnchorObserver: 'Привязан к наблюдателю', correctionAnchorGun: 'Корректировка от орудия (наблюдатель не привязан)',
+    observerTargetingTitle: 'Наведение наблюдателем', observerTargetingHint: 'Если координаты цели неизвестны, задайте дальность, азимут и угол.', applyObserverTargeting: 'Рассчитать цель от наблюдателя',
+    correctionApplied: 'Поправка сохранена', correctionResetDone: 'Поправка сброшена', observerTargetingApplied: 'Координаты цели обновлены от наблюдателя', observerTargetingUnavailable: 'Нет координат наблюдателя для наведения',
     missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', targetX: 'Координата цели X', targetY: 'Координата цели Y',
     fireMode: 'Тип огня', fireModeLinear: 'Линейный сноп', fireModeParallel: 'Параллельный', fireModeConverging: 'Сходящийся', fireModeOpen: 'Открытый', fireModeCircular: 'Круговой',
     mapPanelTitle: 'Тактическая карта (Leaflet)', mapLegendTitle: 'Легенда', mapLegendHint: 'Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».',
@@ -108,6 +112,10 @@ const i18n = {
     observerTitle: 'Observers and bindings', observerCount: 'Observers count (up to 5)', observerBinding: 'Observer binding',
     bindToGun: 'To gun', bindToBattery: 'To battery', gunnerHint: 'All calculations use data from global settings.',
     actionsTitle: 'Actions', calculate: 'Calculate', showMto: 'Show MTO', logMission: 'Save mission',
+    correctionTitle: 'Correction', correctionObserver: 'Correction observer', saveCorrection: 'Save correction', resetCorrection: 'Reset correction',
+    correctionAnchorObserver: 'Anchored to observer', correctionAnchorGun: 'Correction from gun (observer not linked)',
+    observerTargetingTitle: 'Observer targeting', observerTargetingHint: 'If target coordinates are unknown, enter distance, azimuth and slope angle.', applyObserverTargeting: 'Compute target from observer',
+    correctionApplied: 'Correction saved', correctionResetDone: 'Correction reset', observerTargetingApplied: 'Target coordinates updated from observer', observerTargetingUnavailable: 'Observer coordinates are unavailable',
     missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', targetX: 'Target X coordinate', targetY: 'Target Y coordinate',
     fireMode: 'Fire mode', fireModeLinear: 'Linear sheaf', fireModeParallel: 'Parallel', fireModeConverging: 'Converging', fireModeOpen: 'Open', fireModeCircular: 'Circular',
     mapPanelTitle: 'Tactical map (Leaflet)', mapLegendTitle: 'Legend', mapLegendHint: 'The map shows guns in selected battery and the current target from Fire Missions tab.',
@@ -144,6 +152,8 @@ const mapUrlInput = document.querySelector('#map-url');
 const missionBatterySelect = document.querySelector('#mission-battery');
 const missionGunSelect = document.querySelector('#mission-gun');
 const fireModeSelect = document.querySelector('#fire-mode');
+const correctionObserverSelect = document.querySelector('#correction-observer');
+const correctionAnchorInfo = document.querySelector('#correction-anchor-info');
 const fireOutput = document.querySelector('#fire-output');
 const safetyOutput = document.querySelector('#safety-output');
 const mapLegend = document.querySelector('#map-legend');
@@ -377,6 +387,16 @@ function persistLauncherSettings() {
     battery: missionBatterySelect?.value ?? '1',
     gun: missionGunSelect?.value ?? 'all',
     fireMode: fireModeSelect?.value ?? 'linear',
+    correction: {
+      observerId: correctionObserverSelect?.value ?? '1',
+      lateralMeters: Number(document.querySelector('#correction-lr')?.value ?? 0) || 0,
+      rangeMeters: Number(document.querySelector('#correction-add-drop')?.value ?? 0) || 0,
+    },
+    observerTargeting: {
+      distance: document.querySelector('#observer-target-distance')?.value ?? '',
+      azimuth: document.querySelector('#observer-target-azimuth')?.value ?? '',
+      angle: document.querySelector('#observer-target-angle')?.value ?? '',
+    },
     fireModeSettings,
   };
 
@@ -546,6 +566,17 @@ function renderMissionSelectors() {
   document.querySelector('#target-x').value = state.settings.mission.targetX ?? '';
   document.querySelector('#target-y').value = state.settings.mission.targetY ?? '';
 
+  syncCorrectionObserverOptions();
+  const correction = state.settings.mission.correction ?? {};
+  const correctionLrInput = document.querySelector('#correction-lr');
+  const correctionAddDropInput = document.querySelector('#correction-add-drop');
+  if (correctionLrInput) correctionLrInput.value = correction.lateralMeters ?? 0;
+  if (correctionAddDropInput) correctionAddDropInput.value = correction.rangeMeters ?? 0;
+
+  document.querySelector('#observer-target-distance').value = state.settings.mission.observerTargeting?.distance ?? '';
+  document.querySelector('#observer-target-azimuth').value = state.settings.mission.observerTargeting?.azimuth ?? '';
+  document.querySelector('#observer-target-angle').value = state.settings.mission.observerTargeting?.angle ?? '';
+
   if (fireModeSelect) fireModeSelect.value = state.settings.mission.fireMode ?? 'linear';
   const fireModeSettings = state.settings.mission.fireModeSettings ?? {};
   document.querySelectorAll('[data-fire-setting]').forEach((input) => {
@@ -557,6 +588,125 @@ function renderMissionSelectors() {
 function getBatteryHeight(batteryId) {
   const parsed = parseHeightValue(document.querySelector(`[data-battery-height="${batteryId}"]`)?.value);
   return parsed ?? Number.NaN;
+}
+
+function getObserverEntries() {
+  const observers = Number(observerCountInput?.value || 1);
+  return Array.from({ length: observers }, (_, idx) => String(idx + 1));
+}
+
+function getObserverAnchorForMission(observerId, batteryId, gunId) {
+  const mode = document.querySelector(`[data-observer-mode="${observerId}"]`)?.value ?? 'gun';
+  const batteryLink = document.querySelector(`[data-observer-battery="${observerId}"]`)?.value ?? '';
+  const gunLink = document.querySelector(`[data-observer-gun="${observerId}"]`)?.value ?? '';
+  const observerPoint = readXYFromInputs(
+    document.querySelector(`[data-observer-x="${observerId}"]`),
+    document.querySelector(`[data-observer-y="${observerId}"]`),
+  );
+  const hasObserverAnchor = observerPoint
+    && ((mode === 'battery' && batteryLink === `battery-${batteryId}`)
+      || (mode === 'gun' && gunLink === `gun-${batteryId}-${gunId}`));
+
+  if (hasObserverAnchor) return { x: observerPoint.x, y: observerPoint.y, byObserver: true };
+
+  const gunPoint = readXYFromInputs(
+    document.querySelector(`[data-gun-x="${batteryId}-${gunId}"]`),
+    document.querySelector(`[data-gun-y="${batteryId}-${gunId}"]`),
+  );
+  if (!gunPoint) return null;
+  return { x: gunPoint.x, y: gunPoint.y, byObserver: false };
+}
+
+function syncCorrectionObserverOptions() {
+  if (!correctionObserverSelect) return;
+  const options = getObserverEntries().map((observerId) => `<option value="${observerId}">${getObserverDisplayName(observerId)}</option>`);
+  correctionObserverSelect.innerHTML = options.join('');
+  const savedObserver = state.settings.mission?.correction?.observerId;
+  if (savedObserver && options.some((opt) => opt.includes(`value="${savedObserver}"`))) {
+    correctionObserverSelect.value = String(savedObserver);
+  }
+
+  if (!correctionObserverSelect.value && options.length) correctionObserverSelect.value = '1';
+  updateCorrectionAnchorHint();
+}
+
+function updateCorrectionAnchorHint() {
+  if (!correctionAnchorInfo || !correctionObserverSelect) return;
+  const battery = Number(missionBatterySelect?.value || 1);
+  const gun = Number(missionGunSelect?.value === 'all' ? 1 : missionGunSelect?.value || 1);
+  const anchor = getObserverAnchorForMission(correctionObserverSelect.value, battery, gun);
+  correctionAnchorInfo.textContent = anchor?.byObserver ? t('correctionAnchorObserver') : t('correctionAnchorGun');
+}
+
+function getMissionCorrection() {
+  const correction = state.settings.mission?.correction ?? {};
+  return {
+    observerId: correctionObserverSelect?.value || correction.observerId || '1',
+    lateralMeters: Number(document.querySelector('#correction-lr')?.value ?? correction.lateralMeters ?? 0) || 0,
+    rangeMeters: Number(document.querySelector('#correction-add-drop')?.value ?? correction.rangeMeters ?? 0) || 0,
+  };
+}
+
+function applyCorrectionToTarget(target, anchor, correction) {
+  const dx = target.x - anchor.x;
+  const dy = target.y - anchor.y;
+  const baseDistance = Math.hypot(dx, dy) || 1;
+  const forwardX = dx / baseDistance;
+  const forwardY = dy / baseDistance;
+  const rightX = forwardY;
+  const rightY = -forwardX;
+  return {
+    x: target.x + rightX * correction.lateralMeters + forwardX * correction.rangeMeters,
+    y: target.y + rightY * correction.lateralMeters + forwardY * correction.rangeMeters,
+  };
+}
+
+function saveCorrectionSettings() {
+  const correction = {
+    observerId: correctionObserverSelect?.value || '1',
+    lateralMeters: Number(document.querySelector('#correction-lr')?.value || 0),
+    rangeMeters: Number(document.querySelector('#correction-add-drop')?.value || 0),
+  };
+  state.settings.mission = { ...(state.settings.mission ?? {}), correction };
+  persistLauncherSettings();
+  fireOutput.textContent = t('correctionApplied');
+}
+
+function resetCorrectionSettings() {
+  const lrInput = document.querySelector('#correction-lr');
+  const addDropInput = document.querySelector('#correction-add-drop');
+  if (lrInput) lrInput.value = '0';
+  if (addDropInput) addDropInput.value = '0';
+  state.settings.mission = { ...(state.settings.mission ?? {}), correction: { observerId: correctionObserverSelect?.value || '1', lateralMeters: 0, rangeMeters: 0 } };
+  persistLauncherSettings();
+  fireOutput.textContent = t('correctionResetDone');
+}
+
+function applyObserverTargeting() {
+  const observerId = correctionObserverSelect?.value || '1';
+  const observerPoint = readXYFromInputs(
+    document.querySelector(`[data-observer-x="${observerId}"]`),
+    document.querySelector(`[data-observer-y="${observerId}"]`),
+  );
+  if (!observerPoint) {
+    fireOutput.textContent = t('observerTargetingUnavailable');
+    return;
+  }
+
+  const distance = Number(document.querySelector('#observer-target-distance')?.value || 0);
+  const azimuth = Number(document.querySelector('#observer-target-azimuth')?.value || 0);
+  const angle = Number(document.querySelector('#observer-target-angle')?.value || 0);
+  const horizontal = distance * Math.cos((angle * Math.PI) / 180);
+  const targetX = observerPoint.x + Math.sin((azimuth * Math.PI) / 180) * horizontal;
+  const targetY = observerPoint.y + Math.cos((azimuth * Math.PI) / 180) * horizontal;
+
+  const targetXInput = document.querySelector('#target-x');
+  const targetYInput = document.querySelector('#target-y');
+  if (targetXInput) targetXInput.value = String(Math.round(targetX));
+  if (targetYInput) targetYInput.value = String(Math.round(targetY));
+  persistLauncherSettings();
+  refreshMapOverlay();
+  fireOutput.textContent = t('observerTargetingApplied');
 }
 
 function getObserverCorrections(batteryId, gunIds, batteryHeight) {
@@ -659,8 +809,8 @@ function calculateFire() {
     fireOutput.textContent = t('invalidCoordinates');
     return;
   }
-  const targetX = targetInput.x;
-  const targetY = targetInput.y;
+  const rawTargetX = targetInput.x;
+  const rawTargetY = targetInput.y;
   const battery = Number(missionBatterySelect.value || 1);
   const selectedGun = missionGunSelect.value;
   const fireMode = fireModeSelect?.value ?? 'linear';
@@ -671,6 +821,15 @@ function calculateFire() {
     fireOutput.textContent = t('invalidCoordinates');
     return;
   }
+
+  const correction = getMissionCorrection();
+  const anchorGunForCorrection = selectedGun === 'all' ? 1 : Number(selectedGun);
+  const correctionAnchor = getObserverAnchorForMission(correction.observerId, battery, anchorGunForCorrection);
+  const correctedTarget = correctionAnchor
+    ? applyCorrectionToTarget({ x: rawTargetX, y: rawTargetY }, correctionAnchor, correction)
+    : { x: rawTargetX, y: rawTargetY };
+  const targetX = correctedTarget.x;
+  const targetY = correctedTarget.y;
 
   const results = gunIds.map((gunId) => {
     const gunPoint = readXYFromInputs(
@@ -696,6 +855,7 @@ function calculateFire() {
 
   const output = [`${t('calcDone')}: ${document.querySelector('#mission-name')?.value || 'Mission'}`,
     `${t('fireMode')}: ${t(`fireMode${fireMode[0].toUpperCase()}${fireMode.slice(1)}`)}`,
+    `Target: X=${targetX.toFixed(1)} Y=${targetY.toFixed(1)}` ,
     ...results.map((row) => `${t('gun')} ${row.gunId}: D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil`)].join('\n');
 
   const observerCorrections = getObserverCorrections(battery, gunIds, batteryHeight);
@@ -706,7 +866,7 @@ function calculateFire() {
   state.settings.mapTools = { ...tools, activeFirePattern: buildActiveFirePattern({ mode: fireMode, targetX, targetY }) };
   persistLauncherSettings();
   refreshMapOverlay();
-  return { results, battery, selectedGun, targetX, targetY, batteryHeight, fireMode };
+  return { results, battery, selectedGun, targetX, targetY, rawTargetX, rawTargetY, batteryHeight, fireMode };
 }
 
 function showMto() {
@@ -1513,6 +1673,9 @@ document.querySelector('#open-map')?.addEventListener('click', openMap);
 document.querySelector('#calculate-btn')?.addEventListener('click', calculateFire);
 document.querySelector('#show-mto')?.addEventListener('click', showMto);
 document.querySelector('#save-mission')?.addEventListener('click', saveMission);
+document.querySelector('#save-correction')?.addEventListener('click', saveCorrectionSettings);
+document.querySelector('#reset-correction')?.addEventListener('click', resetCorrectionSettings);
+document.querySelector('#apply-observer-targeting')?.addEventListener('click', applyObserverTargeting);
 batteryCountInput?.addEventListener('change', () => {
   state.settings.batteryCount = normalizeCount(batteryCountInput?.value, LIMITS.batteries);
   if (batteryCountInput) batteryCountInput.value = String(state.settings.batteryCount);
@@ -1529,14 +1692,18 @@ observerCountInput?.addEventListener('change', () => {
   state.settings.observerCount = normalizeCount(observerCountInput?.value, LIMITS.observers);
   if (observerCountInput) observerCountInput.value = String(state.settings.observerCount);
   renderObservers();
+  syncCorrectionObserverOptions();
   syncMarkerTargetOptions();
   syncMapMarkersWithAvailableTargets();
   persistLauncherSettings();
 });
 
 document.addEventListener('change', (event) => {
-  if (!(event.target instanceof HTMLSelectElement) || !event.target.matches('[data-observer-mode]')) return;
+  if (!(event.target instanceof HTMLSelectElement)) return;
+  if (!event.target.matches('[data-observer-mode], [data-observer-gun], [data-observer-battery]')) return;
   syncObserverBindingVisibility();
+  updateCorrectionAnchorHint();
+  persistLauncherSettings();
 });
 document.addEventListener('change', (event) => {
   if (!(event.target instanceof HTMLInputElement) || !event.target.matches('[data-battery-guns-count]')) return;
@@ -1551,14 +1718,21 @@ document.addEventListener('change', (event) => {
 });
 missionBatterySelect?.addEventListener('change', () => {
   renderMissionSelectors();
+  updateCorrectionAnchorHint();
   syncMarkerTargetOptions();
   persistLauncherSettings();
   refreshMapOverlay();
 });
 missionGunSelect?.addEventListener('change', () => {
+  updateCorrectionAnchorHint();
   syncMarkerTargetOptions();
   persistLauncherSettings();
   refreshMapOverlay();
+});
+
+correctionObserverSelect?.addEventListener('change', () => {
+  updateCorrectionAnchorHint();
+  persistLauncherSettings();
 });
 
 fireModeSelect?.addEventListener('change', () => {
