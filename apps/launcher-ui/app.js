@@ -86,7 +86,7 @@ const i18n = {
     actionsTitle: 'Действия', calculate: 'Рассчитать', showMto: 'Показать MTO', logMission: 'Сохранить миссию',
     correctionTitle: 'Корректировка', correctionObserver: 'Наблюдатель корректировки', saveCorrection: 'Сохранить поправку', resetCorrection: 'Сбросить поправку',
     correctionAnchorObserver: 'Привязан к наблюдателю', correctionAnchorGun: 'Корректировка от орудия (наблюдатель не привязан)',
-    observerTargetingTitle: 'Наведение наблюдателем', observerTargetingHint: 'Если координаты цели неизвестны, задайте дальность, азимут и угол.', applyObserverTargeting: 'Рассчитать цель от наблюдателя',
+    observerTargetingTitle: 'Наведение наблюдателем', observerTargetingHint: 'Если координаты цели неизвестны, задайте дальность и азимут. Угол/высота — опционально.', applyObserverTargeting: 'Рассчитать цель от наблюдателя',
     correctionApplied: 'Поправка сохранена', correctionResetDone: 'Поправка сброшена', observerTargetingApplied: 'Координаты цели обновлены от наблюдателя', observerTargetingUnavailable: 'Нет координат наблюдателя для наведения',
     missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', missionProjectileSelectionTitle: 'Выбор снарядов по типам орудий', missionProjectileSelectionHint: 'Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.', activeTargetLabel: 'Активная цель', targetX: 'Координата цели X', targetY: 'Координата цели Y', targetHeight: 'Высота цели (м)',
     fireMode: 'Тип огня', fireModeLinear: 'Линейный сноп', fireModeParallel: 'Параллельный', fireModeConverging: 'Сходящийся', fireModeOpen: 'Открытый', fireModeCircular: 'Круговой',
@@ -124,7 +124,7 @@ const i18n = {
     actionsTitle: 'Actions', calculate: 'Calculate', showMto: 'Show MTO', logMission: 'Save mission',
     correctionTitle: 'Correction', correctionObserver: 'Correction observer', saveCorrection: 'Save correction', resetCorrection: 'Reset correction',
     correctionAnchorObserver: 'Anchored to observer', correctionAnchorGun: 'Correction from gun (observer not linked)',
-    observerTargetingTitle: 'Observer targeting', observerTargetingHint: 'If target coordinates are unknown, enter distance, azimuth and slope angle.', applyObserverTargeting: 'Compute target from observer',
+    observerTargetingTitle: 'Observer targeting', observerTargetingHint: 'If target coordinates are unknown, enter distance and azimuth. Angle/height are optional.', applyObserverTargeting: 'Compute target from observer',
     correctionApplied: 'Correction saved', correctionResetDone: 'Correction reset', observerTargetingApplied: 'Target coordinates updated from observer', observerTargetingUnavailable: 'Observer coordinates are unavailable',
     missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', missionProjectileSelectionTitle: 'Projectile selection by gun type', missionProjectileSelectionHint: 'Pick a projectile separately for each gun type involved in the mission.', activeTargetLabel: 'Active target', targetX: 'Target X coordinate', targetY: 'Target Y coordinate', targetHeight: 'Target altitude (m)',
     fireMode: 'Fire mode', fireModeLinear: 'Linear sheaf', fireModeParallel: 'Parallel', fireModeConverging: 'Converging', fireModeOpen: 'Open', fireModeCircular: 'Circular',
@@ -1345,7 +1345,7 @@ function applyObserverTargeting() {
       ? horizontalDistanceInput * Math.tan(angleRadians)
       : hasSlantDistance && hasAngle
         ? distance * Math.sin(angleRadians)
-        : Number.NaN;
+        : 0;
 
   if (!Number.isFinite(horizontal) || !Number.isFinite(targetHeightDelta)) {
     fireOutput.textContent = t('observerTargetingUnavailable');
