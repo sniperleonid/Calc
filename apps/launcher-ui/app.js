@@ -1,5 +1,6 @@
 import { createCounterBatteryModule } from '/apps/counter-battery/module.js';
 import { computeFireSolution } from '/apps/ballistics-core/index.js';
+import { FIRE_MODE_IDS, buildFireModeConfig, generateAimPoints, pickAimPointForGun } from './fire-modes.js';
 
 const SETTINGS_KEY = 'calc.launcherSettings';
 const LIMITS = {
@@ -107,7 +108,7 @@ const i18n = {
     observerTargetingTitle: 'Наведение наблюдателем', observerTargetingHint: 'Если координаты цели неизвестны, задайте дальность и азимут. Угол/высота — опционально.', applyObserverTargeting: 'Рассчитать цель от наблюдателя',
     correctionApplied: 'Поправка сохранена', correctionResetDone: 'Поправка сброшена', observerTargetingApplied: 'Координаты цели обновлены от наблюдателя', observerTargetingUnavailable: 'Нет координат наблюдателя для наведения',
     missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', missionProjectileSelectionTitle: 'Выбор снарядов по типам орудий', missionProjectileSelectionHint: 'Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.', trajectoryType: 'Тип траектории', trajectoryTypeIndirect: 'Навесная', trajectoryTypeDirect: 'Прямая', indirectArcType: 'Навесная траектория', indirectArcLow: 'Низкая', indirectArcHigh: 'Высокая', trajectorySupportHintDirectUnsupported: 'Прямая траектория недоступна: для выбранного орудия/снаряда нет таблицы direct.', trajectorySupportHintIndirectUnsupported: 'Навесная траектория недоступна: для выбранного орудия/снаряда нет таблиц low/high.', trajectorySupportHintArcHighOnly: 'Доступна только высокая навесная траектория.', trajectorySupportHintArcLowOnly: 'Доступна только низкая навесная траектория.', trajectorySupportHintArcUnavailable: 'Для навесной траектории нет таблиц low/high. Будет выбрана доступная траектория автоматически.', activeTargetLabel: 'Активная цель', targetX: 'Координата цели X', targetY: 'Координата цели Y', targetHeight: 'Высота цели (м)',
-    fireMode: 'Тип огня', fireModeLinear: 'Линейный сноп', fireModeParallel: 'Параллельный', fireModeConverging: 'Сходящийся', fireModeOpen: 'Открытый', fireModeCircular: 'Круговой',
+    fireMode: 'Тип огня', fireModePoint: 'Точка (1 точка)', fireModeConverged: 'Сходящийся', fireModeParallelSheaf: 'Параллельный веер', fireModeOpenSheaf: 'Открытый веер', fireModeCircularArea: 'Круговой', fireModeLinear: 'Линейный', fireModeRectArea: 'Прямоугольник', fireModePointHint: 'Все орудия стреляют в одну точку цели.', fireModeConvergedHint: 'Сведение огня в одну точку с возможными индивидуальными поправками.',
     counterBatteryTitle: 'Контрбатарейное обнаружение', counterBatteryHint: 'Реальные методы: звукопеленгация, анализ воронок с обратным азимутом, триангуляция по азимутам и гипербола TDOA.', counterBatteryMethod: 'Метод определения', cbMethodSound: 'Звукопеленгация (sound ranging)', cbMethodCrater: 'Анализ воронок и обратный азимут', cbMethodTriangulation: 'Триангуляция по азимутам наблюдателей', cbMethodHyperbola: 'Гипербола по разности времени прихода (TDOA)', cbBearing: 'Азимут на источник (°)', cbEstimatedDistance: 'Оценочная дальность (м)', cbTdoaDelta: 'Разница времени прихода (мс)', cbImpactBearing: 'Обратный азимут от воронки (°)', counterBatteryObservers: 'Данные наблюдателей', counterBatteryObserversHint: 'Чем больше точек наблюдения, тем точнее координаты вражеского орудия.', cbAddPoint: 'Добавить точку', cbClearPoints: 'Очистить точки', cbLocateTarget: 'Найти вражеское орудие', cbCalculateResponse: 'Рассчитать ответный огонь', cbObserverPoint: 'Точка', cbObserver: 'Наблюдатель', cbObservationAzimuth: 'Азимут наблюдения (°)', cbObservationDelay: 'Задержка звука (с)', cbNeedTwoPoints: 'Нужно минимум две валидные точки наблюдения.', cbTargetLocated: 'Цель определена', cbTargetNotFound: 'Не удалось определить координаты цели по выбранному методу.', cbResponseHeader: 'Ответный огонь (доступные орудия в зоне досягаемости)', cbNoReachableGuns: 'Нет доступных орудий в зоне досягаемости.', cbMethodUsed: 'Метод', cbRecommendedGun: 'Рекомендуем:', cbGunFacing: 'направление ', cbNeedsReposition: '(понадобится разворот вне сектора)',
     mapPanelTitle: 'Тактическая карта (Leaflet)', mapLegendTitle: 'Легенда', mapLegendHint: 'Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».',
     syncMap: 'Синхронизировать с координатами', centerTarget: 'Центр на цели',
@@ -145,7 +146,7 @@ const i18n = {
     observerTargetingTitle: 'Observer targeting', observerTargetingHint: 'If target coordinates are unknown, enter distance and azimuth. Angle/height are optional.', applyObserverTargeting: 'Compute target from observer',
     correctionApplied: 'Correction saved', correctionResetDone: 'Correction reset', observerTargetingApplied: 'Target coordinates updated from observer', observerTargetingUnavailable: 'Observer coordinates are unavailable',
     missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', missionProjectileSelectionTitle: 'Projectile selection by gun type', missionProjectileSelectionHint: 'Pick a projectile separately for each gun type involved in the mission.', trajectoryType: 'Trajectory type', trajectoryTypeIndirect: 'Indirect', trajectoryTypeDirect: 'Direct', indirectArcType: 'Indirect trajectory arc', indirectArcLow: 'Low', indirectArcHigh: 'High', trajectorySupportHintDirectUnsupported: 'Direct trajectory is not available: no direct table for selected gun/projectile.', trajectorySupportHintIndirectUnsupported: 'Indirect trajectory is not available: no low/high tables for selected gun/projectile.', trajectorySupportHintArcHighOnly: 'Only high indirect trajectory is available.', trajectorySupportHintArcLowOnly: 'Only low indirect trajectory is available.', trajectorySupportHintArcUnavailable: 'No low/high tables for indirect trajectory. Available trajectory will be selected automatically.', activeTargetLabel: 'Active target', targetX: 'Target X coordinate', targetY: 'Target Y coordinate', targetHeight: 'Target altitude (m)',
-    fireMode: 'Fire mode', fireModeLinear: 'Linear sheaf', fireModeParallel: 'Parallel', fireModeConverging: 'Converging', fireModeOpen: 'Open', fireModeCircular: 'Circular',
+    fireMode: 'Fire mode', fireModePoint: 'Point (single aim)', fireModeConverged: 'Converged', fireModeParallelSheaf: 'Parallel sheaf', fireModeOpenSheaf: 'Open sheaf', fireModeCircularArea: 'Circular area', fireModeLinear: 'Linear', fireModeRectArea: 'Rectangle area', fireModePointHint: 'All guns fire at one point.', fireModeConvergedHint: 'All guns converge on one point with optional individual corrections.',
     counterBatteryTitle: 'Counter-battery detection', counterBatteryHint: 'Real techniques: sound ranging, crater analysis with reverse azimuth, observer azimuth triangulation, and TDOA hyperbola.', counterBatteryMethod: 'Detection method', cbMethodSound: 'Sound ranging', cbMethodCrater: 'Crater analysis + reverse azimuth', cbMethodTriangulation: 'Observer azimuth triangulation', cbMethodHyperbola: 'TDOA hyperbola', cbBearing: 'Bearing to source (°)', cbEstimatedDistance: 'Estimated range (m)', cbTdoaDelta: 'Arrival time difference (ms)', cbImpactBearing: 'Reverse azimuth from crater (°)', counterBatteryObservers: 'Observer data', counterBatteryObserversHint: 'More observation points produce better enemy gun localization.', cbAddPoint: 'Add point', cbClearPoints: 'Clear points', cbLocateTarget: 'Locate enemy gun', cbCalculateResponse: 'Calculate counter-fire', cbObserverPoint: 'Point', cbObserver: 'Observer', cbObservationAzimuth: 'Observation azimuth (°)', cbObservationDelay: 'Sound delay (s)', cbNeedTwoPoints: 'At least two valid observation points are required.', cbTargetLocated: 'Target localized', cbTargetNotFound: 'Unable to compute target coordinates with selected method.', cbResponseHeader: 'Counter-fire (reachable friendly guns)', cbNoReachableGuns: 'No reachable guns in range.', cbMethodUsed: 'Method', cbRecommendedGun: 'Recommended:', cbGunFacing: 'facing ', cbNeedsReposition: '(requires reposition outside traverse)',
     mapPanelTitle: 'Tactical map (Leaflet)', mapLegendTitle: 'Legend', mapLegendHint: 'The map shows guns in selected battery and the current target from Fire Missions tab.',
     syncMap: 'Sync with coordinates', centerTarget: 'Center on target',
@@ -775,7 +776,7 @@ function persistLauncherSettings() {
     gun: missionGunSelect?.value ?? 'all',
     trajectoryType: trajectoryTypeSelect?.value ?? 'indirect',
     indirectArc: indirectArcSelect?.value ?? 'low',
-    fireMode: fireModeSelect?.value ?? 'linear',
+    fireMode: fireModeSelect?.value ?? FIRE_MODE_IDS.POINT,
     correction: {
       observerId: correctionObserverSelect?.value ?? '1',
       lateralMeters: Number(document.querySelector('#correction-lr')?.value ?? 0) || 0,
@@ -1223,7 +1224,7 @@ function renderMissionSelectors() {
 
   if (trajectoryTypeSelect) trajectoryTypeSelect.value = state.settings.mission.trajectoryType ?? 'indirect';
   if (indirectArcSelect) indirectArcSelect.value = state.settings.mission.indirectArc ?? 'low';
-  if (fireModeSelect) fireModeSelect.value = state.settings.mission.fireMode ?? 'linear';
+  if (fireModeSelect) fireModeSelect.value = state.settings.mission.fireMode ?? FIRE_MODE_IDS.POINT;
   const fireModeSettings = state.settings.mission.fireModeSettings ?? {};
   document.querySelectorAll('[data-fire-setting]').forEach((input) => {
     input.value = fireModeSettings[input.dataset.fireSetting] ?? '';
@@ -1412,7 +1413,7 @@ function getObserverCorrections(batteryId, gunIds, batteryHeight) {
 }
 
 function syncFireModeSettingsVisibility() {
-  const mode = fireModeSelect?.value ?? 'linear';
+  const mode = fireModeSelect?.value ?? FIRE_MODE_IDS.POINT;
   document.querySelectorAll('[data-fire-mode-panel]').forEach((panel) => {
     panel.classList.toggle('hidden', panel.dataset.fireModePanel !== mode);
   });
@@ -1423,69 +1424,86 @@ function toFiniteNumber(value, fallback = 0) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-function buildActiveFirePattern({ mode, targetX, targetY }) {
-  const settings = state.settings.mission.fireModeSettings ?? {};
-  if (mode === 'linear') {
+function buildFireModeLabelKey(mode) {
+  const map = {
+    [FIRE_MODE_IDS.POINT]: 'fireModePoint',
+    [FIRE_MODE_IDS.CONVERGED]: 'fireModeConverged',
+    [FIRE_MODE_IDS.PARALLEL_SHEAF]: 'fireModeParallelSheaf',
+    [FIRE_MODE_IDS.OPEN_SHEAF]: 'fireModeOpenSheaf',
+    [FIRE_MODE_IDS.CIRCULAR_AREA]: 'fireModeCircularArea',
+    [FIRE_MODE_IDS.LINEAR]: 'fireModeLinear',
+    [FIRE_MODE_IDS.RECT_AREA]: 'fireModeRectArea',
+  };
+  return map[mode] ?? 'fireModePoint';
+}
+
+function buildModeSpecificConfig({ mode, settings, targetX, targetY, targetHeight }) {
+  if (mode === FIRE_MODE_IDS.LINEAR) {
     return {
-      mode,
-      geometry: {
-        type: 'line',
-        start: { x: toFiniteNumber(settings.linearStartX, targetX - 120), y: toFiniteNumber(settings.linearStartY, targetY - 120) },
-        end: { x: toFiniteNumber(settings.linearEndX, targetX + 120), y: toFiniteNumber(settings.linearEndY, targetY + 120) },
-      },
+      startPoint: { x: toFiniteNumber(settings.linearStartX, targetX - 120), y: toFiniteNumber(settings.linearStartY, targetY - 120), z: targetHeight },
+      endPoint: { x: toFiniteNumber(settings.linearEndX, targetX + 120), y: toFiniteNumber(settings.linearEndY, targetY + 120), z: targetHeight },
+      spacingM: Math.max(5, toFiniteNumber(settings.linearSpacing, 40)),
     };
   }
 
-  if (mode === 'parallel') {
-    const width = Math.max(10, toFiniteNumber(settings.parallelWidth, 180));
-    const lanes = Math.max(2, Math.min(10, Math.round(toFiniteNumber(settings.parallelLanes, 3))));
-    const spacing = width / (lanes - 1);
-    const lines = Array.from({ length: lanes }, (_, index) => {
-      const offset = -width / 2 + index * spacing;
-      return { start: { x: targetX - 120, y: targetY + offset }, end: { x: targetX + 120, y: targetY + offset } };
-    });
-    return { mode, geometry: { type: 'parallel-lines', lines } };
+  if (mode === FIRE_MODE_IDS.PARALLEL_SHEAF) {
+    return {
+      sheafWidthM: Math.max(10, toFiniteNumber(settings.parallelWidth, 180)),
+      bearingDeg: toFiniteNumber(settings.parallelBearing, 0),
+      distribute: 'PATTERN',
+    };
   }
 
-  if (mode === 'converging') {
-    const radius = Math.max(10, toFiniteNumber(settings.convergingRadius, 160));
-    const azimuthDeg = toFiniteNumber(settings.convergingAzimuth, 0);
-    const angleRad = (azimuthDeg * Math.PI) / 180;
-    const spread = Math.PI / 3;
-    const lines = [-1, 0, 1].map((idx) => {
-      const angle = angleRad + idx * (spread / 2);
-      return {
-        start: { x: targetX + Math.sin(angle) * radius, y: targetY + Math.cos(angle) * radius },
-        end: { x: targetX, y: targetY },
-      };
-    });
-    return { mode, geometry: { type: 'converging-lines', lines } };
+  if (mode === FIRE_MODE_IDS.OPEN_SHEAF) {
+    return {
+      sheafWidthM: Math.max(10, toFiniteNumber(settings.openWidth, 260)),
+      bearingDeg: toFiniteNumber(settings.openBearing, 0),
+      distribute: 'PATTERN',
+    };
   }
 
-  if (mode === 'circular') {
-    const radius = Math.max(10, toFiniteNumber(settings.circularRadius, 120));
-    const count = Math.max(4, Math.min(24, Math.round(toFiniteNumber(settings.circularCount, 10))));
-    const points = Array.from({ length: count }, (_, index) => {
-      const angle = (Math.PI * 2 * index) / count;
-      return { x: targetX + Math.sin(angle) * radius, y: targetY + Math.cos(angle) * radius };
-    });
-    return { mode, geometry: { type: 'ring', center: { x: targetX, y: targetY }, radius, points } };
+  if (mode === FIRE_MODE_IDS.CIRCULAR_AREA) {
+    return {
+      radiusM: Math.max(10, toFiniteNumber(settings.circularRadius, 120)),
+      aimpointCount: Math.max(4, Math.min(24, Math.round(toFiniteNumber(settings.circularCount, 8)))),
+      distribute: 'PATTERN',
+    };
   }
 
-  const width = Math.max(10, toFiniteNumber(settings.openWidth, 220));
-  const depth = Math.max(10, toFiniteNumber(settings.openDepth, 160));
-  return {
-    mode: 'open',
-    geometry: {
-      type: 'rectangle',
-      vertices: [
-        { x: targetX - width / 2, y: targetY - depth / 2 },
-        { x: targetX + width / 2, y: targetY - depth / 2 },
-        { x: targetX + width / 2, y: targetY + depth / 2 },
-        { x: targetX - width / 2, y: targetY + depth / 2 },
-      ],
-    },
-  };
+  if (mode === FIRE_MODE_IDS.RECT_AREA) {
+    return {
+      widthM: Math.max(10, toFiniteNumber(settings.rectWidth, 200)),
+      lengthM: Math.max(10, toFiniteNumber(settings.rectLength, 200)),
+      bearingDeg: toFiniteNumber(settings.rectBearing, 0),
+      spacingM: Math.max(5, toFiniteNumber(settings.rectSpacing, 40)),
+      distribute: 'PATTERN',
+    };
+  }
+
+  if (mode === FIRE_MODE_IDS.CONVERGED) {
+    return { convergePoint: { x: targetX, y: targetY, z: targetHeight }, distribute: 'SAME_POINT' };
+  }
+
+  return { distribute: 'SAME_POINT' };
+}
+
+function buildActiveFirePattern({ mode, centerPoint, aimPoints }) {
+  if (!aimPoints?.length) return null;
+  if (mode === FIRE_MODE_IDS.LINEAR && aimPoints.length > 1) {
+    return { mode, geometry: { type: 'line', start: aimPoints[0], end: aimPoints[aimPoints.length - 1], points: aimPoints } };
+  }
+  if (mode === FIRE_MODE_IDS.CIRCULAR_AREA) {
+    const ringPoints = aimPoints.slice(1);
+    const radius = ringPoints[0] ? Math.hypot(ringPoints[0].x - centerPoint.x, ringPoints[0].y - centerPoint.y) : 0;
+    return { mode, geometry: { type: 'ring', center: centerPoint, radius, points: ringPoints } };
+  }
+  if (mode === FIRE_MODE_IDS.RECT_AREA) {
+    return { mode, geometry: { type: 'point-cloud', points: aimPoints } };
+  }
+  if (mode === FIRE_MODE_IDS.PARALLEL_SHEAF || mode === FIRE_MODE_IDS.OPEN_SHEAF) {
+    return { mode, geometry: { type: 'point-cloud', points: aimPoints } };
+  }
+  return { mode, geometry: { type: 'point-cloud', points: aimPoints } };
 }
 
 async function calculateFire() {
@@ -1504,7 +1522,7 @@ async function calculateFire() {
   }
   const battery = Number(missionBatterySelect.value || 1);
   const selectedGun = missionGunSelect.value;
-  const fireMode = fireModeSelect?.value ?? 'linear';
+  const fireMode = fireModeSelect?.value ?? FIRE_MODE_IDS.POINT;
   const trajectoryType = trajectoryTypeSelect?.value ?? 'indirect';
   const indirectArc = indirectArcSelect?.value ?? 'low';
   const gunsPerBattery = getGunCountForBattery(battery);
@@ -1524,7 +1542,18 @@ async function calculateFire() {
   const targetX = correctedTarget.x;
   const targetY = correctedTarget.y;
 
-  const resultPromises = gunIds.map(async (gunId) => {
+  const fireModeSettings = state.settings.mission.fireModeSettings ?? {};
+  const modeConfig = buildFireModeConfig({
+    mode: fireMode,
+    settings: {
+      ...buildModeSpecificConfig({ mode: fireMode, settings: fireModeSettings, targetX, targetY, targetHeight }),
+    },
+    centerPoint: { x: targetX, y: targetY, z: targetHeight },
+  });
+  const aimPoints = generateAimPoints(modeConfig, { gunCount: gunIds.length });
+  const distributeMode = modeConfig.distribute ?? (aimPoints.length === 1 ? 'SAME_POINT' : 'PATTERN');
+
+  const resultPromises = gunIds.map(async (gunId, gunIndex) => {
     const gunPoint = readXYFromInputs(
       document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
       document.querySelector(`[data-gun-y="${battery}-${gunId}"]`),
@@ -1534,16 +1563,17 @@ async function calculateFire() {
     const projectile = document.querySelector(`[data-mission-projectile-profile="${profileId}"]`)?.value || parseProjectileOptions(profile)[0];
     const capability = getTrajectoryCapabilities(profile, projectile);
     const requestedArc = resolveArcRequest(capability, trajectoryType, indirectArc);
+    const aimPoint = pickAimPointForGun({ aimPoints, gunIndex, distribute: distributeMode }) ?? aimPoints[0];
     const solution = await computeFireSolution({
       gunPos: { x: gunPoint.x, y: gunPoint.y, z: batteryHeight },
-      targetPos: { x: targetX, y: targetY, z: targetHeight },
+      targetPos: { x: aimPoint.x, y: aimPoint.y, z: Number.isFinite(aimPoint.z) ? aimPoint.z : targetHeight },
       wind: { speedMps: 0, fromDeg: 0 },
       arc: requestedArc,
       toleranceMeters: 10,
       weaponId: `${profileId}/${projectile}`,
     });
-    const dx = targetX - gunPoint.x;
-    const dy = targetY - gunPoint.y;
+    const dx = aimPoint.x - gunPoint.x;
+    const dy = aimPoint.y - gunPoint.y;
     const distance = Math.hypot(dx, dy);
     const azimuthMils = (Number(solution.azimuthDeg) * 6400) / 360;
     return {
@@ -1561,6 +1591,7 @@ async function calculateFire() {
       missDistance: Number(solution.missDistance).toFixed(1),
       arcType: solution.arcType,
       requestedArc,
+      aimPoint,
     };
   });
   const results = await Promise.all(resultPromises);
@@ -1571,19 +1602,19 @@ async function calculateFire() {
   }
 
   const output = [`${t('calcDone')}: ${document.querySelector('#mission-name')?.value || 'Mission'}`,
-    `${t('fireMode')}: ${t(`fireMode${fireMode[0].toUpperCase()}${fireMode.slice(1)}`)}`,
+    `${t('fireMode')}: ${t(buildFireModeLabelKey(fireMode))}`,
     `Target: X=${targetX.toFixed(1)} Y=${targetY.toFixed(1)} H=${targetHeight.toFixed(1)}` ,
-    ...results.map((row) => `${t('gun')} ${row.gunId} (${row.profileId}, ${row.projectile}): D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil TOF=${row.tofSec}s Drift=${row.driftMeters}m Charge=${row.chargeId} Arc=${row.arcType} (Req=${row.requestedArc}) Miss=${row.missDistance}m · Tbl=${row.tableRef}`)].join('\n');
+    ...results.map((row) => `${t('gun')} ${row.gunId} (${row.profileId}, ${row.projectile}): Aim X=${row.aimPoint.x.toFixed(1)} Y=${row.aimPoint.y.toFixed(1)} D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil TOF=${row.tofSec}s Drift=${row.driftMeters}m Charge=${row.chargeId} Arc=${row.arcType} (Req=${row.requestedArc}) Miss=${row.missDistance}m · Tbl=${row.tableRef}`)].join('\n');
 
   const observerCorrections = getObserverCorrections(battery, gunIds, batteryHeight);
   const observerRows = observerCorrections.map((item) => `${getObserverDisplayName(item.observerId)}: ΔH=${item.heightDelta}m`);
 
   fireOutput.textContent = observerRows.length ? `${output}\n${observerRows.join('\n')}` : output;
   const tools = getMapToolsSettings();
-  state.settings.mapTools = { ...tools, activeFirePattern: buildActiveFirePattern({ mode: fireMode, targetX, targetY }) };
+  state.settings.mapTools = { ...tools, activeFirePattern: buildActiveFirePattern({ mode: fireMode, centerPoint: { x: targetX, y: targetY, z: targetHeight }, aimPoints }) };
   persistLauncherSettings();
   refreshMapOverlay();
-  return { results, battery, selectedGun, targetX, targetY, rawTargetX, rawTargetY, batteryHeight, targetHeight, fireMode, trajectoryType, indirectArc };
+  return { results, battery, selectedGun, targetX, targetY, rawTargetX, rawTargetY, batteryHeight, targetHeight, fireMode, trajectoryType, indirectArc, aimPoints };
 }
 
 async function showMto() {
@@ -2661,6 +2692,11 @@ function drawFirePatternOverlay(pattern, markerStyle) {
   if (geometry.type === 'ring') {
     overlays.push(window.L.circle(toLatLng(geometry.center), { color, radius: geometry.radius, weight: 2, fillOpacity: 0.05 }).addTo(leafletMap));
   }
+  if (geometry.type === 'point-cloud') {
+    (geometry.points ?? []).forEach((point) => {
+      overlays.push(window.L.circleMarker(toLatLng(point), { color, radius: 4, weight: 1, fillOpacity: 0.7 }).addTo(leafletMap));
+    });
+  }
 
   return overlays;
 }
@@ -2970,7 +3006,7 @@ function refreshMapOverlay() {
       const label = buildManualMarkerDisplayLabel(item);
       return `<p><span class="legend-dot" style="--dot-color:${color}"></span>${label}: X=${Math.round(Number(item.x))}, Y=${Math.round(Number(item.y))}</p>`;
     });
-    const patternRow = tools.activeFirePattern ? `<p><span class="legend-dot" style="--dot-color:${markerStyle.firePattern}"></span>${t('fireMode')}: ${t(`fireMode${tools.activeFirePattern.mode[0].toUpperCase()}${tools.activeFirePattern.mode.slice(1)}`)}</p>` : '';
+    const patternRow = tools.activeFirePattern ? `<p><span class="legend-dot" style="--dot-color:${markerStyle.firePattern}"></span>${t('fireMode')}: ${t(buildFireModeLabelKey(tools.activeFirePattern.mode))}</p>` : '';
     mapLegend.innerHTML = [...legendRows, patternRow, ...markerLegendRows].filter(Boolean).join('');
   }
 }
