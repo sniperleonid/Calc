@@ -700,6 +700,8 @@ function persistLauncherSettings() {
     }, {}),
     observerTargeting: {
       distance: document.querySelector('#observer-target-distance')?.value ?? '',
+      horizontalDistance: document.querySelector('#observer-target-horizontal-distance')?.value ?? '',
+      verticalDistance: document.querySelector('#observer-target-vertical-distance')?.value ?? '',
       azimuth: document.querySelector('#observer-target-azimuth')?.value ?? '',
       angle: document.querySelector('#observer-target-angle')?.value ?? '',
     },
@@ -1191,6 +1193,8 @@ function renderMissionSelectors() {
   if (correctionAddDropInput) correctionAddDropInput.value = correction.rangeMeters ?? 0;
 
   document.querySelector('#observer-target-distance').value = state.settings.mission.observerTargeting?.distance ?? '';
+  document.querySelector('#observer-target-horizontal-distance').value = state.settings.mission.observerTargeting?.horizontalDistance ?? '';
+  document.querySelector('#observer-target-vertical-distance').value = state.settings.mission.observerTargeting?.verticalDistance ?? '';
   document.querySelector('#observer-target-azimuth').value = state.settings.mission.observerTargeting?.azimuth ?? '';
   document.querySelector('#observer-target-angle').value = state.settings.mission.observerTargeting?.angle ?? '';
 
@@ -1310,17 +1314,44 @@ function applyObserverTargeting() {
     return;
   }
 
-  const distance = Number(document.querySelector('#observer-target-distance')?.value || 0);
-  const azimuth = Number(document.querySelector('#observer-target-azimuth')?.value || 0);
-  const angle = Number(document.querySelector('#observer-target-angle')?.value || 0);
+  const distance = Number(document.querySelector('#observer-target-distance')?.value || Number.NaN);
+  const horizontalDistanceInput = Number(document.querySelector('#observer-target-horizontal-distance')?.value || Number.NaN);
+  const verticalDistanceInput = Number(document.querySelector('#observer-target-vertical-distance')?.value || Number.NaN);
+  const azimuth = Number(document.querySelector('#observer-target-azimuth')?.value || Number.NaN);
+  const angle = Number(document.querySelector('#observer-target-angle')?.value || Number.NaN);
   const observerHeight = parseHeightValue(document.querySelector(`[data-observer-height="${observerId}"]`)?.value);
-  if (!Number.isFinite(observerHeight)) {
+  if (!Number.isFinite(observerHeight) || !Number.isFinite(azimuth)) {
     fireOutput.textContent = t('observerTargetingUnavailable');
     return;
   }
-  const horizontal = distance * Math.cos((angle * Math.PI) / 180);
-  const vertical = distance * Math.sin((angle * Math.PI) / 180);
-  const targetHeightDelta = angle < 0 ? -Math.abs(vertical) : Math.abs(vertical);
+
+  const angleRadians = (angle * Math.PI) / 180;
+  const hasHorizontalDistance = Number.isFinite(horizontalDistanceInput) && horizontalDistanceInput >= 0;
+  const hasVerticalDistance = Number.isFinite(verticalDistanceInput);
+  const hasSlantDistance = Number.isFinite(distance) && distance >= 0;
+  const hasAngle = Number.isFinite(angle);
+
+  const horizontal = hasHorizontalDistance
+    ? horizontalDistanceInput
+    : hasSlantDistance && hasAngle
+      ? Math.abs(distance * Math.cos(angleRadians))
+      : hasSlantDistance
+        ? distance
+        : Number.NaN;
+
+  const targetHeightDelta = hasVerticalDistance
+    ? verticalDistanceInput
+    : hasHorizontalDistance && hasAngle
+      ? horizontalDistanceInput * Math.tan(angleRadians)
+      : hasSlantDistance && hasAngle
+        ? distance * Math.sin(angleRadians)
+        : Number.NaN;
+
+  if (!Number.isFinite(horizontal) || !Number.isFinite(targetHeightDelta)) {
+    fireOutput.textContent = t('observerTargetingUnavailable');
+    return;
+  }
+
   const targetX = observerPoint.x + Math.sin((azimuth * Math.PI) / 180) * horizontal;
   const targetY = observerPoint.y + Math.cos((azimuth * Math.PI) / 180) * horizontal;
   const targetHeight = clamp(Math.round(observerHeight + targetHeightDelta), HEIGHT_LIMITS.min, HEIGHT_LIMITS.max);
