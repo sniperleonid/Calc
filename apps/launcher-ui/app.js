@@ -272,6 +272,7 @@ let rulerEndpointMarkers = [];
 let firePatternOverlays = [];
 let selectedManualMarkerId = null;
 let manualMarkerDragState = null;
+let gunHeadingDragState = null;
 let rightMousePanState = null;
 let lastOverlayBoundsKey = '';
 let lastCtrlPressAt = 0;
@@ -1349,6 +1350,9 @@ function initializeMap() {
     onMapDoubleClick(event);
   });
   leafletMap.on('click', onMapClick);
+  leafletMap.on('mousedown', updateGunHeadingDrag);
+  leafletMap.on('mousemove', updateGunHeadingDrag);
+  leafletMap.on('mouseup', finishGunHeadingDrag);
   leafletMap.on('mousemove', handleManualMarkerDrag);
   leafletMap.on('mouseup', finishManualMarkerDrag);
 
@@ -1368,6 +1372,7 @@ function initializeMap() {
   window.addEventListener('mouseup', () => {
     rightMousePanState = null;
     manualMarkerDragState = null;
+    finishGunHeadingDrag();
   });
 
   setTimeout(() => leafletMap.invalidateSize(), 0);
@@ -1645,6 +1650,37 @@ function startManualMarkerDrag(markerId, markerLayer) {
   manualMarkerDragState = { markerId, markerLayer };
 }
 
+function setGunHeading({ gunKey, heading }) {
+  if (!gunKey || !Number.isFinite(heading)) return;
+  const normalizedHeading = normalizeAzimuth(heading);
+  state.settings.gunSettings = { ...(state.settings.gunSettings ?? {}), [gunKey]: { ...getGunSetting(gunKey), heading: normalizedHeading } };
+  const headingInput = document.querySelector(`[data-gun-heading="${gunKey}"]`);
+  if (headingInput) headingInput.value = normalizedHeading.toFixed(1);
+  persistLauncherSettings();
+  refreshMapOverlay();
+}
+
+function startGunHeadingDrag(event, { gunKey, gunX, gunY, batteryId, gunId }) {
+  if (event.originalEvent?.button !== 0 || !event.originalEvent?.shiftKey) return;
+  window.L.DomEvent.stop(event);
+  gunHeadingDragState = { gunKey, gunX, gunY, batteryId, gunId };
+}
+
+function updateGunHeadingDrag(event) {
+  if (!gunHeadingDragState || !event?.latlng) return;
+  const mapPoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+  const mousePoint = imagePointToGamePoint(mapPoint.x, mapPoint.y);
+  const azimuthDeg = normalizeAzimuth((Math.atan2(mousePoint.x - gunHeadingDragState.gunX, mousePoint.y - gunHeadingDragState.gunY) * 180) / Math.PI);
+  setGunHeading({ gunKey: gunHeadingDragState.gunKey, heading: azimuthDeg });
+  if (mapToolsOutput) {
+    mapToolsOutput.textContent = `${t('gunDirectionAzimuth')}: ${azimuthDeg.toFixed(1)}° (${t('batteryShort')}${gunHeadingDragState.batteryId}-${t('gunShort')}${gunHeadingDragState.gunId})`;
+  }
+}
+
+function finishGunHeadingDrag() {
+  gunHeadingDragState = null;
+}
+
 function handleManualMarkerDrag(event) {
   if (!manualMarkerDragState?.markerLayer || !event?.latlng) return;
   manualMarkerDragState.markerLayer.setLatLng(event.latlng);
@@ -1692,14 +1728,13 @@ function updateGunHeadingFromMapClick(latlng) {
   const clickedPoint = imagePointToGamePoint(mapPoint.x, mapPoint.y);
   const azimuthDeg = normalizeAzimuth((Math.atan2(clickedPoint.x - gunPoint.x, clickedPoint.y - gunPoint.y) * 180) / Math.PI);
   const gunKey = `${batteryId}-${gunId}`;
-  state.settings.gunSettings = { ...(state.settings.gunSettings ?? {}), [gunKey]: { ...getGunSetting(gunKey), heading: azimuthDeg } };
-  persistLauncherSettings();
-  refreshMapOverlay();
+  setGunHeading({ gunKey, heading: azimuthDeg });
   if (mapToolsOutput) mapToolsOutput.textContent = `${t('gunDirectionAzimuth')}: ${azimuthDeg.toFixed(1)}° (${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId})`;
   return true;
 }
 
 function onMapClick(event) {
+  if (gunHeadingDragState) return;
   const isShift = Boolean(event.originalEvent?.shiftKey);
   if (!isShift) return;
   if ((markerToolSelect?.value || 'gun') !== 'gun') return;
@@ -2295,16 +2330,7 @@ function refreshMapOverlay() {
       warnings.push(`${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}: Az ${targetAz.toFixed(1)}°${inSector ? '' : `, rotate to ${targetAz.toFixed(1)}°`}${inRange ? '' : `, D=${targetDistance.toFixed(0)}m`}`);
     }
 
-    marker.on('mousedown', (event) => {
-      if (event.originalEvent?.button !== 0 || !event.originalEvent?.shiftKey) return;
-      const latlng = event.latlng;
-      const mapPoint = latLngToMapPoint(latlng.lat, latlng.lng);
-      const mousePoint = imagePointToGamePoint(mapPoint.x, mapPoint.y);
-      const azimuthDeg = normalizeAzimuth((Math.atan2(mousePoint.x - gunX, mousePoint.y - gunY) * 180) / Math.PI);
-      state.settings.gunSettings = { ...(state.settings.gunSettings ?? {}), [gunKey]: { ...getGunSetting(gunKey), heading: azimuthDeg } };
-      persistLauncherSettings();
-      refreshMapOverlay();
-    });
+    marker.on('mousedown', (event) => startGunHeadingDrag(event, { gunKey, gunX, gunY, batteryId, gunId }));
 
     const gunLabel = `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}`;
     marker.bindPopup(`${gunLabel}<br>X: ${gunX}, Y: ${gunY}<br>Az: ${heading.toFixed(1)}°<br>${profile?.name ?? ''}`);
@@ -2327,17 +2353,33 @@ function refreshMapOverlay() {
     center.x /= batteryGunPoints.length;
     center.y /= batteryGunPoints.length;
     const isSelectedBattery = batteryId === battery;
-    const batteryMarker = window.L.circleMarker(gamePointToLatLng(center.x, center.y), {
-      radius: 11,
+    const batteryHalfSize = 18;
+    const batteryBox = window.L.rectangle([
+      gamePointToLatLng(center.x - batteryHalfSize, center.y - batteryHalfSize),
+      gamePointToLatLng(center.x + batteryHalfSize, center.y + batteryHalfSize),
+    ], {
       color: markerStyle.battery,
-      fillColor: markerStyle.battery,
-      fillOpacity: isSelectedBattery ? 0.3 : 0.15,
-      weight: isSelectedBattery ? 3 : 2,
+      fill: false,
+      weight: isSelectedBattery ? 2 : 1,
+    }).addTo(leafletMap);
+    const batteryCrossV = window.L.polyline([
+      gamePointToLatLng(center.x, center.y - 5),
+      gamePointToLatLng(center.x, center.y + 5),
+    ], {
+      color: markerStyle.battery,
+      weight: 1,
+    }).addTo(leafletMap);
+    const batteryCrossH = window.L.polyline([
+      gamePointToLatLng(center.x - 5, center.y),
+      gamePointToLatLng(center.x + 5, center.y),
+    ], {
+      color: markerStyle.battery,
+      weight: 1,
     }).addTo(leafletMap);
     const batteryName = getBatteryDisplayName(batteryId);
-    batteryMarker.bindPopup(`${batteryName}<br>X: ${center.x.toFixed(1)}, Y: ${center.y.toFixed(1)}`);
-    addPersistentLabel(batteryMarker, batteryName);
-    gunMarkers.push(batteryMarker);
+    batteryBox.bindPopup(`${batteryName}<br>X: ${center.x.toFixed(1)}, Y: ${center.y.toFixed(1)}`);
+    addPersistentLabel(batteryBox, batteryName);
+    gunMarkers.push(batteryBox, batteryCrossV, batteryCrossH);
     legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.battery}"></span>${batteryName}: X=${center.x.toFixed(1)}, Y=${center.y.toFixed(1)}</p>`);
   }
 
@@ -2659,7 +2701,7 @@ document.addEventListener('keydown', (event) => {
 
 
 document.addEventListener('input', (event) => {
-  let shouldRefreshMap = false;
+  let shouldRefreshMap = event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement;
   if (event.target instanceof HTMLInputElement) {
     if (event.target.matches('[data-coordinate]')) {
       applyCoordinatePairInput(event.target);
@@ -2667,7 +2709,14 @@ document.addEventListener('input', (event) => {
       shouldRefreshMap = true;
     }
     if (event.target.matches('[data-height]')) sanitizeIntegerInput(event.target, HEIGHT_LIMITS);
-    if (event.target.matches('[data-gun-heading]')) shouldRefreshMap = true;
+    if (event.target.matches('[data-gun-heading]')) {
+      const gunKey = event.target.dataset.gunHeading;
+      const heading = Number(event.target.value);
+      if (gunKey && Number.isFinite(heading)) {
+        event.target.value = normalizeAzimuth(heading).toFixed(1);
+      }
+      shouldRefreshMap = true;
+    }
     if (event.target.matches('[data-battery-title], [data-observer-name]')) {
       shouldRefreshMap = true;
       renderMissionSelectors();
