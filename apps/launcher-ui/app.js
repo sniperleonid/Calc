@@ -187,6 +187,7 @@ const calibrationLastInfo = document.querySelector('#calibration-last-info');
 const profilesEditor = document.querySelector('#profiles-editor');
 
 const t = (key) => i18n[state.lang][key] ?? key;
+let counterBatteryModule;
 
 const counterBatteryModule = createCounterBatteryModule({
   state,
@@ -258,6 +259,30 @@ function getDefaultArtilleryProfiles() {
 function getArtilleryProfiles() {
   return { ...getDefaultArtilleryProfiles(), ...(state.settings.artilleryProfiles ?? {}) };
 }
+
+counterBatteryModule = createCounterBatteryModule({
+  state,
+  t,
+  cbMethodSelect,
+  cbObservationsContainer,
+  cbOutput,
+  readXYFromInputs,
+  getObserverEntries,
+  getObserverDisplayName,
+  getSelectedMissionTargetId,
+  getMissionTargets,
+  updateMissionTargetInputsFromState,
+  persistLauncherSettings,
+  storeCurrentMissionTargetInputs,
+  getAllGunPoints,
+  getArtilleryProfiles,
+  gunProfiles,
+  clamp,
+  getGunSetting,
+  getBatteryDisplayName,
+  normalizeAzimuth,
+  getAzimuthDelta,
+});
 
 function getGunSetting(gunKey) {
   const settings = state.settings.gunSettings?.[gunKey] ?? {};
