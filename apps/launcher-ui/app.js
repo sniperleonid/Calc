@@ -194,6 +194,8 @@ const fmWidthInput = document.querySelector('#fm-width');
 const fmRadiusInput = document.querySelector('#fm-radius');
 const fmAimPointCountInput = document.querySelector('#fm-aimpoint-count');
 const fmConditionalFields = Array.from(document.querySelectorAll('[data-fm-field]'));
+const fmSections = Array.from(document.querySelectorAll('[data-fm-section]'));
+const fmUseActiveTargetCenterInput = document.querySelector('#fm-use-active-target-center');
 let activeAimPlan = null;
 let adjustmentSession = null;
 const cbMethodSelect = document.querySelector('#cb-method');
@@ -1222,6 +1224,12 @@ function renderMissionSelectors() {
   if (fmTargetTypeSelect) fmTargetTypeSelect.value = missionFdc.targetType;
   if (fmSheafTypeSelect) fmSheafTypeSelect.value = missionFdc.sheafType;
   if (fmControlTypeSelect) fmControlTypeSelect.value = missionFdc.controlType;
+  if (fmUseActiveTargetCenterInput) fmUseActiveTargetCenterInput.checked = missionFdc.useActiveTargetCenter !== false;
+  const center = missionFdc.geometry?.center ?? missionFdc.geometry?.point;
+  if (center?.x != null) document.querySelector('#fm-center-x').value = center.x;
+  if (center?.y != null) document.querySelector('#fm-center-y').value = center.y;
+  if (missionFdc.geometry?.point?.x != null) document.querySelector('#fm-point-x').value = missionFdc.geometry.point.x;
+  if (missionFdc.geometry?.point?.y != null) document.querySelector('#fm-point-y').value = missionFdc.geometry.point.y;
   const fireModeSettings = state.settings.mission.fireModeSettings ?? {};
   document.querySelectorAll('[data-fire-setting]').forEach((input) => {
     input.value = fireModeSettings[input.dataset.fireSetting] ?? '';
@@ -1463,20 +1471,35 @@ function syncFireModeSettingsVisibility() {
 }
 
 function syncFdcSettingsVisibility() {
+  const useActiveTargetCenter = fmUseActiveTargetCenterInput?.checked !== false;
   const schema = getFdcUiSchema({
     targetType: fmTargetTypeSelect?.value,
     sheafType: fmSheafTypeSelect?.value,
     controlType: fmControlTypeSelect?.value,
+    useActiveTargetCenter,
   });
   fmConditionalFields.forEach((row) => {
     const field = row.dataset.fmField;
     if (!field) return;
     const visible = schema.visibleFields.has(field);
     row.classList.toggle('hidden', !visible);
-    const input = row.querySelector('input, select');
-    if (input) input.toggleAttribute('disabled', !visible);
   });
+
+  const visibleSections = new Set();
+  for (const [section, fields] of Object.entries(schema.sections)) {
+    if (fields.some((field) => schema.visibleFields.has(field))) visibleSections.add(section);
+  }
+  fmSections.forEach((section) => {
+    const key = section.dataset.fmSection;
+    section.classList.toggle('hidden', !visibleSections.has(key));
+  });
+
+  const centerXLabel = document.querySelector('[data-fm-field="centerX"]');
+  const centerYLabel = document.querySelector('[data-fm-field="centerY"]');
+  if (centerXLabel && centerXLabel.firstChild) centerXLabel.firstChild.textContent = fmTargetTypeSelect?.value === 'POINT' ? 'Координата цели X' : 'Центр X';
+  if (centerYLabel && centerYLabel.firstChild) centerYLabel.firstChild.textContent = fmTargetTypeSelect?.value === 'POINT' ? 'Координата цели Y' : 'Центр Y';
 }
+
 
 function toFiniteNumber(value, fallback = 0) {
   const numeric = Number(value);
@@ -1599,10 +1622,8 @@ async function saveMission() {
 
 function getFireMissionConfigFromUI() {
   const defaultPoint = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
-  const point = readXYFromInputs(document.querySelector('#fm-point-x'), document.querySelector('#fm-point-y')) ?? defaultPoint;
-  const center = readXYFromInputs(document.querySelector('#fm-center-x'), document.querySelector('#fm-center-y')) ?? point;
-  const lineStart = readXYFromInputs(document.querySelector('#fm-line-start-x'), document.querySelector('#fm-line-start-y'));
-  const lineEnd = readXYFromInputs(document.querySelector('#fm-line-end-x'), document.querySelector('#fm-line-end-y'));
+  const pointInput = readXYFromInputs(document.querySelector('#fm-point-x'), document.querySelector('#fm-point-y'));
+  const centerInput = readXYFromInputs(document.querySelector('#fm-center-x'), document.querySelector('#fm-center-y'));
   const targetHeight = parseHeightValue(document.querySelector('#target-height')?.value);
   const battery = Number(missionBatterySelect.value || 1);
   const selectedGun = missionGunSelect.value;
@@ -1612,19 +1633,21 @@ function getFireMissionConfigFromUI() {
     const value = Number(document.querySelector(selector)?.value);
     return Number.isFinite(value) ? value : fallback;
   };
+  const useActiveTargetCenter = fmUseActiveTargetCenterInput?.checked !== false;
+  const point = pointInput ?? centerInput ?? defaultPoint;
+  const center = centerInput ?? point;
   return {
     missionName: document.querySelector('#mission-name')?.value || 'Mission',
     targetType: fmTargetTypeSelect?.value || 'POINT',
     sheafType: fmSheafTypeSelect?.value || 'CONVERGED',
     controlType: fmControlTypeSelect?.value || 'SIMULTANEOUS',
+    useActiveTargetCenter,
     guns: selectedGun === 'all' ? 'ALL' : gunIds,
     roundsPerGun: 1,
     geometry: {
       point: point ? { ...point, z: targetHeight } : undefined,
-      start: lineStart ? { ...lineStart, z: targetHeight } : undefined,
-      end: lineEnd ? { ...lineEnd, z: targetHeight } : undefined,
       center: center ? { ...center, z: targetHeight } : undefined,
-      spacingM: toNum('#fm-spacing', 40),
+      spacingM: toNum('#fm-spacing', 50),
       bearingDeg: toNum('#fm-bearing', 0),
       lengthM: toNum('#fm-length', 200),
       widthM: toNum('#fm-width', 200),
@@ -1637,19 +1660,19 @@ function getFireMissionConfigFromUI() {
     },
     sequence: { phaseIntervalSec: toNum('#fm-phase-interval', 0) },
     creeping: {
-      stepM: toNum('#fm-step-m', 50),
-      stepsCount: toNum('#fm-steps-count', 3),
-      stepIntervalSec: toNum('#fm-step-interval', 10),
+      creepingStepM: toNum('#fm-step-m', 100),
+      creepingSteps: toNum('#fm-steps-count', 8),
+      stepIntervalSec: toNum('#fm-step-interval', 5),
       bearingDeg: toNum('#fm-bearing', 0),
     },
-    tot: { desiredImpactSec: toNum('#fm-tot-time', 0) },
+    tot: { totDesiredImpactSec: toNum('#fm-tot-time', 0) },
     mrsi: {
       mrsiRounds: toNum('#fm-mrsi-rounds', 3),
-      mrsiMinSepSec: toNum('#fm-mrsi-min-sep', 2),
-      mrsiAllowedArcs: Array.from(document.querySelectorAll('[data-fm-mrsi-arc]:checked')).map((input) => input.value),
+      mrsiMinSepSec: toNum('#fm-mrsi-min-sep', 3),
     },
   };
 }
+
 
 function syncFireMissionFieldVisibility() {
   syncFdcSettingsVisibility();
@@ -1677,7 +1700,7 @@ function getGunsForMissionEnv() {
 }
 
 function buildFireMissionPlan() {
-  const config = migrateOldMissionToFdc(getFireMissionConfigFromUI());
+  const config = getFireMissionConfigFromUI();
   const guns = getGunsForMissionEnv();
   activeAimPlan = buildAimPlanFromFdc(config, guns);
   if (adjustmentSession) {
@@ -3348,6 +3371,10 @@ fmSheafTypeSelect?.addEventListener('change', () => {
   persistLauncherSettings();
 });
 fmControlTypeSelect?.addEventListener('change', () => {
+  syncFdcSettingsVisibility();
+  persistLauncherSettings();
+});
+fmUseActiveTargetCenterInput?.addEventListener('change', () => {
   syncFdcSettingsVisibility();
   persistLauncherSettings();
 });

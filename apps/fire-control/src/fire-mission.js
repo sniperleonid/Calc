@@ -29,6 +29,66 @@ const LEGACY_CONTROL_MAP = {
   MRSI: 'MRSI',
 };
 
+const FDC_FIELD_LABELS_RU = {
+  targetType: 'Тип цели',
+  sheafType: 'Схема распределения',
+  controlType: 'Режим выполнения',
+  useActiveTargetCenter: 'Брать центр из активной цели',
+  centerX: 'Центр X',
+  centerY: 'Центр Y',
+  pointX: 'Координата цели X',
+  pointY: 'Координата цели Y',
+  bearingDeg: 'Азимут, °',
+  spacingM: 'Шаг точек, м',
+  lengthM: 'Длина, м',
+  widthM: 'Ширина, м',
+  radiusM: 'Радиус, м',
+  aimpointCount: 'Количество точек',
+  sheafWidthM: 'Ширина веера, м',
+  openFactor: 'Коэффициент раскрытия',
+  phaseIntervalSec: 'Интервал между фазами, с',
+  creepingStepM: 'Шаг ползущего огня, м',
+  creepingSteps: 'Количество шагов',
+  stepIntervalSec: 'Интервал между шагами, с',
+  totDesiredImpactSec: 'Желаемое время удара, с',
+  mrsiRounds: 'Количество выстрелов (MRSI)',
+  mrsiMinSepSec: 'Мин. интервал между выстрелами, с',
+};
+
+const FDC_FIELD_PLACEHOLDERS_RU = {
+  centerX: 'например 4779',
+  centerY: 'например 5381',
+  pointX: 'например 4779',
+  pointY: 'например 5381',
+  bearingDeg: 'например 25',
+  spacingM: 'например 25',
+  lengthM: 'например 200',
+  widthM: 'например 100',
+  radiusM: 'например 150',
+  aimpointCount: 'например 8',
+  sheafWidthM: 'например 180',
+  openFactor: 'например 2',
+  phaseIntervalSec: 'например 0',
+  creepingStepM: 'например 100',
+  creepingSteps: 'например 8',
+  stepIntervalSec: 'например 5',
+  totDesiredImpactSec: 'например 30',
+  mrsiRounds: 'например 3',
+  mrsiMinSepSec: 'например 3',
+};
+
+export const FDC_DEFAULTS = {
+  spacingM: 50,
+  openFactor: 2,
+  phaseIntervalSec: 0,
+  stepIntervalSec: 5,
+  creepingStepM: 100,
+  creepingSteps: 8,
+  mrsiMinSepSec: 3,
+  mrsiRounds: 3,
+  aimpointCount: 8,
+};
+
 function toFinite(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -164,44 +224,60 @@ export function getFdcUiSchema(missionFdc = {}) {
   const targetType = TARGET_TYPES.includes(missionFdc.targetType) ? missionFdc.targetType : null;
   const sheafType = SHEAF_TYPES.includes(missionFdc.sheafType) ? missionFdc.sheafType : null;
   const controlType = CONTROL_TYPES.includes(missionFdc.controlType) ? missionFdc.controlType : null;
-  const visibleFields = new Set();
-  const requiredFields = new Set(['targetType', 'sheafType', 'controlType']);
+  const useActiveTargetCenter = missionFdc.useActiveTargetCenter !== false;
+  const visibleFields = getVisibleFields(targetType, sheafType, controlType, { useActiveTargetCenter });
+  const requiredFields = getRequiredFields(targetType, sheafType, controlType, { useActiveTargetCenter });
 
-  if (targetType === 'LINE') {
-    ['bearingDeg', 'lengthM', 'spacingM'].forEach((name) => visibleFields.add(name));
-    ['bearingDeg', 'lengthM', 'spacingM'].forEach((name) => requiredFields.add(name));
-  }
-  if (targetType === 'RECTANGLE') {
-    ['bearingDeg', 'lengthM', 'widthM', 'spacingM'].forEach((name) => visibleFields.add(name));
-    ['bearingDeg', 'lengthM', 'widthM', 'spacingM'].forEach((name) => requiredFields.add(name));
-  }
-  if (targetType === 'CIRCLE') {
-    ['radiusM', 'aimpointCount'].forEach((name) => visibleFields.add(name));
-    ['radiusM', 'aimpointCount'].forEach((name) => requiredFields.add(name));
-  }
+  return {
+    visibleFields,
+    requiredFields,
+    sections: {
+      targetType: ['targetType'],
+      distribution: ['sheafType', 'sheafWidthM', 'openFactor'],
+      execution: ['controlType', 'phaseIntervalSec', 'creepingStepM', 'creepingSteps', 'stepIntervalSec', 'totDesiredImpactSec', 'mrsiRounds', 'mrsiMinSepSec'],
+      geometry: ['centerX', 'centerY', 'bearingDeg', 'lengthM', 'widthM', 'radiusM', 'spacingM', 'aimpointCount', 'useActiveTargetCenter'],
+      point: ['pointX', 'pointY'],
+    },
+    labels: FDC_FIELD_LABELS_RU,
+    placeholders: FDC_FIELD_PLACEHOLDERS_RU,
+  };
+}
 
-  if (sheafType === 'PARALLEL') {
-    visibleFields.add('sheafWidthM');
-    requiredFields.add('sheafWidthM');
+export function getVisibleFields(targetType, sheafType, controlType, options = {}) {
+  const visibleFields = new Set(['targetType', 'sheafType', 'controlType']);
+  const useActiveTargetCenter = options.useActiveTargetCenter !== false;
+
+  if (targetType === 'POINT') {
+    visibleFields.add('useActiveTargetCenter');
+    if (!useActiveTargetCenter) ['pointX', 'pointY'].forEach((name) => visibleFields.add(name));
   }
-  if (sheafType === 'OPEN') {
-    visibleFields.add('sheafWidthM');
-    visibleFields.add('openFactor');
-    requiredFields.add('sheafWidthM');
-  }
+  if (targetType === 'LINE') ['centerX', 'centerY', 'bearingDeg', 'lengthM', 'spacingM'].forEach((name) => visibleFields.add(name));
+  if (targetType === 'RECTANGLE') ['centerX', 'centerY', 'bearingDeg', 'lengthM', 'widthM', 'spacingM'].forEach((name) => visibleFields.add(name));
+  if (targetType === 'CIRCLE') ['centerX', 'centerY', 'radiusM', 'aimpointCount'].forEach((name) => visibleFields.add(name));
+
+  if (sheafType === 'PARALLEL') visibleFields.add('sheafWidthM');
+  if (sheafType === 'OPEN') ['sheafWidthM', 'openFactor'].forEach((name) => visibleFields.add(name));
 
   if (controlType === 'SEQUENCE') visibleFields.add('phaseIntervalSec');
-  if (controlType === 'CREEPING') {
-    ['stepM', 'stepsCount', 'stepIntervalSec', 'bearingDeg'].forEach((name) => visibleFields.add(name));
-    ['stepM', 'stepsCount'].forEach((name) => requiredFields.add(name));
-  }
-  if (controlType === 'TOT') visibleFields.add('desiredImpactSec');
-  if (controlType === 'MRSI') {
-    ['mrsiRounds', 'mrsiMinSepSec', 'mrsiAllowedArcs'].forEach((name) => visibleFields.add(name));
-    ['mrsiRounds', 'mrsiMinSepSec'].forEach((name) => requiredFields.add(name));
-  }
+  if (controlType === 'CREEPING') ['creepingStepM', 'creepingSteps', 'stepIntervalSec'].forEach((name) => visibleFields.add(name));
+  if (controlType === 'TOT') visibleFields.add('totDesiredImpactSec');
+  if (controlType === 'MRSI') ['mrsiRounds', 'mrsiMinSepSec'].forEach((name) => visibleFields.add(name));
+  return visibleFields;
+}
 
-  return { visibleFields, requiredFields };
+export function getRequiredFields(targetType, sheafType, controlType, options = {}) {
+  const requiredFields = new Set(['targetType', 'sheafType', 'controlType']);
+  const useActiveTargetCenter = options.useActiveTargetCenter !== false;
+
+  if (targetType === 'POINT' && !useActiveTargetCenter) ['pointX', 'pointY'].forEach((name) => requiredFields.add(name));
+  if (targetType === 'LINE') ['centerX', 'centerY', 'bearingDeg', 'lengthM', 'spacingM'].forEach((name) => requiredFields.add(name));
+  if (targetType === 'RECTANGLE') ['centerX', 'centerY', 'bearingDeg', 'lengthM', 'widthM', 'spacingM'].forEach((name) => requiredFields.add(name));
+  if (targetType === 'CIRCLE') ['centerX', 'centerY', 'radiusM', 'aimpointCount'].forEach((name) => requiredFields.add(name));
+
+  if (sheafType === 'PARALLEL' || sheafType === 'OPEN') requiredFields.add('sheafWidthM');
+  if (controlType === 'CREEPING') ['creepingStepM', 'creepingSteps'].forEach((name) => requiredFields.add(name));
+  if (controlType === 'MRSI') ['mrsiRounds', 'mrsiMinSepSec'].forEach((name) => requiredFields.add(name));
+  return requiredFields;
 }
 
 export function migrateOldMissionToFdc(oldMission = {}) {
@@ -209,9 +285,10 @@ export function migrateOldMissionToFdc(oldMission = {}) {
   const sheaf = oldMission.sheaf ?? {};
   const control = oldMission.control ?? {};
   return {
-    targetType: oldMission.targetType ?? LEGACY_TARGET_MAP[oldMission.fireMode] ?? LEGACY_TARGET_MAP[oldMission.fireType] ?? 'POINT',
+    targetType: oldMission.targetType ?? LEGACY_TARGET_MAP[oldMission.fireMode] ?? 'POINT',
     sheafType: oldMission.sheafType ?? LEGACY_SHEAF_MAP[oldMission.fireMode] ?? LEGACY_SHEAF_MAP[oldMission.oldSheaf] ?? 'CONVERGED',
-    controlType: oldMission.controlType ?? LEGACY_CONTROL_MAP[oldMission.control] ?? LEGACY_CONTROL_MAP[oldMission.oldFireMode] ?? 'SIMULTANEOUS',
+    controlType: oldMission.controlType ?? LEGACY_CONTROL_MAP[oldMission.control] ?? 'SIMULTANEOUS',
+    useActiveTargetCenter: oldMission.useActiveTargetCenter ?? true,
     geometry: {
       point: oldMission.point,
       center: oldMission.center,
@@ -221,25 +298,24 @@ export function migrateOldMissionToFdc(oldMission = {}) {
       lengthM: geometry.lengthM ?? oldMission.lengthM,
       widthM: geometry.widthM ?? oldMission.widthM,
       radiusM: geometry.radiusM ?? oldMission.radiusM,
-      spacingM: geometry.spacingM ?? oldMission.spacingM,
-      aimpointCount: geometry.aimpointCount ?? oldMission.aimpointCount,
+      spacingM: geometry.spacingM ?? oldMission.spacingM ?? FDC_DEFAULTS.spacingM,
+      aimpointCount: geometry.aimpointCount ?? oldMission.aimpointCount ?? FDC_DEFAULTS.aimpointCount,
     },
     sheaf: {
       sheafWidthM: sheaf.sheafWidthM ?? oldMission.sheafWidthM,
-      openFactor: sheaf.openFactor ?? oldMission.openFactor,
+      openFactor: sheaf.openFactor ?? oldMission.openFactor ?? FDC_DEFAULTS.openFactor,
     },
-    sequence: { phaseIntervalSec: oldMission.phaseIntervalSec ?? control.phaseIntervalSec },
+    sequence: { phaseIntervalSec: oldMission.phaseIntervalSec ?? control.phaseIntervalSec ?? FDC_DEFAULTS.phaseIntervalSec },
     creeping: {
-      stepM: oldMission.stepM,
-      stepsCount: oldMission.stepsCount,
-      stepIntervalSec: oldMission.stepIntervalSec,
+      creepingStepM: oldMission.creepingStepM ?? oldMission.stepM ?? FDC_DEFAULTS.creepingStepM,
+      creepingSteps: oldMission.creepingSteps ?? oldMission.stepsCount ?? FDC_DEFAULTS.creepingSteps,
+      stepIntervalSec: oldMission.stepIntervalSec ?? FDC_DEFAULTS.stepIntervalSec,
       bearingDeg: oldMission.bearingDeg,
     },
-    tot: { desiredImpactSec: oldMission.desiredImpactSec ?? oldMission.desiredImpactTimeSec },
+    tot: { totDesiredImpactSec: oldMission.totDesiredImpactSec ?? oldMission.desiredImpactSec ?? oldMission.desiredImpactTimeSec },
     mrsi: {
-      mrsiRounds: oldMission.mrsiRounds ?? oldMission.mrsiRoundsPerGun,
-      mrsiMinSepSec: oldMission.mrsiMinSepSec ?? oldMission.mrsiMinSeparationSec,
-      mrsiAllowedArcs: oldMission.mrsiAllowedArcs,
+      mrsiRounds: oldMission.mrsiRounds ?? oldMission.mrsiRoundsPerGun ?? FDC_DEFAULTS.mrsiRounds,
+      mrsiMinSepSec: oldMission.mrsiMinSepSec ?? oldMission.mrsiMinSeparationSec ?? FDC_DEFAULTS.mrsiMinSepSec,
     },
     guns: oldMission.guns ?? 'ALL',
     roundsPerGun: oldMission.roundsPerGun ?? 1,
@@ -248,33 +324,41 @@ export function migrateOldMissionToFdc(oldMission = {}) {
 }
 
 function flattenFdcConfig(missionFdc) {
+  const geometry = missionFdc.geometry ?? {};
+  const center = geometry.center ?? null;
+  const point = geometry.point ?? null;
   return {
     ...missionFdc,
-    ...missionFdc.geometry,
+    ...geometry,
     ...missionFdc.sheaf,
     ...missionFdc.sequence,
     ...missionFdc.creeping,
     ...missionFdc.tot,
     ...missionFdc.mrsi,
+    centerX: center?.x,
+    centerY: center?.y,
+    pointX: point?.x,
+    pointY: point?.y,
   };
 }
 
 function validateMissionFdc(missionFdc, config) {
   const { requiredFields } = getFdcUiSchema(missionFdc);
+  const missingLabels = [];
   for (const field of requiredFields) {
     if (field.endsWith('Type')) {
-      if (!missionFdc[field]) throw new Error('Выберите режим огня и заполните параметры');
+      if (!missionFdc[field]) missingLabels.push(FDC_FIELD_LABELS_RU[field]);
       continue;
     }
-    if (field === 'mrsiAllowedArcs') continue;
-    if (missionFdc.targetType === 'LINE' && config.start && config.end && ['bearingDeg', 'lengthM', 'spacingM'].includes(field)) continue;
-    if (!Number.isFinite(Number(config[field])) && field !== 'phaseIntervalSec' && field !== 'desiredImpactSec') {
-      throw new Error('Не заполнены параметры режима огня');
-    }
+    const value = config[field];
+    if (!Number.isFinite(Number(value))) missingLabels.push(FDC_FIELD_LABELS_RU[field] ?? field);
   }
-  if (missionFdc.targetType === 'POINT' && !config.point) throw new Error('Выберите режим огня и заполните параметры');
-  if (missionFdc.targetType === 'LINE' && !config.center && (!config.start || !config.end)) throw new Error('Выберите режим огня и заполните параметры');
-  if ((missionFdc.targetType === 'RECTANGLE' || missionFdc.targetType === 'CIRCLE') && !config.center) throw new Error('Выберите режим огня и заполните параметры');
+  if (missingLabels.length) {
+    throw new Error(`Заполните параметры режима: ${missingLabels.join(', ')}`);
+  }
+  if (missionFdc.targetType === 'POINT' && !missionFdc.useActiveTargetCenter && !config.point) throw new Error('Заполните параметры режима: Координата цели X, Координата цели Y');
+  if (missionFdc.targetType === 'LINE' && !config.center) throw new Error('Заполните параметры режима: Центр X, Центр Y');
+  if ((missionFdc.targetType === 'RECTANGLE' || missionFdc.targetType === 'CIRCLE') && !config.center) throw new Error('Заполните параметры режима: Центр X, Центр Y');
 }
 
 function buildPhases(config, baseAimPoints) {
@@ -282,9 +366,9 @@ function buildPhases(config, baseAimPoints) {
     return { aimPoints: baseAimPoints, phases: baseAimPoints.map((_, i) => ({ phaseIndex: i, label: `#${i + 1}`, aimPointIndices: [i] })) };
   }
   if (config.controlType === 'CREEPING') {
-    const stepM = Math.max(1, toFinite(config.stepM, 50));
-    const stepsCount = Math.max(1, Math.round(toFinite(config.stepsCount, 1)));
-    const interval = Math.max(0, toFinite(config.stepIntervalSec, 0));
+    const stepM = Math.max(1, toFinite(config.creepingStepM, FDC_DEFAULTS.creepingStepM));
+    const stepsCount = Math.max(1, Math.round(toFinite(config.creepingSteps, FDC_DEFAULTS.creepingSteps)));
+    const interval = Math.max(0, toFinite(config.stepIntervalSec, FDC_DEFAULTS.stepIntervalSec));
     const points = [];
     const phases = [];
     const { forward } = forwardRight(config.bearingDeg);
@@ -420,8 +504,8 @@ export function applyTOT(plan, phaseIndex, perGunSolutions) {
   const assignments = getPhaseAssignments(plan, phaseIndex);
   const all = Object.values(perGunSolutions).flat();
   const maxTOF = Math.max(...all.map((row) => Number(row.solution?.tofSec || 0)), 0);
-  const totMode = plan.config.desiredImpactSec > 0 ? 'AT_TIME' : 'SYNC_NOW';
-  const desiredImpactTimeSec = Math.max(0, toFinite(plan.config.desiredImpactSec, 0));
+  const totMode = plan.config.totDesiredImpactSec > 0 ? 'AT_TIME' : 'SYNC_NOW';
+  const desiredImpactTimeSec = Math.max(0, toFinite(plan.config.totDesiredImpactSec, 0));
   const phaseStartDelaySec = totMode === 'AT_TIME' ? Math.max(0, desiredImpactTimeSec - maxTOF) : 0;
   assignments.forEach((assignment) => {
     assignment.commands.forEach((command) => {
