@@ -4,12 +4,6 @@ Format per file (`<profile_id>.json`):
 
 ```json
 {
-  "profile_id": "mortar-120-standard",
-  "barrel_length_mm": 1740,
-  "wear_factor": 0.97,
-  "twist_rate": "1:20",
-  "metadata": {
-    "manufacturer": "Example"
-  }
+  "wear_factor": 0.97
 }
 ```

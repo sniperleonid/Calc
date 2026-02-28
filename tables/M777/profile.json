@@ -10,13 +10,7 @@
   "ammo_types": [
     "M107_155MM_HE"
   ],
-  "barrel_length_mm": 5080,
   "wear_factor": 0.98,
-  "twist_rate": "1:20",
-  "metadata": {
-    "manufacturer": "BAE Systems",
-    "caliber": "155mm"
-  },
   "mil_system": {
     "mils_per_circle": 6400
   }
