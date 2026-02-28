@@ -188,7 +188,6 @@ const markerTargetSelect = document.querySelector('#marker-target');
 const calibrationModeButton = document.querySelector('#toggle-calibration-mode');
 const calibrationControls = document.querySelector('#calibration-controls');
 const calibrationLastInfo = document.querySelector('#calibration-last-info');
-const profilesEditor = document.querySelector('#profiles-editor');
 
 const t = (key) => i18n[state.lang][key] ?? key;
 
@@ -819,7 +818,6 @@ function applyI18n() {
   observerCountInput.value = String(state.settings.observerCount);
   renderGlobalConfig();
   renderGunsGrid();
-  renderProfilesEditor();
   renderObservers();
   renderMissionSelectors();
   renderCounterBatterySection();
@@ -964,18 +962,6 @@ function renderGunsGrid() {
     }
     container.append(batteryGroup);
   }
-}
-
-function renderProfilesEditor() {
-  if (!profilesEditor) return;
-  const profiles = getArtilleryProfiles();
-  profilesEditor.innerHTML = '';
-  Object.entries(profiles).forEach(([profileId, profile]) => {
-    const row = document.createElement('div');
-    row.className = 'profile-row';
-    row.innerHTML = `<h3>${profile.name ?? profileId}</h3><div class="pair pair-5"><input type="text" value="${profile.traverseDeg ?? 360}" placeholder="${t('profileTraverseDeg')}" readonly /><input type="text" value="${profile.minRange ?? 0}" placeholder="${t('profileMinRange')}" readonly /><input type="text" value="${profile.maxRange ?? 0}" placeholder="${t('profileMaxRange')}" readonly /><input type="text" value="${profile.projectiles ?? ''}" placeholder="${t('profileProjectiles')}" readonly /><input type="text" value="${profile.tables ?? ''}" placeholder="${t('profileTables')}" readonly /></div>`;
-    profilesEditor.append(row);
-  });
 }
 
 function syncObserverBindingVisibility(scope) {
@@ -3100,7 +3086,6 @@ batteryCountInput?.addEventListener('change', () => {
   if (batteryCountInput) batteryCountInput.value = String(state.settings.batteryCount);
   renderGlobalConfig();
   renderGunsGrid();
-  renderProfilesEditor();
   renderObservers();
   renderMissionSelectors();
   renderCounterBatterySection();
@@ -3131,7 +3116,6 @@ document.addEventListener('change', (event) => {
   if (!(event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement)) return;
   if (!event.target.matches('[data-gun-heading]')) return;
   persistLauncherSettings();
-  renderProfilesEditor();
   renderGunsGrid();
   refreshMapOverlay();
 });
@@ -3140,7 +3124,6 @@ document.addEventListener('change', (event) => {
   if (!(event.target instanceof HTMLInputElement) || !event.target.matches('[data-battery-guns-count]')) return;
   event.target.value = String(getGunCountForBattery(event.target.dataset.batteryGunsCount));
   renderGunsGrid();
-  renderProfilesEditor();
   renderObservers();
   renderMissionSelectors();
   renderCounterBatterySection();
