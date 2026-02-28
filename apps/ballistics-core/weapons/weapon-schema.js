@@ -7,5 +7,8 @@ export function normalizeWeaponProfile(raw) {
     charges: Array.isArray(raw.charges) ? raw.charges : [],
     maxElevMil: Number(raw.maxElevMil ?? 1550),
     tables: raw.tables ?? {},
+    milSystem: {
+      milsPerCircle: Number(raw.milSystem?.milsPerCircle ?? raw.milsPerCircle ?? 6400),
+    },
   };
 }

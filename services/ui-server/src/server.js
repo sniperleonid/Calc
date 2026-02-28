@@ -99,19 +99,28 @@ def parse_npy(data):
     cnt = 1
     for x in shape: cnt *= x
     start = off + hlen
-    out = []
     if descr.endswith('f4'):
       fmt = '<' + 'f'*cnt
-      out = list(struct.unpack_from(fmt, data, start))
-    elif descr.endswith('f8'):
+      return list(struct.unpack_from(fmt, data, start))
+    if descr.endswith('f8'):
       fmt = '<' + 'd'*cnt
-      out = list(struct.unpack_from(fmt, data, start))
-    elif descr.endswith('i4'):
+      return list(struct.unpack_from(fmt, data, start))
+    if descr.endswith('i4'):
       fmt = '<' + 'i'*cnt
-      out = list(struct.unpack_from(fmt, data, start))
-    else:
-      out = []
-    return out
+      return list(struct.unpack_from(fmt, data, start))
+    return []
+
+def per100m(values, ranges, idx):
+    if not values or not ranges:
+        return None
+    left = max(0, idx - 1)
+    right = min(len(values) - 1, idx + 1)
+    if left == right:
+        return None
+    dr = ranges[right] - ranges[left]
+    if dr == 0:
+        return None
+    return ((values[right] - values[left]) / dr) * 100
 
 import sys
 path = Path(sys.argv[1])
@@ -125,10 +134,27 @@ elev = arrays.get('elev_mil', [])
 charges = [str(int(c)) if float(c).is_integer() else str(c) for c in arrays.get('charges_id', [])]
 by_charge = {}
 for cid in charges:
+    ranges = arrays.get(f'range_c{cid}', [])
+    tofs = arrays.get(f'tof_c{cid}', [])
+    delev = arrays.get(f'delev_c{cid}', [])
+    tof_per = arrays.get(f'tofPer100m_c{cid}', [])
+    range_table = []
+    size = min(len(ranges), len(elev))
+    for i in range(size):
+        range_table.append({
+            'range': ranges[i],
+            'elevation': elev[i],
+            'tof': tofs[i] if i < len(tofs) else None,
+            'dElev': delev[i] if i < len(delev) else per100m(elev, ranges, i),
+            'tofPer100m': tof_per[i] if i < len(tof_per) else per100m(tofs, ranges, i),
+        })
     by_charge[cid] = {
-        'range': arrays.get(f'range_c{cid}', []),
+        'range': ranges,
         'elevationMil': elev,
-        'tof': arrays.get(f'tof_c{cid}')
+        'tof': tofs,
+        'dElev': delev,
+        'tofPer100m': tof_per,
+        'rangeTable': range_table,
     }
 
 print(json.dumps({
@@ -233,6 +259,9 @@ async function buildWeaponFromCatalog(weaponId) {
     displayName: `${gunProfile.name ?? gunId} ${projectileId}`,
     maxElevMil: Number(gunProfile.max_elevation_mil ?? 1550),
     tables: tableUrls,
+    milSystem: {
+      milsPerCircle: Number(gunProfile.mil_system?.mils_per_circle ?? gunProfile.milsPerCircle ?? 6400),
+    },
     primaryTable,
   };
 }
