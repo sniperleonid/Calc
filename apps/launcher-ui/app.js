@@ -88,7 +88,7 @@ const i18n = {
     correctionAnchorObserver: 'Привязан к наблюдателю', correctionAnchorGun: 'Корректировка от орудия (наблюдатель не привязан)',
     observerTargetingTitle: 'Наведение наблюдателем', observerTargetingHint: 'Если координаты цели неизвестны, задайте дальность, азимут и угол.', applyObserverTargeting: 'Рассчитать цель от наблюдателя',
     correctionApplied: 'Поправка сохранена', correctionResetDone: 'Поправка сброшена', observerTargetingApplied: 'Координаты цели обновлены от наблюдателя', observerTargetingUnavailable: 'Нет координат наблюдателя для наведения',
-    missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', missionProjectileSelectionTitle: 'Выбор снарядов по типам орудий', missionProjectileSelectionHint: 'Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.', activeTargetLabel: 'Активная цель', targetX: 'Координата цели X', targetY: 'Координата цели Y',
+    missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', missionProjectileSelectionTitle: 'Выбор снарядов по типам орудий', missionProjectileSelectionHint: 'Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.', activeTargetLabel: 'Активная цель', targetX: 'Координата цели X', targetY: 'Координата цели Y', targetHeight: 'Высота цели (м)',
     fireMode: 'Тип огня', fireModeLinear: 'Линейный сноп', fireModeParallel: 'Параллельный', fireModeConverging: 'Сходящийся', fireModeOpen: 'Открытый', fireModeCircular: 'Круговой',
     counterBatteryTitle: 'Контрбатарейное обнаружение', counterBatteryHint: 'Реальные методы: звукопеленгация, анализ воронок с обратным азимутом, триангуляция по азимутам и гипербола TDOA.', counterBatteryMethod: 'Метод определения', cbMethodSound: 'Звукопеленгация (sound ranging)', cbMethodCrater: 'Анализ воронок и обратный азимут', cbMethodTriangulation: 'Триангуляция по азимутам наблюдателей', cbMethodHyperbola: 'Гипербола по разности времени прихода (TDOA)', cbBearing: 'Азимут на источник (°)', cbEstimatedDistance: 'Оценочная дальность (м)', cbTdoaDelta: 'Разница времени прихода (мс)', cbImpactBearing: 'Обратный азимут от воронки (°)', counterBatteryObservers: 'Данные наблюдателей', counterBatteryObserversHint: 'Чем больше точек наблюдения, тем точнее координаты вражеского орудия.', cbAddPoint: 'Добавить точку', cbClearPoints: 'Очистить точки', cbLocateTarget: 'Найти вражеское орудие', cbCalculateResponse: 'Рассчитать ответный огонь', cbObserverPoint: 'Точка', cbObserver: 'Наблюдатель', cbObservationAzimuth: 'Азимут наблюдения (°)', cbObservationDelay: 'Задержка звука (с)', cbNeedTwoPoints: 'Нужно минимум две валидные точки наблюдения.', cbTargetLocated: 'Цель определена', cbTargetNotFound: 'Не удалось определить координаты цели по выбранному методу.', cbResponseHeader: 'Ответный огонь (доступные орудия в зоне досягаемости)', cbNoReachableGuns: 'Нет доступных орудий в зоне досягаемости.', cbMethodUsed: 'Метод', cbRecommendedGun: 'Рекомендуем:', cbGunFacing: 'направление ', cbNeedsReposition: '(понадобится разворот вне сектора)',
     mapPanelTitle: 'Тактическая карта (Leaflet)', mapLegendTitle: 'Легенда', mapLegendHint: 'Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».',
@@ -126,7 +126,7 @@ const i18n = {
     correctionAnchorObserver: 'Anchored to observer', correctionAnchorGun: 'Correction from gun (observer not linked)',
     observerTargetingTitle: 'Observer targeting', observerTargetingHint: 'If target coordinates are unknown, enter distance, azimuth and slope angle.', applyObserverTargeting: 'Compute target from observer',
     correctionApplied: 'Correction saved', correctionResetDone: 'Correction reset', observerTargetingApplied: 'Target coordinates updated from observer', observerTargetingUnavailable: 'Observer coordinates are unavailable',
-    missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', missionProjectileSelectionTitle: 'Projectile selection by gun type', missionProjectileSelectionHint: 'Pick a projectile separately for each gun type involved in the mission.', activeTargetLabel: 'Active target', targetX: 'Target X coordinate', targetY: 'Target Y coordinate',
+    missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', missionProjectileSelectionTitle: 'Projectile selection by gun type', missionProjectileSelectionHint: 'Pick a projectile separately for each gun type involved in the mission.', activeTargetLabel: 'Active target', targetX: 'Target X coordinate', targetY: 'Target Y coordinate', targetHeight: 'Target altitude (m)',
     fireMode: 'Fire mode', fireModeLinear: 'Linear sheaf', fireModeParallel: 'Parallel', fireModeConverging: 'Converging', fireModeOpen: 'Open', fireModeCircular: 'Circular',
     counterBatteryTitle: 'Counter-battery detection', counterBatteryHint: 'Real techniques: sound ranging, crater analysis with reverse azimuth, observer azimuth triangulation, and TDOA hyperbola.', counterBatteryMethod: 'Detection method', cbMethodSound: 'Sound ranging', cbMethodCrater: 'Crater analysis + reverse azimuth', cbMethodTriangulation: 'Observer azimuth triangulation', cbMethodHyperbola: 'TDOA hyperbola', cbBearing: 'Bearing to source (°)', cbEstimatedDistance: 'Estimated range (m)', cbTdoaDelta: 'Arrival time difference (ms)', cbImpactBearing: 'Reverse azimuth from crater (°)', counterBatteryObservers: 'Observer data', counterBatteryObserversHint: 'More observation points produce better enemy gun localization.', cbAddPoint: 'Add point', cbClearPoints: 'Clear points', cbLocateTarget: 'Locate enemy gun', cbCalculateResponse: 'Calculate counter-fire', cbObserverPoint: 'Point', cbObserver: 'Observer', cbObservationAzimuth: 'Observation azimuth (°)', cbObservationDelay: 'Sound delay (s)', cbNeedTwoPoints: 'At least two valid observation points are required.', cbTargetLocated: 'Target localized', cbTargetNotFound: 'Unable to compute target coordinates with selected method.', cbResponseHeader: 'Counter-fire (reachable friendly guns)', cbNoReachableGuns: 'No reachable guns in range.', cbMethodUsed: 'Method', cbRecommendedGun: 'Recommended:', cbGunFacing: 'facing ', cbNeedsReposition: '(requires reposition outside traverse)',
     mapPanelTitle: 'Tactical map (Leaflet)', mapLegendTitle: 'Legend', mapLegendHint: 'The map shows guns in selected battery and the current target from Fire Missions tab.',
@@ -193,6 +193,7 @@ function getMissionTargetNameByIndex(index) {
 function normalizeMissionTargets(mission = {}) {
   const legacyX = mission.targetX ?? '';
   const legacyY = mission.targetY ?? '';
+  const legacyHeight = mission.targetHeight ?? '';
   const source = Array.isArray(mission.targets) ? mission.targets : [];
   const normalized = MISSION_TARGET_IDS.map((id, index) => {
     const fromId = source.find((item) => item?.id === id);
@@ -204,6 +205,7 @@ function normalizeMissionTargets(mission = {}) {
       active: true,
       x: String(item.x ?? (index === 0 ? legacyX : '') ?? ''),
       y: String(item.y ?? (index === 0 ? legacyY : '') ?? ''),
+      height: String(item.height ?? (index === 0 ? legacyHeight : '') ?? ''),
     };
   });
   return normalized;
@@ -419,8 +421,10 @@ function updateMissionTargetInputsFromState() {
   const selectedTarget = getMissionTargets().find((item) => item.id === selectedTargetId) ?? getMissionTargets()[0];
   const targetXInput = document.querySelector('#target-x');
   const targetYInput = document.querySelector('#target-y');
+  const targetHeightInput = document.querySelector('#target-height');
   if (targetXInput) targetXInput.value = selectedTarget?.x ?? '';
   if (targetYInput) targetYInput.value = selectedTarget?.y ?? '';
+  if (targetHeightInput) targetHeightInput.value = selectedTarget?.height ?? '';
 }
 
 
@@ -429,8 +433,9 @@ function storeCurrentMissionTargetInputs(targetId = lastMissionTargetId) {
   const mission = state.settings.mission ?? {};
   const targetXInput = document.querySelector('#target-x');
   const targetYInput = document.querySelector('#target-y');
+  const targetHeightInput = document.querySelector('#target-height');
   const targets = getMissionTargets().map((item) => (item.id === targetId
-    ? { ...item, x: targetXInput?.value ?? '', y: targetYInput?.value ?? '' }
+    ? { ...item, x: targetXInput?.value ?? '', y: targetYInput?.value ?? '', height: targetHeightInput?.value ?? '' }
     : item));
   state.settings.mission = { ...mission, targets };
 }
@@ -664,17 +669,20 @@ function persistLauncherSettings() {
   const selectedTargetId = getSelectedMissionTargetId();
   const targetXValue = document.querySelector('#target-x')?.value ?? '';
   const targetYValue = document.querySelector('#target-y')?.value ?? '';
+  const targetHeightValue = document.querySelector('#target-height')?.value ?? '';
   const missionTargets = getMissionTargets().map((target) => ({
     ...target,
     active: true,
     x: target.id === selectedTargetId ? targetXValue : target.x,
     y: target.id === selectedTargetId ? targetYValue : target.y,
+    height: target.id === selectedTargetId ? targetHeightValue : target.height,
   }));
 
   state.settings.mission = {
     name: document.querySelector('#mission-name')?.value ?? '',
     targetX: targetXValue,
     targetY: targetYValue,
+    targetHeight: targetHeightValue,
     targets: missionTargets,
     activeTargetId: selectedTargetId,
     battery: missionBatterySelect?.value ?? '1',
@@ -1305,14 +1313,23 @@ function applyObserverTargeting() {
   const distance = Number(document.querySelector('#observer-target-distance')?.value || 0);
   const azimuth = Number(document.querySelector('#observer-target-azimuth')?.value || 0);
   const angle = Number(document.querySelector('#observer-target-angle')?.value || 0);
+  const observerHeight = parseHeightValue(document.querySelector(`[data-observer-height="${observerId}"]`)?.value);
+  if (!Number.isFinite(observerHeight)) {
+    fireOutput.textContent = t('observerTargetingUnavailable');
+    return;
+  }
   const horizontal = distance * Math.cos((angle * Math.PI) / 180);
+  const vertical = distance * Math.sin((angle * Math.PI) / 180);
   const targetX = observerPoint.x + Math.sin((azimuth * Math.PI) / 180) * horizontal;
   const targetY = observerPoint.y + Math.cos((azimuth * Math.PI) / 180) * horizontal;
+  const targetHeight = clamp(Math.round(observerHeight + vertical), HEIGHT_LIMITS.min, HEIGHT_LIMITS.max);
 
   const targetXInput = document.querySelector('#target-x');
   const targetYInput = document.querySelector('#target-y');
+  const targetHeightInput = document.querySelector('#target-height');
   if (targetXInput) targetXInput.value = String(Math.round(targetX));
   if (targetYInput) targetYInput.value = String(Math.round(targetY));
+  if (targetHeightInput) targetHeightInput.value = String(targetHeight);
   storeCurrentMissionTargetInputs(getSelectedMissionTargetId());
   persistLauncherSettings();
   refreshMapOverlay();
@@ -1422,6 +1439,11 @@ function calculateFire() {
   }
   const rawTargetX = targetInput.x;
   const rawTargetY = targetInput.y;
+  const targetHeight = parseHeightValue(document.querySelector('#target-height')?.value);
+  if (!Number.isFinite(targetHeight)) {
+    fireOutput.textContent = t('invalidCoordinates');
+    return;
+  }
   const battery = Number(missionBatterySelect.value || 1);
   const selectedGun = missionGunSelect.value;
   const fireMode = fireModeSelect?.value ?? 'linear';
@@ -1457,7 +1479,8 @@ function calculateFire() {
     const distance = Math.hypot(dx, dy);
     const azimuth = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
     const azimuthMils = (azimuth * 6400) / 360;
-    const elevationMils = ((Math.atan2(batteryHeight, distance || 1) * 1000) / Math.PI) * 17.7778;
+    const targetHeightDifference = targetHeight - batteryHeight;
+    const elevationMils = (Math.atan2(targetHeightDifference, distance || 1) * 6400) / (2 * Math.PI);
     return { gunId, profileId, projectile, tableRef: profile?.tables ?? 'N/A', distance: distance.toFixed(1), azimuth: azimuth.toFixed(2), azimuthMils: azimuthMils.toFixed(1), elevation: elevationMils.toFixed(1) };
   });
 
@@ -1468,7 +1491,7 @@ function calculateFire() {
 
   const output = [`${t('calcDone')}: ${document.querySelector('#mission-name')?.value || 'Mission'}`,
     `${t('fireMode')}: ${t(`fireMode${fireMode[0].toUpperCase()}${fireMode.slice(1)}`)}`,
-    `Target: X=${targetX.toFixed(1)} Y=${targetY.toFixed(1)}` ,
+    `Target: X=${targetX.toFixed(1)} Y=${targetY.toFixed(1)} H=${targetHeight.toFixed(1)}` ,
     ...results.map((row) => `${t('gun')} ${row.gunId} (${row.profileId}, ${row.projectile}): D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil · Tbl=${row.tableRef}`)].join('\n');
 
   const observerCorrections = getObserverCorrections(battery, gunIds, batteryHeight);
@@ -1479,7 +1502,7 @@ function calculateFire() {
   state.settings.mapTools = { ...tools, activeFirePattern: buildActiveFirePattern({ mode: fireMode, targetX, targetY }) };
   persistLauncherSettings();
   refreshMapOverlay();
-  return { results, battery, selectedGun, targetX, targetY, rawTargetX, rawTargetY, batteryHeight, fireMode };
+  return { results, battery, selectedGun, targetX, targetY, rawTargetX, rawTargetY, batteryHeight, targetHeight, fireMode };
 }
 
 function showMto() {
