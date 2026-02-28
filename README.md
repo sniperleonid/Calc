@@ -178,7 +178,7 @@ npm run start
 ### Как добавить миссию
 
 1. На вкладке «Огневые задачи» выберите `TargetType`, `SheafType`, `Control` в блоке **Fire Mission (FDC)**.
-2. Заполните параметры (spacing/bearing/sheaf/TOT/MRSI и т.д.).
+2. Заполните координаты под выбранный `TargetType` (`POINT`, `LINE`, `RECTANGLE`, `CIRCLE`) и параметры sheaf/control (`spacing`, `bearing`, `TOT`, `MRSI`, `CREEPING`).
 3. Нажмите **Сформировать миссию**.
 
 ### Как работает «Следующий расчёт»
