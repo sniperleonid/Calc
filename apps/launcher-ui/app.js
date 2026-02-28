@@ -102,7 +102,7 @@ const i18n = {
     observerHeight: 'Высота (м)', observerName: 'Имя наблюдателя',
     allGuns: 'Все орудия батареи', gunProfile: 'Профиль орудия', projectileProfile: 'Профиль снаряда', gunDirectionAzimuth: 'Азимут центрального направления (°)',
     calcDone: 'Расчёт выполнен', mtoHeader: 'MTO: расход по выбранным орудиям', missionSaved: 'Миссия сохранена', noMissions: 'Сохранённых миссий нет',
-    logsError: 'Не удалось загрузить логи', exportReady: 'Экспорт данных подготовлен', noLogsYet: 'Логи пока не найдены',
+    logsError: 'Не удалось загрузить логи', logsOpenError: 'Не удалось открыть папку логов', logsOpened: 'Открываю папку логов', logsPath: 'Путь к логам', exportReady: 'Экспорт данных подготовлен', noLogsYet: 'Логи пока не найдены',
     target: 'Цель', openedExternalMap: 'Открыта внешняя карта',
     invalidCoordinates: 'Ошибка координат: разрешены только цифры и допустимые пределы',
     mapToolsTitle: 'Инструменты меток', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', pasteMapImage: 'Вставить карту из буфера', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту', mapImageTooLarge: 'Файл карты больше 150 МБ. Уменьшите файл и попробуйте снова.', mapImageUploadFailed: 'Не удалось загрузить изображение карты на сервер.', mapImageClipboardUnsupported: 'Буфер обмена не поддерживается браузером или недоступен без HTTPS/localhost.', mapImageClipboardEmpty: 'В буфере обмена не найдено изображение.',
@@ -140,7 +140,7 @@ const i18n = {
     observerHeight: 'Height (m)', observerName: 'Observer name',
     allGuns: 'All guns in battery', gunProfile: 'Gun profile', projectileProfile: 'Projectile profile', gunDirectionAzimuth: 'Central azimuth (°)',
     calcDone: 'Calculation complete', mtoHeader: 'MTO: ammo usage for selected guns', missionSaved: 'Mission saved', noMissions: 'No saved missions',
-    logsError: 'Failed to load logs', exportReady: 'Data export ready', noLogsYet: 'No logs found yet',
+    logsError: 'Failed to load logs', logsOpenError: 'Failed to open logs folder', logsOpened: 'Opening logs folder', logsPath: 'Logs path', exportReady: 'Data export ready', noLogsYet: 'No logs found yet',
     target: 'Target', openedExternalMap: 'Opened external map',
     invalidCoordinates: 'Coordinate error: only digits and allowed limits are accepted',
     mapToolsTitle: 'Marker tools', mapImageUpload: 'Upload your map (PNG/JPG)', pasteMapImage: 'Paste map from clipboard', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image', mapImageTooLarge: 'Map image is larger than 150 MB. Reduce file size and try again.', mapImageUploadFailed: 'Failed to upload map image to server.', mapImageClipboardUnsupported: 'Clipboard image read is not available in this browser or without HTTPS/localhost.', mapImageClipboardEmpty: 'No image found in clipboard.',
@@ -2840,17 +2840,24 @@ function openMap() {
 
 async function openLogs() {
   try {
+    const openResponse = await fetch('/api/logs/open', { method: 'POST' });
+    if (!openResponse.ok) throw new Error('failed-open');
+
     const response = await fetch('/api/logs');
-    if (!response.ok) throw new Error('failed');
+    if (!response.ok) throw new Error('failed-list');
+
     const payload = await response.json();
+    const pathLine = payload.logsDirectory ? `${t('logsPath')}: ${payload.logsDirectory}` : '';
+
     if (!payload.files.length) {
-      safetyOutput.textContent = t('noLogsYet');
+      safetyOutput.textContent = [t('logsOpened'), pathLine, t('noLogsYet')].filter(Boolean).join('\n');
       return;
     }
+
     const lines = payload.files.map((file) => `${file.name} (${file.size} B)`);
-    safetyOutput.textContent = lines.join('\n');
+    safetyOutput.textContent = [t('logsOpened'), pathLine, ...lines].filter(Boolean).join('\n');
   } catch {
-    safetyOutput.textContent = t('logsError');
+    safetyOutput.textContent = t('logsOpenError');
   }
 }
 
