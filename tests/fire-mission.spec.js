@@ -8,6 +8,8 @@ import {
   getPhaseAssignments,
   advancePlanCursor,
   isPlanComplete,
+  getVisibleFields,
+  getRequiredFields,
 } from '../apps/fire-control/src/fire-mission.js';
 import { createAdjustmentState, adjustRange, adjustDirection, decomposeWind } from '../apps/fire-control/src/adjustment.js';
 
@@ -17,21 +19,21 @@ const guns = [
 ];
 
 test('generateAimPoints supports POINT/LINE/RECTANGLE/CIRCLE', () => {
-  const pointPlan = buildAimPlan({ targetType: 'POINT', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, point: { x: 100, y: 200 } }, guns);
+  const pointPlan = buildAimPlan({ targetType: 'POINT', sheafType: 'CONVERGED', controlType: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, point: { x: 100, y: 200 } }, guns);
   assert.equal(pointPlan.aimPoints.length, 1);
 
-  const linePlan = buildAimPlan({ targetType: 'LINE', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, start: { x: 0, y: 0 }, end: { x: 0, y: 100 }, spacingM: 25 }, guns);
+  const linePlan = buildAimPlan({ targetType: 'LINE', sheafType: 'CONVERGED', controlType: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, center: { x: 0, y: 50 }, bearingDeg: 0, lengthM: 100, spacingM: 25 }, guns);
   assert.equal(linePlan.aimPoints.length, 5);
 
-  const rectPlan = buildAimPlan({ targetType: 'RECTANGLE', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, center: { x: 0, y: 0 }, widthM: 100, lengthM: 100, spacingM: 50, bearingDeg: 0 }, guns);
+  const rectPlan = buildAimPlan({ targetType: 'RECTANGLE', sheafType: 'CONVERGED', controlType: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, center: { x: 0, y: 0 }, widthM: 100, lengthM: 100, spacingM: 50, bearingDeg: 0 }, guns);
   assert.equal(rectPlan.aimPoints.length, 9);
 
-  const circlePlan = buildAimPlan({ targetType: 'CIRCLE', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, center: { x: 0, y: 0 }, radiusM: 40, aimpointCount: 8 }, guns);
+  const circlePlan = buildAimPlan({ targetType: 'CIRCLE', sheafType: 'CONVERGED', controlType: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, center: { x: 0, y: 0 }, radiusM: 40, aimpointCount: 8 }, guns);
   assert.equal(circlePlan.aimPoints.length, 9);
 });
 
 test('PARALLEL offsets are applied along right vector sign', () => {
-  const plan = buildAimPlan({ targetType: 'POINT', sheafType: 'PARALLEL', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, point: { x: 0, y: 0 }, bearingDeg: 0, sheafWidthM: 100 }, guns);
+  const plan = buildAimPlan({ targetType: 'POINT', sheafType: 'PARALLEL', controlType: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, point: { x: 0, y: 0 }, bearingDeg: 0, sheafWidthM: 100 }, guns);
   const phaseAssign = getPhaseAssignments(plan, 0);
   const p1 = plan.aimPoints[phaseAssign[0].commands[0].aimPointIndex];
   const p2 = plan.aimPoints[phaseAssign[1].commands[0].aimPointIndex];
@@ -39,7 +41,7 @@ test('PARALLEL offsets are applied along right vector sign', () => {
 });
 
 test('CREEPING shifts each phase by forward*k*stepM', () => {
-  const plan = buildAimPlan({ targetType: 'POINT', sheafType: 'CONVERGED', control: 'CREEPING', guns: 'ALL', roundsPerGun: 1, point: { x: 0, y: 0 }, bearingDeg: 90, stepM: 50, stepsCount: 3 }, guns);
+  const plan = buildAimPlan({ targetType: 'POINT', sheafType: 'CONVERGED', controlType: 'CREEPING', guns: 'ALL', roundsPerGun: 1, point: { x: 0, y: 0 }, bearingDeg: 90, creepingStepM: 50, creepingSteps: 3 }, guns);
   assert.equal(plan.phases.length, 3);
   const p0 = plan.aimPoints[plan.phases[0].aimPointIndices[0]];
   const p2 = plan.aimPoints[plan.phases[2].aimPointIndices[0]];
@@ -47,12 +49,12 @@ test('CREEPING shifts each phase by forward*k*stepM', () => {
 });
 
 test('SEQUENCE creates one phase per aim point', () => {
-  const plan = buildAimPlan({ targetType: 'LINE', sheafType: 'CONVERGED', control: 'SEQUENCE', guns: 'ALL', roundsPerGun: 1, start: { x: 0, y: 0 }, end: { x: 0, y: 100 }, spacingM: 25 }, guns);
+  const plan = buildAimPlan({ targetType: 'LINE', sheafType: 'CONVERGED', controlType: 'SEQUENCE', guns: 'ALL', roundsPerGun: 1, center: { x: 0, y: 50 }, bearingDeg: 0, lengthM: 100, spacingM: 25 }, guns);
   assert.equal(plan.phases.length, plan.aimPoints.length);
 });
 
 test('TOT computes delay=maxTOF-tof', async () => {
-  const plan = buildAimPlan({ targetType: 'POINT', sheafType: 'CONVERGED', control: 'TOT', guns: 'ALL', roundsPerGun: 1, point: { x: 100, y: 100 } }, guns);
+  const plan = buildAimPlan({ targetType: 'POINT', sheafType: 'CONVERGED', controlType: 'TOT', guns: 'ALL', roundsPerGun: 1, point: { x: 100, y: 100 } }, guns);
   const env = {
     gunPositions: { '1': { x: 0, y: 0, z: 0 }, '2': { x: 0, y: 0, z: 0 } },
     weaponByGunId: { '1': 'w1', '2': 'w2' },
@@ -67,7 +69,7 @@ test('TOT computes delay=maxTOF-tof', async () => {
 
 test('MRSI delays are ordered and impacts are simultaneous with min separation', async () => {
   const plan = buildAimPlan({
-    targetType: 'POINT', sheafType: 'CONVERGED', control: 'MRSI', guns: ['1'], roundsPerGun: 1,
+    targetType: 'POINT', sheafType: 'CONVERGED', controlType: 'MRSI', guns: ['1'], roundsPerGun: 1,
     point: { x: 100, y: 100 }, mrsiRoundsPerGun: 3, mrsiMinSeparationSec: 2,
   }, guns);
   const env = {
@@ -94,7 +96,7 @@ test('MRSI delays are ordered and impacts are simultaneous with min separation',
 
 test('correction adjustment offset is applied without rebuilding plan', async () => {
   const plan = buildAimPlan({
-    targetType: 'POINT', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: ['1'], roundsPerGun: 1,
+    targetType: 'POINT', sheafType: 'CONVERGED', controlType: 'SIMULTANEOUS', guns: ['1'], roundsPerGun: 1,
     point: { x: 100, y: 100 },
   }, guns);
   const origin = { x: 0, y: 0 };
@@ -119,8 +121,8 @@ test('correction adjustment offset is applied without rebuilding plan', async ()
 
 test('next calculation completes plan phase by phase', async () => {
   let plan = buildAimPlan({
-    targetType: 'LINE', sheafType: 'CONVERGED', control: 'SEQUENCE', guns: ['1'], roundsPerGun: 1,
-    start: { x: 0, y: 0 }, end: { x: 0, y: 50 }, spacingM: 25,
+    targetType: 'LINE', sheafType: 'CONVERGED', controlType: 'SEQUENCE', guns: ['1'], roundsPerGun: 1,
+    center: { x: 0, y: 25 }, bearingDeg: 0, lengthM: 50, spacingM: 25,
   }, guns);
   const env = {
     gunPositions: { '1': { x: 0, y: 0, z: 0 } },
@@ -137,6 +139,30 @@ test('next calculation completes plan phase by phase', async () => {
   assert.equal(isPlanComplete(plan), true);
 });
 
+
+
+test('fdc visibility matrix hides irrelevant fields', () => {
+  const fields = getVisibleFields('RECTANGLE', 'OPEN', 'SIMULTANEOUS');
+  assert.equal(fields.has('centerX'), true);
+  assert.equal(fields.has('centerY'), true);
+  assert.equal(fields.has('bearingDeg'), true);
+  assert.equal(fields.has('lengthM'), true);
+  assert.equal(fields.has('widthM'), true);
+  assert.equal(fields.has('spacingM'), true);
+  assert.equal(fields.has('sheafWidthM'), true);
+  assert.equal(fields.has('openFactor'), true);
+  assert.equal(fields.has('creepingStepM'), false);
+  assert.equal(fields.has('totDesiredImpactSec'), false);
+  assert.equal(fields.has('mrsiRounds'), false);
+});
+
+test('fdc required matrix respects point active target switch', () => {
+  const auto = getRequiredFields('POINT', 'CONVERGED', 'SIMULTANEOUS', { useActiveTargetCenter: true });
+  assert.equal(auto.has('pointX'), false);
+  const manual = getRequiredFields('POINT', 'CONVERGED', 'SIMULTANEOUS', { useActiveTargetCenter: false });
+  assert.equal(manual.has('pointX'), true);
+  assert.equal(manual.has('pointY'), true);
+});
 test('wind decomposition returns headwind/crosswind from meteorological direction', () => {
   const out = decomposeWind({ speedMps: 10, directionDeg: 0, model: 'CONSTANT' }, 90);
   assert.equal(Math.round(out.headwindMps), 0);

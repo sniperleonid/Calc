@@ -129,51 +129,77 @@
               </div>
             </div>
             <h3>Огневая задача (FDC)</h3>
-            <div class="pair pair-2">
-              <label>Тип цели
-                <select id="fm-target-type">
-                  <option value="POINT">Точечная цель</option>
-                  <option value="LINE">Линия</option>
-                  <option value="RECTANGLE">Прямоугольник</option>
-                  <option value="CIRCLE">Круг</option>
-                </select>
-              </label>
-              <label>Схема распределения
-                <select id="fm-sheaf-type">
-                  <option value="CONVERGED">Сходящийся</option>
-                  <option value="PARALLEL">Параллельный</option>
-                  <option value="OPEN">Открытый</option>
-                </select>
-              </label>
-              <label>Режим выполнения
-                <select id="fm-control-type">
-                  <option value="SIMULTANEOUS">Одновременный</option>
-                  <option value="SEQUENCE">Поочерёдный</option>
-                  <option value="CREEPING">Ползущий огонь</option>
-                  <option value="TOT">Время поражения (TOT)</option>
-                  <option value="MRSI">MRSI</option>
-                </select>
-              </label>
-              <label data-fm-field="bearingDeg">Азимут, °<input id="fm-bearing" type="number" step="1" value="0" /></label>
-              <label data-fm-field="lengthM">Длина, м<input id="fm-length" type="number" step="1" value="200" /></label>
-              <label data-fm-field="widthM">Ширина, м<input id="fm-width" type="number" step="1" value="200" /></label>
-              <label data-fm-field="radiusM">Радиус, м<input id="fm-radius" type="number" step="1" value="100" /></label>
-              <label data-fm-field="spacingM">Шаг точек, м<input id="fm-spacing" type="number" step="1" value="40" /></label>
-              <label data-fm-field="aimpointCount">Количество точек<input id="fm-aimpoint-count" type="number" step="1" value="8" /></label>
-              <label data-fm-field="sheafWidthM">Ширина веера, м<input id="fm-sheaf-width" type="number" step="1" value="180" /></label>
-              <label data-fm-field="openFactor">Коэффициент раскрытия<input id="fm-open-factor" type="number" step="0.1" value="2" /></label>
-              <label data-fm-field="phaseIntervalSec">Интервал между фазами, с<input id="fm-phase-interval" type="number" step="0.5" value="0" /></label>
-              <label data-fm-field="stepM">Шаг ползущего огня, м<input id="fm-step-m" type="number" step="1" value="50" /></label>
-              <label data-fm-field="stepsCount">Количество шагов<input id="fm-steps-count" type="number" step="1" value="3" /></label>
-              <label data-fm-field="stepIntervalSec">Интервал между шагами, с<input id="fm-step-interval" type="number" step="0.5" value="10" /></label>
-              <label data-fm-field="desiredImpactSec">Желаемое время удара, с<input id="fm-tot-time" type="number" step="1" value="0" /></label>
-              <label data-fm-field="mrsiRounds">Количество выстрелов<input id="fm-mrsi-rounds" type="number" step="1" value="3" /></label>
-              <label data-fm-field="mrsiMinSepSec">Минимальный интервал, с<input id="fm-mrsi-min-sep" type="number" step="0.5" value="2" /></label>
-              <fieldset data-fm-field="mrsiAllowedArcs">
-                <legend>Разрешённые дуги</legend>
-                <label><input type="checkbox" data-fm-mrsi-arc value="LOW" checked /> Низкая</label>
-                <label><input type="checkbox" data-fm-mrsi-arc value="HIGH" checked /> Высокая</label>
-                <label><input type="checkbox" data-fm-mrsi-arc value="DIRECT" /> Прямая</label>
+            <div class="stack" id="fm-layout">
+              <fieldset data-fm-section="targetType" class="stack">
+                <legend>Тип цели</legend>
+                <label>Тип цели
+                  <select id="fm-target-type">
+                    <option value="POINT">Точечная</option>
+                    <option value="LINE">Линия</option>
+                    <option value="RECTANGLE">Прямоугольник</option>
+                    <option value="CIRCLE">Круг</option>
+                  </select>
+                </label>
+                <label data-fm-field="useActiveTargetCenter"><input id="fm-use-active-target-center" type="checkbox" checked /> Брать центр из активной цели</label>
+              </fieldset>
+
+              <fieldset data-fm-section="distribution" class="stack">
+                <legend>Распределение батареи</legend>
+                <div class="pair pair-2">
+                  <label>Схема распределения
+                    <select id="fm-sheaf-type">
+                      <option value="CONVERGED">Сходящийся</option>
+                      <option value="PARALLEL">Параллельный</option>
+                      <option value="OPEN">Открытый</option>
+                    </select>
+                  </label>
+                  <label data-fm-field="sheafWidthM">Ширина веера, м<input id="fm-sheaf-width" type="number" step="1" value="180" placeholder="например 180" /></label>
+                  <label data-fm-field="openFactor">Коэффициент раскрытия<input id="fm-open-factor" type="number" step="0.1" value="2" placeholder="например 2" /></label>
+                </div>
+              </fieldset>
+
+              <fieldset data-fm-section="execution" class="stack">
+                <legend>Режим выполнения</legend>
+                <div class="pair pair-2">
+                  <label>Режим выполнения
+                    <select id="fm-control-type">
+                      <option value="SIMULTANEOUS">Одновременный</option>
+                      <option value="SEQUENCE">Поочерёдный</option>
+                      <option value="CREEPING">Ползущий</option>
+                      <option value="TOT">TOT</option>
+                      <option value="MRSI">MRSI</option>
+                    </select>
+                  </label>
+                  <label data-fm-field="phaseIntervalSec">Интервал между фазами, с<input id="fm-phase-interval" type="number" step="0.5" value="0" placeholder="например 0" /></label>
+                  <label data-fm-field="creepingStepM">Шаг ползущего огня, м<input id="fm-step-m" type="number" step="1" value="100" placeholder="например 100" /></label>
+                  <label data-fm-field="creepingSteps">Количество шагов<input id="fm-steps-count" type="number" step="1" value="8" placeholder="например 8" /></label>
+                  <label data-fm-field="stepIntervalSec">Интервал между шагами, с<input id="fm-step-interval" type="number" step="0.5" value="5" placeholder="например 5" /></label>
+                  <label data-fm-field="totDesiredImpactSec">Желаемое время удара, с<input id="fm-tot-time" type="number" step="1" value="0" placeholder="например 30" /></label>
+                  <label data-fm-field="mrsiRounds">Количество выстрелов (MRSI)<input id="fm-mrsi-rounds" type="number" step="1" value="3" placeholder="например 3" /></label>
+                  <label data-fm-field="mrsiMinSepSec">Мин. интервал между выстрелами, с<input id="fm-mrsi-min-sep" type="number" step="0.5" value="3" placeholder="например 3" /></label>
+                </div>
+              </fieldset>
+
+              <fieldset data-fm-section="geometry" class="stack">
+                <legend>Геометрия цели</legend>
+                <div class="pair pair-2">
+                  <label data-fm-field="centerX" data-fm-label-context="centerX">Центр X<input id="fm-center-x" type="number" step="1" placeholder="например 4779" /></label>
+                  <label data-fm-field="centerY" data-fm-label-context="centerY">Центр Y<input id="fm-center-y" type="number" step="1" placeholder="например 5381" /></label>
+                  <label data-fm-field="bearingDeg">Азимут, °<input id="fm-bearing" type="number" step="1" value="0" placeholder="например 25" /></label>
+                  <label data-fm-field="lengthM">Длина, м<input id="fm-length" type="number" step="1" value="200" placeholder="например 200" /></label>
+                  <label data-fm-field="widthM">Ширина, м<input id="fm-width" type="number" step="1" value="200" placeholder="например 100" /></label>
+                  <label data-fm-field="radiusM">Радиус, м<input id="fm-radius" type="number" step="1" value="100" placeholder="например 150" /></label>
+                  <label data-fm-field="spacingM">Шаг точек, м<input id="fm-spacing" type="number" step="1" value="50" placeholder="например 25" /></label>
+                  <label data-fm-field="aimpointCount">Количество точек<input id="fm-aimpoint-count" type="number" step="1" value="8" placeholder="например 8" /></label>
+                </div>
+              </fieldset>
+
+              <fieldset data-fm-section="point" class="stack">
+                <legend>Параметры точки</legend>
+                <div class="pair pair-2">
+                  <label data-fm-field="pointX">Координата цели X<input id="fm-point-x" type="number" step="1" placeholder="например 4779" /></label>
+                  <label data-fm-field="pointY">Координата цели Y<input id="fm-point-y" type="number" step="1" placeholder="например 5381" /></label>
+                </div>
               </fieldset>
             </div>
           </article>
