@@ -9,6 +9,21 @@
 - `apps/observer-console`: панель корректировки с недолёт/перелёт, вправо/влево, повтор/залп и привязкой к орудию.
 - Авто-доставка корректировок в назначенное орудие и журнал миссий реализованы в `realtime-gateway`.
 
+
+## Fire Mission / Тип огня (Launcher UI)
+
+Новые режимы огня в `apps/launcher-ui` используют отдельную генерацию точек прицеливания (`AimPoints`) без изменения табличного solver баллистики:
+
+- `POINT` — базовый режим, одна точка цели для всех орудий.
+- `CONVERGED` — геометрически одна точка, режим для сходящегося огня.
+- `PARALLEL_SHEAF` — распределение орудий по ширине фронта (`sheafWidthM`, `bearingDeg`).
+- `OPEN_SHEAF` — как параллельный веер, но с большей шириной покрытия.
+- `CIRCULAR_AREA` — центр + кольцо точек (`radiusM`, `aimpointCount`).
+- `LINEAR` — набор точек по линии (`startPoint/endPoint` и `spacingM`).
+- `RECT_AREA` — сетка точек в прямоугольной зоне (`widthM`, `lengthM`, `bearingDeg`, `spacingM`).
+
+Пайплайн: выбрать режим → `generateAimPoints(modeConfig, context)` → раздать точки по орудиям (`SAME_POINT`/`PATTERN`) → выполнить `computeFireSolution` по каждой назначенной точке.
+
 ## Тесты
 
 ```bash
