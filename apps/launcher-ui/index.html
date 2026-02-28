@@ -18,8 +18,7 @@
       </header>
 
       <nav class="tabs" aria-label="Sections">
-        <button class="tab active" data-tab="home" data-i18n="tabHome" data-i18n-title="tipTabHome">Главная</button>
-        <button class="tab" data-tab="global" data-i18n="tabGlobal" data-i18n-title="tipTabGlobal">Глобальные настройки</button>
+        <button class="tab active" data-tab="global" data-i18n="tabGlobal" data-i18n-title="tipTabGlobal">Глобальные настройки</button>
         <button class="tab" data-tab="fire" data-i18n="tabFire" data-i18n-title="tipTabFire">Огневые задачи</button>
         <button class="tab" data-tab="counter-battery" data-i18n="tabCounterBattery">Контрбатарейная борьба</button>
         <button class="tab" data-tab="map" data-i18n="tabMap" data-i18n-title="tipTabMap">Карта</button>
@@ -27,40 +26,7 @@
         <button class="tab" data-tab="settings" data-i18n="tabSettings" data-i18n-title="tipTabSettings">Настройки</button>
       </nav>
 
-      <section class="tab-panel active" data-panel="home">
-        <div class="panel-grid panel-grid-3">
-          <article class="card" data-i18n-title="tipHomeGlobalCard">
-            <h2 data-i18n="homeConfiguration">Глобальные настройки</h2>
-            <div class="card-actions">
-              <button class="btn" data-open-tab="global" data-i18n="editGlobalData">Настроить орудия, батареи и наблюдателей</button>
-              <a class="btn ghost" href="http://localhost:8000/docs" target="_blank" rel="noreferrer" data-i18n="openApi">Открыть API</a>
-            </div>
-          </article>
-
-          <article class="card" data-i18n-title="tipHomeFireCard">
-            <h2 data-i18n="homeFire">Огневые задачи</h2>
-            <div class="card-actions">
-              <button class="btn" data-open-tab="fire" data-i18n="openMissionPlanner">Открыть вкладку задач</button>
-              <button class="btn ghost" id="health-check" data-i18n="checkServices" data-i18n-title="checkServicesHint">Проверить сервисы</button>
-            </div>
-          </article>
-
-          <article class="card" data-i18n-title="tipHomeMapCard">
-            <h2 data-i18n="homeMap">Карта и интеграции</h2>
-            <div class="card-actions">
-              <button class="btn" id="open-map" data-i18n="openMap">Открыть карту</button>
-            </div>
-          </article>
-        </div>
-
-
-
-        <div class="status-line">
-          <p class="status" data-service="ballistics"></p>
-        </div>
-      </section>
-
-      <section class="tab-panel" data-panel="global">
+      <section class="tab-panel active" data-panel="global">
         <div class="section-layout global-layout">
           <article class="card global-card">
             <h2 data-i18n="batterySectionTitle">Батареи</h2>
@@ -305,6 +271,9 @@
             <h2 data-i18n="safeDataTitle">Контроль данных</h2>
             <p data-i18n="safeDataDescription">Проверка журналов и экспорт служебных данных.</p>
             <div class="card-actions">
+              <a class="btn ghost" href="http://localhost:8000/docs" target="_blank" rel="noreferrer" data-i18n="openApi">Открыть API</a>
+              <button class="btn ghost" id="open-map" data-i18n="openMap">Открыть карту</button>
+              <button class="btn ghost" id="health-check" data-i18n="checkServices" data-i18n-title="checkServicesHint">Проверить сервисы</button>
               <button class="btn ghost" id="open-logs" data-i18n="openLogs">Открыть логи</button>
               <button class="btn ghost" id="export-data" data-i18n="exportData">Экспорт данных</button>
               <button class="btn danger" id="clear-data" data-i18n="clearAllData">Очистить данные</button>
