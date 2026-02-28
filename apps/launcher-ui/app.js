@@ -1340,12 +1340,63 @@ function buildSectorPolygonPoints({ x, y, heading, traverseDeg, radius }) {
 }
 
 function formatRulerMeasurement(p1, p2) {
-  const dx = Number(p2.x) - Number(p1.x);
-  const dy = Number(p2.y) - Number(p1.y);
+  const pointA = normalizeRulerPoint(p1);
+  const pointB = normalizeRulerPoint(p2);
+  if (!pointA || !pointB) return `${t('rulerMeasurement')}: —`;
+  const worldA = mapPointToWorldPoint(pointA);
+  const worldB = mapPointToWorldPoint(pointB);
+  const dx = worldB.x - worldA.x;
+  const dy = worldB.y - worldA.y;
   const distance = Math.hypot(dx, dy);
-  const azimuthDeg = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
+  const azimuthDeg = normalizeAzimuth((Math.atan2(dx, dy) * 180) / Math.PI);
   const azimuthMils = (azimuthDeg * 6400) / 360;
   return `${t('rulerMeasurement')}: D=${distance.toFixed(2)}m Az=${azimuthDeg.toFixed(2)}°/${azimuthMils.toFixed(1)} mil`;
+}
+
+function normalizeRulerPoint(point) {
+  if (!point) return null;
+  const mapX = Number(point.mapX ?? point.x);
+  const mapY = Number(point.mapY ?? point.y);
+  if (!Number.isFinite(mapX) || !Number.isFinite(mapY)) return null;
+  return { mapX, mapY };
+}
+
+function mapPointToWorldPoint(point) {
+  const mapPoint = normalizeRulerPoint(point);
+  if (!mapPoint) return { x: 0, y: 0 };
+  const { calibration } = getMapToolsSettings();
+  const scale = Number(calibration.scale) || 1;
+  return {
+    x: (mapPoint.mapX - Number(calibration.originMapX)) * scale + Number(calibration.originWorldX),
+    y: (Number(calibration.originMapY) - mapPoint.mapY) * scale + Number(calibration.originWorldY),
+  };
+}
+
+function updateRulerPoint(pointKey, latlng) {
+  const tools = getMapToolsSettings();
+  const lat = Number(latlng?.lat);
+  const lng = Number(latlng?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  const imagePoint = latLngToMapPoint(lat, lng);
+  const point = { mapX: imagePoint.x, mapY: imagePoint.y };
+  const currentA = normalizeRulerPoint(tools.ruler?.p1);
+  const currentB = normalizeRulerPoint(tools.ruler?.p2);
+  state.settings.mapTools = {
+    ...tools,
+    ruler: {
+      p1: pointKey === 'p1' ? point : currentA,
+      p2: pointKey === 'p2' ? point : currentB,
+    },
+  };
+  persistLauncherSettings();
+  refreshMapOverlay();
+  const nextA = pointKey === 'p1' ? point : currentA;
+  const nextB = pointKey === 'p2' ? point : currentB;
+  if (mapToolsOutput) {
+    mapToolsOutput.textContent = nextA && nextB
+      ? formatRulerMeasurement(nextA, nextB)
+      : `${t('rulerPointSet')}: ${pointKey === 'p1' ? 'A' : 'B'} (${point.mapX.toFixed(2)}, ${point.mapY.toFixed(2)})`;
+  }
 }
 
 function getNextCalibrationPointLabel() {
@@ -1424,18 +1475,18 @@ function onMapDoubleClick(event) {
       return;
     }
     if (toolType === 'ruler') {
-      const nextRuler = tools.ruler?.p1 && tools.ruler?.p2
-        ? { p1: imagePoint, p2: null }
-        : tools.ruler?.p1
-          ? { p1: tools.ruler.p1, p2: imagePoint }
-          : { p1: imagePoint, p2: null };
+      const point = { mapX: imagePoint.x, mapY: imagePoint.y };
+      const pointA = normalizeRulerPoint(tools.ruler?.p1);
+      const nextRuler = pointA
+        ? { p1: pointA, p2: point }
+        : { p1: point, p2: null };
       state.settings.mapTools = { ...tools, ruler: nextRuler };
       persistLauncherSettings();
       refreshMapOverlay();
       if (mapToolsOutput) {
         mapToolsOutput.textContent = nextRuler.p1 && nextRuler.p2
           ? formatRulerMeasurement(nextRuler.p1, nextRuler.p2)
-          : `${t('rulerPointSet')}: P1 (${imagePoint.x.toFixed(2)}, ${imagePoint.y.toFixed(2)})`;
+          : `${t('rulerPointSet')}: A (${point.mapX.toFixed(2)}, ${point.mapY.toFixed(2)})`;
       }
       return;
     }
@@ -2059,22 +2110,28 @@ function refreshMapOverlay() {
 
   const tools = getMapToolsSettings();
   firePatternOverlays = drawFirePatternOverlay(tools.activeFirePattern, markerStyle);
-  if (tools.ruler?.p1) {
-    const p1Marker = window.L.marker(mapPointToLatLng(tools.ruler.p1.x, tools.ruler.p1.y), {
-      icon: window.L.divIcon({ className: 'calibration-cross', html: '<span>R1</span>' }),
+  const rulerA = normalizeRulerPoint(tools.ruler?.p1);
+  const rulerB = normalizeRulerPoint(tools.ruler?.p2);
+  if (rulerA) {
+    const p1Marker = window.L.marker(mapPointToLatLng(rulerA.mapX, rulerA.mapY), {
+      icon: window.L.divIcon({ className: 'calibration-cross', html: '<span>A</span>' }),
+      draggable: true,
     }).addTo(leafletMap);
+    p1Marker.on('dragend', (event) => updateRulerPoint('p1', event.target.getLatLng()));
     rulerEndpointMarkers.push(p1Marker);
   }
-  if (tools.ruler?.p2) {
-    const p2Marker = window.L.marker(mapPointToLatLng(tools.ruler.p2.x, tools.ruler.p2.y), {
-      icon: window.L.divIcon({ className: 'calibration-cross', html: '<span>R2</span>' }),
+  if (rulerA && rulerB) {
+    const p2Marker = window.L.marker(mapPointToLatLng(rulerB.mapX, rulerB.mapY), {
+      icon: window.L.divIcon({ className: 'calibration-cross', html: '<span>B</span>' }),
+      draggable: true,
     }).addTo(leafletMap);
+    p2Marker.on('dragend', (event) => updateRulerPoint('p2', event.target.getLatLng()));
     rulerEndpointMarkers.push(p2Marker);
     rulerLine = window.L.polyline([
-      mapPointToLatLng(tools.ruler.p1.x, tools.ruler.p1.y),
-      mapPointToLatLng(tools.ruler.p2.x, tools.ruler.p2.y),
+      mapPointToLatLng(rulerA.mapX, rulerA.mapY),
+      mapPointToLatLng(rulerB.mapX, rulerB.mapY),
     ], { color: '#ffe066', dashArray: '7 7' }).addTo(leafletMap);
-    const rulerText = formatRulerMeasurement(tools.ruler.p1, tools.ruler.p2);
+    const rulerText = formatRulerMeasurement(rulerA, rulerB);
     rulerLine.bindTooltip(rulerText, { permanent: true, direction: 'center', className: 'map-label-tooltip' });
   }
   (tools.manualMarkers ?? []).forEach((item) => {
