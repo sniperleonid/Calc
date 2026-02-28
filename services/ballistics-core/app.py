@@ -13,6 +13,12 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for constrained envir
         def __init__(self, title: str):
             self.title = title
 
+        def get(self, _path: str):
+            def decorator(func):
+                return func
+
+            return decorator
+
         def post(self, _path: str):
             def decorator(func):
                 return func
@@ -28,6 +34,16 @@ from ballistics.triangulation import triangulate
 
 app = FastAPI(title="Ballistics Core API")
 logger = configure_logger()
+
+
+@app.get("/")
+def root():
+    return {"service": "ballistics-core", "status": "ok"}
+
+
+@app.get("/favicon.ico")
+def favicon():
+    return {"favicon": "not-configured"}
 
 
 @app.post("/solve-fire-mission")
