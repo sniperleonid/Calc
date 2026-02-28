@@ -182,6 +182,10 @@ const fireOutput = document.querySelector('#fire-output');
 const fmTargetTypeSelect = document.querySelector('#fm-target-type');
 const fmSheafTypeSelect = document.querySelector('#fm-sheaf-type');
 const fmControlTypeSelect = document.querySelector('#fm-control-type');
+const fmLengthInput = document.querySelector('#fm-length');
+const fmWidthInput = document.querySelector('#fm-width');
+const fmRadiusInput = document.querySelector('#fm-radius');
+const fmAimPointCountInput = document.querySelector('#fm-aimpoint-count');
 let activeAimPlan = null;
 let adjustmentSession = null;
 const cbMethodSelect = document.querySelector('#cb-method');
@@ -831,6 +835,7 @@ function applyI18n() {
   renderMissionSelectors();
   renderCounterBatterySection();
   syncFireModeSettingsVisibility();
+  syncFdcSettingsVisibility();
   hydrateMapToolsForm();
   syncMarkerTargetOptions();
   refreshMapOverlay();
@@ -1210,6 +1215,7 @@ function renderMissionSelectors() {
   });
   syncTrajectoryControls();
   syncFireModeSettingsVisibility();
+  syncFdcSettingsVisibility();
 }
 
 function getBatteryHeight(batteryId) {
@@ -1444,6 +1450,14 @@ function syncFireModeSettingsVisibility() {
   document.querySelectorAll('[data-fire-mode-panel]').forEach((panel) => {
     panel.classList.toggle('hidden', panel.dataset.fireModePanel !== mode);
   });
+}
+
+function syncFdcSettingsVisibility() {
+  const targetType = fmTargetTypeSelect?.value ?? 'POINT';
+  if (fmLengthInput) fmLengthInput.disabled = !(targetType === 'LINE' || targetType === 'RECTANGLE');
+  if (fmWidthInput) fmWidthInput.disabled = targetType !== 'RECTANGLE';
+  if (fmRadiusInput) fmRadiusInput.disabled = targetType !== 'CIRCLE';
+  if (fmAimPointCountInput) fmAimPointCountInput.disabled = targetType !== 'CIRCLE';
 }
 
 function toFiniteNumber(value, fallback = 0) {
@@ -1688,6 +1702,10 @@ function getFireMissionConfigFromUI() {
     center: point ? { ...point, z: targetHeight } : undefined,
     spacingM: toNum('#fm-spacing', 40),
     bearingDeg: toNum('#fm-bearing', 0),
+    lengthM: toNum('#fm-length', 200),
+    widthM: toNum('#fm-width', 200),
+    radiusM: toNum('#fm-radius', 100),
+    aimpointCount: Math.max(3, Math.round(toNum('#fm-aimpoint-count', 8))),
     sheafWidthM: toNum('#fm-sheaf-width', 180),
     openFactor: toNum('#fm-open-factor', 2),
     stepM: toNum('#fm-step-m', 50),
@@ -3384,6 +3402,10 @@ fireModeSelect?.addEventListener('change', () => {
   syncFireModeSettingsVisibility();
   persistLauncherSettings();
   refreshMapOverlay();
+});
+fmTargetTypeSelect?.addEventListener('change', () => {
+  syncFdcSettingsVisibility();
+  persistLauncherSettings();
 });
 trajectoryTypeSelect?.addEventListener('change', () => {
   syncTrajectoryControls();
