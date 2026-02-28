@@ -11,14 +11,21 @@ const LEGACY_TARGET_MAP = {
   LINEAR: 'LINE',
   RECT_AREA: 'RECTANGLE',
   CIRCULAR_AREA: 'CIRCLE',
+  'Точечная цель': 'POINT',
+  'Линия': 'LINE',
+  'Прямоугольник': 'RECTANGLE',
+  'Круг': 'CIRCLE',
   'Линейный': 'LINE',
   'Круговой': 'CIRCLE',
 };
 
 const LEGACY_SHEAF_MAP = {
+  CONVERGED: 'CONVERGED',
   PARALLEL_SHEAF: 'PARALLEL',
   OPEN_SHEAF: 'OPEN',
+  'Сходящийся': 'CONVERGED',
   'Параллельный': 'PARALLEL',
+  'Открытый': 'OPEN',
 };
 
 const LEGACY_CONTROL_MAP = {
@@ -27,7 +34,19 @@ const LEGACY_CONTROL_MAP = {
   CREEPING: 'CREEPING',
   TOT: 'TOT',
   MRSI: 'MRSI',
+  'Одновременный': 'SIMULTANEOUS',
+  'Поочерёдный': 'SEQUENCE',
+  'Ползущий огонь': 'CREEPING',
+  'Время поражения (TOT)': 'TOT',
 };
+
+function normalizeModeValue(value, knownValues, legacyMap, fallback) {
+  const normalized = String(value ?? '').trim();
+  if (knownValues.includes(normalized)) return normalized;
+  const mapped = legacyMap[normalized];
+  if (knownValues.includes(mapped)) return mapped;
+  return fallback;
+}
 
 function toFinite(value, fallback = 0) {
   const n = Number(value);
@@ -211,10 +230,13 @@ export function migrateOldMissionToFdc(oldMission = {}) {
   const creeping = oldMission.creeping ?? {};
   const tot = oldMission.tot ?? {};
   const mrsi = oldMission.mrsi ?? {};
+  const targetFallback = LEGACY_TARGET_MAP[oldMission.fireMode] ?? LEGACY_TARGET_MAP[oldMission.fireType] ?? 'POINT';
+  const sheafFallback = LEGACY_SHEAF_MAP[oldMission.fireMode] ?? LEGACY_SHEAF_MAP[oldMission.oldSheaf] ?? 'CONVERGED';
+  const controlFallback = LEGACY_CONTROL_MAP[oldMission.control] ?? LEGACY_CONTROL_MAP[oldMission.oldFireMode] ?? 'SIMULTANEOUS';
   return {
-    targetType: oldMission.targetType ?? LEGACY_TARGET_MAP[oldMission.fireMode] ?? LEGACY_TARGET_MAP[oldMission.fireType] ?? 'POINT',
-    sheafType: oldMission.sheafType ?? LEGACY_SHEAF_MAP[oldMission.fireMode] ?? LEGACY_SHEAF_MAP[oldMission.oldSheaf] ?? 'CONVERGED',
-    controlType: oldMission.controlType ?? LEGACY_CONTROL_MAP[oldMission.control] ?? LEGACY_CONTROL_MAP[oldMission.oldFireMode] ?? 'SIMULTANEOUS',
+    targetType: normalizeModeValue(oldMission.targetType, TARGET_TYPES, LEGACY_TARGET_MAP, targetFallback),
+    sheafType: normalizeModeValue(oldMission.sheafType, SHEAF_TYPES, LEGACY_SHEAF_MAP, sheafFallback),
+    controlType: normalizeModeValue(oldMission.controlType, CONTROL_TYPES, LEGACY_CONTROL_MAP, controlFallback),
     geometry: {
       point: oldMission.point,
       center: oldMission.center,
