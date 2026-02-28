@@ -1,0 +1,18 @@
+{
+  "profile_id": "2B14",
+  "name": "2B14 Podnos 82mm",
+  "min_elevation_mil": 785,
+  "max_elevation_mil": 1510,
+  "traverse_sector_deg": 360,
+  "heading_center_deg": 0,
+  "ammo_types": [
+    "O832DU_HE",
+    "D832DU_Smoke",
+    "S832S_Illumination",
+    "O832DU_HE_AM",
+    "D832DU_Smoke_AM",
+    "S832S_Illumination_AM"
+  ],
+  "min_range_m": 85,
+  "max_range_m": 3900
+}

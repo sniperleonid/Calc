@@ -1,0 +1,13 @@
+{
+  "profile_id": "BM21",
+  "name": "BM-21 Grad",
+  "min_elevation_mil": 0,
+  "max_elevation_mil": 967,
+  "traverse_sector_deg": 210,
+  "heading_center_deg": 0,
+  "ammo_types": [
+    "122MM_HE_Rocket"
+  ],
+  "min_range_m": 1500,
+  "max_range_m": 20400
+}

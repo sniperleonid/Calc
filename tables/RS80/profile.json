@@ -1,0 +1,13 @@
+{
+  "profile_id": "RS80",
+  "name": "RS80",
+  "min_elevation_mil": 0,
+  "max_elevation_mil": 785,
+  "traverse_sector_deg": 90,
+  "heading_center_deg": 0,
+  "ammo_types": [
+    "280MM_Thermobaric"
+  ],
+  "min_range_m": 600,
+  "max_range_m": 6000
+}
