@@ -2498,33 +2498,29 @@ function refreshMapOverlay() {
 
     const impactZoneStroke = '#ff3b30';
     const impactZoneFill = '#ff3b30';
-    const deadZoneFill = '#000000';
-    const azimuthGuideColor = '#00ff57';
+    const impactZoneStyle = {
+      color: impactZoneStroke,
+      weight: 1.5,
+      fillColor: impactZoneFill,
+      fillOpacity: 0.1,
+      dashArray: '8 8',
+      interactive: false,
+    };
     if (maxRange > 0) {
       if (traverseDeg >= 360) {
-        const fullTraverseRing = window.L.circle(gamePointToLatLng(gunX, gunY), {
-          radius: maxRange,
-          color: impactZoneStroke,
-          weight: 1.5,
-          fillColor: impactZoneFill,
-          fillOpacity: 0.2,
-          dashArray: '8 8',
-          interactive: false,
-        }).addTo(leafletMap);
+        const fullTraverseRing = window.L.polygon(
+          buildCircularRingPolygonPoints({
+            x: gunX,
+            y: gunY,
+            radius: maxRange,
+            innerRadius: minRange,
+          }).map((ring) => ring.map((point) => gamePointToLatLng(point.x, point.y))),
+          {
+            ...impactZoneStyle,
+            fillRule: 'evenodd',
+          },
+        ).addTo(leafletMap);
         gunMarkers.push(fullTraverseRing);
-
-        if (minRange > 0) {
-          const deadZoneRing = window.L.circle(gamePointToLatLng(gunX, gunY), {
-            radius: minRange,
-            color: deadZoneFill,
-            weight: 1.5,
-            fillColor: deadZoneFill,
-            fillOpacity: 0.2,
-            dashArray: '8 8',
-            interactive: false,
-          }).addTo(leafletMap);
-          gunMarkers.push(deadZoneRing);
-        }
       } else {
         const sectorPolygon = buildSectorPolygonPoints({
           x: gunX,
@@ -2534,54 +2530,8 @@ function refreshMapOverlay() {
           radius: maxRange,
           innerRadius: minRange,
         }).map((point) => gamePointToLatLng(point.x, point.y));
-        const fillSector = window.L.polygon(sectorPolygon, {
-          color: impactZoneStroke,
-          weight: 1,
-          fillColor: impactZoneFill,
-          fillOpacity: 0.25,
-          dashArray: '8 8',
-          interactive: false,
-        }).addTo(leafletMap);
+        const fillSector = window.L.polygon(sectorPolygon, impactZoneStyle).addTo(leafletMap);
         gunMarkers.push(fillSector);
-
-        if (minRange > 0) {
-          const deadZoneSector = buildSectorPolygonPoints({
-            x: gunX,
-            y: gunY,
-            heading: renderedHeading,
-            traverseDeg,
-            radius: minRange,
-            innerRadius: 0,
-          }).map((point) => gamePointToLatLng(point.x, point.y));
-          gunMarkers.push(window.L.polygon(deadZoneSector, {
-            color: deadZoneFill,
-            weight: 1,
-            fillColor: deadZoneFill,
-            fillOpacity: 0.25,
-            interactive: false,
-          }).addTo(leafletMap));
-        }
-
-        const guide = buildSectorGuideLines({
-          x: gunX,
-          y: gunY,
-          heading: renderedHeading,
-          traverseDeg,
-          minRadius: minRange,
-          maxRadius: maxRange,
-        });
-        const guideStyle = {
-          color: azimuthGuideColor,
-          weight: 2,
-          dashArray: '5 7',
-          interactive: false,
-        };
-        gunMarkers.push(window.L.polyline(guide.outerArc.map((point) => gamePointToLatLng(point.x, point.y)), guideStyle).addTo(leafletMap));
-        if (minRange > 0) {
-          gunMarkers.push(window.L.polyline(guide.innerArc.map((point) => gamePointToLatLng(point.x, point.y)), guideStyle).addTo(leafletMap));
-        }
-        gunMarkers.push(window.L.polyline(guide.edgeStart.map((point) => gamePointToLatLng(point.x, point.y)), guideStyle).addTo(leafletMap));
-        gunMarkers.push(window.L.polyline(guide.edgeEnd.map((point) => gamePointToLatLng(point.x, point.y)), guideStyle).addTo(leafletMap));
       }
     }
 
