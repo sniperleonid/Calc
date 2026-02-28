@@ -7,6 +7,7 @@ const LIMITS = {
 const COORD_LIMITS = { min: 0, max: 999999 };
 const HEIGHT_LIMITS = { min: 0, max: 10000 };
 const MAP_IMAGE_UPLOAD_MAX_BYTES = 150 * 1024 * 1024;
+const MAP_IMAGE_UPLOAD_MAX_DIMENSION = 4096;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -206,9 +207,7 @@ function getGunSetting(gunKey) {
 function getMapToolsSettings() {
   const defaults = {
     calibration: { scale: 1, originMapX: 0, originMapY: 0, originWorldX: 0, originWorldY: 0 },
-    imageBounds: { minX: 0, minY: 0, maxX: 4000, maxY: 4000 },
     imageUrl: '',
-    imageDataUrl: '',
     manualMarkers: [],
     ruler: { p1: null, p2: null },
     calibrationPoints: [],
@@ -217,7 +216,7 @@ function getMapToolsSettings() {
     calibrationScaleMeters: '',
     activeFirePattern: null,
   };
-  return { ...defaults, ...state.settings.mapTools, calibration: { ...defaults.calibration, ...(state.settings.mapTools?.calibration ?? {}) }, imageBounds: { ...defaults.imageBounds, ...(state.settings.mapTools?.imageBounds ?? {}) } };
+  return { ...defaults, ...state.settings.mapTools, calibration: { ...defaults.calibration, ...(state.settings.mapTools?.calibration ?? {}) } };
 }
 
 let leafletMap;
@@ -493,8 +492,8 @@ function persistLauncherSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
   } catch (error) {
     const tools = getMapToolsSettings();
-    if (!tools.imageDataUrl && !tools.imageUrl) throw error;
-    state.settings.mapTools = { ...tools, imageDataUrl: '', imageUrl: '' };
+    if (!tools.imageUrl) throw error;
+    state.settings.mapTools = { ...tools, imageUrl: '' };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
     if (mapImageUploadInput) mapImageUploadInput.value = '';
     if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageTooLarge');
@@ -1454,12 +1453,8 @@ function onMapDoubleClick(event) {
 }
 
 function hydrateMapToolsForm() {
-  const { imageBounds, calibration, calibrationMode, calibrationScaleMeters } = getMapToolsSettings();
+  const { calibration, calibrationMode, calibrationScaleMeters } = getMapToolsSettings();
   const fill = (id, val) => { const el = document.querySelector(id); if (el) el.value = String(val ?? ''); };
-  fill('#map-min-x', imageBounds.minX);
-  fill('#map-min-y', imageBounds.minY);
-  fill('#map-max-x', imageBounds.maxX);
-  fill('#map-max-y', imageBounds.maxY);
   fill('#cal-p0-x', calibration.originWorldX);
   fill('#cal-p0-y', calibration.originWorldY);
   fill('#cal-scale-meters', calibrationScaleMeters);
@@ -1470,7 +1465,7 @@ function hydrateMapToolsForm() {
 function upsertMapOverlay() {
   if (!leafletMap) return;
   const tools = getMapToolsSettings();
-  const imageSource = String(tools.imageUrl || tools.imageDataUrl || '');
+  const imageSource = String(tools.imageUrl || '');
   const overlayKey = imageSource.startsWith('data:')
     ? `${imageSource.length}:${imageSource.slice(0, 64)}`
     : imageSource;
@@ -1505,10 +1500,7 @@ function upsertMapOverlay() {
     const bounds = window.L.latLngBounds([[0, 0], [naturalHeight, naturalWidth]]);
     mapImageOverlay = window.L.imageOverlay(imageSource, bounds, { opacity: 0.85 }).addTo(leafletMap);
 
-    state.settings.mapTools = {
-      ...tools,
-      imageBounds: { minX: 0, minY: 0, maxX: naturalWidth, maxY: naturalHeight },
-    };
+    state.settings.mapTools = { ...tools };
     persistLauncherSettings();
     hydrateMapToolsForm();
     leafletMap.fitBounds(bounds);
@@ -1569,22 +1561,39 @@ function resetCalibration() {
   if (mapToolsOutput) mapToolsOutput.textContent = t('calibrationResetDone');
 }
 
-function applyMapImage() {
-  const tools = getMapToolsSettings();
-  const minX = Number(document.querySelector('#map-min-x')?.value || 0);
-  const minY = Number(document.querySelector('#map-min-y')?.value || 0);
-  const maxX = Number(document.querySelector('#map-max-x')?.value || 0);
-  const maxY = Number(document.querySelector('#map-max-y')?.value || 0);
-  state.settings.mapTools = { ...tools, imageBounds: { minX, minY, maxX, maxY } };
-  persistLauncherSettings();
-  refreshMapOverlay();
-  if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageApplied');
-}
+async function optimizeMapImageFile(file) {
+  if (!(file instanceof File)) return file;
+  if (!window.createImageBitmap) return file;
 
+  try {
+    const bitmap = await createImageBitmap(file);
+    const longestSide = Math.max(bitmap.width, bitmap.height);
+    const scale = longestSide > MAP_IMAGE_UPLOAD_MAX_DIMENSION ? MAP_IMAGE_UPLOAD_MAX_DIMENSION / longestSide : 1;
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const blob = await new Promise((resolve) => {
+      canvas.toBlob((encoded) => resolve(encoded), 'image/webp', 0.82);
+    });
+    if (!blob) return file;
+    if (blob.size >= file.size && scale === 1) return file;
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, '') || 'map-image'}.webp`, { type: 'image/webp' });
+  } catch {
+    return file;
+  }
+}
 
 async function uploadMapImageFile(file) {
   if (!(file instanceof File)) return false;
-  if (file.size > MAP_IMAGE_UPLOAD_MAX_BYTES) {
+  const optimizedFile = await optimizeMapImageFile(file);
+  if (optimizedFile.size > MAP_IMAGE_UPLOAD_MAX_BYTES) {
     if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageTooLarge');
     return false;
   }
@@ -1593,10 +1602,10 @@ async function uploadMapImageFile(file) {
     const response = await fetch('/api/map-image', {
       method: 'POST',
       headers: {
-        'Content-Type': file.type || 'application/octet-stream',
-        'X-File-Name': encodeURIComponent(file.name || 'map-image'),
+        'Content-Type': optimizedFile.type || 'application/octet-stream',
+        'X-File-Name': encodeURIComponent(optimizedFile.name || 'map-image'),
       },
-      body: file,
+      body: optimizedFile,
     });
 
     const payload = await response.json().catch(() => ({}));
@@ -1612,7 +1621,6 @@ async function uploadMapImageFile(file) {
     state.settings.mapTools = {
       ...getMapToolsSettings(),
       imageUrl: String(payload.url),
-      imageDataUrl: '',
     };
     persistLauncherSettings();
     refreshMapOverlay();
@@ -1648,11 +1656,25 @@ async function pasteMapImageFromClipboard() {
 }
 
 function clearMapImage() {
-  state.settings.mapTools = { ...getMapToolsSettings(), imageDataUrl: '', imageUrl: '' };
+  state.settings.mapTools = { ...getMapToolsSettings(), imageUrl: '' };
   if (mapImageUploadInput) mapImageUploadInput.value = '';
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageCleared');
+}
+
+async function hydrateMapImageFromServer() {
+  const tools = getMapToolsSettings();
+  if (tools.imageUrl) return;
+  try {
+    const response = await fetch('/api/map-image/latest');
+    if (!response.ok) return;
+    const payload = await response.json().catch(() => ({}));
+    if (!payload?.url) return;
+    state.settings.mapTools = { ...tools, imageUrl: String(payload.url) };
+    persistLauncherSettings();
+    refreshMapOverlay();
+  } catch {}
 }
 
 function clearManualMarkers() {
@@ -2354,7 +2376,6 @@ calibrationModeButton?.addEventListener('click', () => {
 });
 document.querySelector('#apply-calibration')?.addEventListener('click', applyCalibration);
 document.querySelector('#reset-calibration')?.addEventListener('click', resetCalibration);
-document.querySelector('#apply-map-image')?.addEventListener('click', applyMapImage);
 document.querySelector('#clear-map-image')?.addEventListener('click', clearMapImage);
 document.querySelector('#clear-manual-markers')?.addEventListener('click', clearManualMarkers);
 markerToolSelect?.addEventListener('change', () => {
@@ -2373,4 +2394,5 @@ pasteMapImageButton?.addEventListener('click', async () => {
 document.body.dataset.theme = state.theme;
 applyI18n();
 persistLauncherSettings();
+hydrateMapImageFromServer();
 runHealthCheck();

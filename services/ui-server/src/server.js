@@ -47,6 +47,22 @@ function listLogs() {
     .sort((a, b) => (a.name > b.name ? 1 : -1));
 }
 
+
+function getLatestMapImageUrl() {
+  if (!existsSync(uploadsRoot)) return null;
+
+  const latest = readdirSync(uploadsRoot)
+    .map((name) => ({ name, path: resolve(uploadsRoot, name) }))
+    .filter((entry) => entry.path.startsWith(uploadsRoot) && existsSync(entry.path) && statSync(entry.path).isFile())
+    .map((entry) => ({
+      name: entry.name,
+      mtimeMs: statSync(entry.path).mtimeMs,
+    }))
+    .sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
+
+  return latest ? `/map-images/${latest.name}` : null;
+}
+
 function saveMapImage(req, res) {
   const contentType = String(req.headers['content-type'] || '').toLowerCase();
   const extension = imageExtensionByType[contentType];
@@ -105,6 +121,12 @@ const server = createServer((req, res) => {
     saveMapImage(req, res);
     return;
   }
+  if (req.url === '/api/map-image/latest' && req.method === 'GET') {
+    const url = getLatestMapImageUrl();
+    sendJson(res, 200, { url });
+    return;
+  }
+
 
   if (req.url?.startsWith('/map-images/')) {
     const fileName = req.url.replace('/map-images/', '');
