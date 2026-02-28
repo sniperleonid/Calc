@@ -1,0 +1,20 @@
+{
+  "profile_id": "M252",
+  "name": "M252 81mm",
+  "min_elevation_mil": 800,
+  "max_elevation_mil": 1510,
+  "traverse_sector_deg": 360,
+  "heading_center_deg": 0,
+  "ammo_types": [
+    "M821_HE",
+    "M819_Smoke",
+    "M879_Practice",
+    "M853A1_Illumination",
+    "M821_HE_AM",
+    "M819_Smoke_AM",
+    "M879_Practice_AM",
+    "M853A1_Illumination_AM"
+  ],
+  "min_range_m": 80,
+  "max_range_m": 5900
+}

@@ -1,0 +1,13 @@
+{
+  "profile_id": "D30",
+  "name": "D-30 122mm",
+  "min_elevation_mil": -50,
+  "max_elevation_mil": 1230,
+  "traverse_sector_deg": 360,
+  "heading_center_deg": 0,
+  "ammo_types": [
+    "122mm_HE"
+  ],
+  "min_range_m": 400,
+  "max_range_m": 15300
+}

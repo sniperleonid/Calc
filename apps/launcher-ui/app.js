@@ -43,7 +43,6 @@ function loadLauncherSettings() {
       mission: parsed.mission ?? {},
       mapTools: parsed.mapTools ?? {},
       counterBattery: parsed.counterBattery ?? {},
-      artilleryProfiles: parsed.artilleryProfiles ?? {},
       gunSettings: parsed.gunSettings ?? {},
     };
   } catch {
@@ -59,7 +58,6 @@ function loadLauncherSettings() {
       mission: {},
       mapTools: {},
       counterBattery: {},
-      artilleryProfiles: {},
       gunSettings: {},
     };
   }
@@ -109,7 +107,7 @@ const i18n = {
     calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки', calibrationRequiredBeforeWork: 'Сначала выполните калибровку карты. Пока калибровка не завершена, расчёты и рабочие инструменты заблокированы.', lastCalibrationLabel: 'Последняя калибровка', lastCalibrationMissing: 'Последняя калибровка отсутствует',
     markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolTarget: 'Цель', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки', markerEditorTitle: 'Параметры метки', markerNameLabel: 'Название', markerAzimuthLabel: 'Азимут', markerEditorSaved: 'Параметры метки обновлены', markerDeleted: 'Метка удалена',
     rulerPointSet: 'Точка линейки установлена', rulerMeasurement: 'Линейка', rulerCleared: 'Линейка удалена', coordsCaptured: 'Координаты точки',
-    calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', applyManualMarkers: 'Применить ручные метки', mapSettingsTitle: 'Настройки карты', mapSettingsHint: 'Настройки карты скрыты и не мешают работе с метками.', markerLocked: 'Постоянную метку нельзя перемещать или менять', clearManualMarkers: 'Очистить ручные метки', profilesTitle: 'Профили орудий и боеприпасов', profilesHint: 'Настройка сектора огня, зон минимальной/максимальной дальности и привязок к снарядам/таблицам.', profileTraverseDeg: 'Сектор наведения (°)', profileMinRange: 'Минимальная дальность (м)', profileMaxRange: 'Максимальная дальность (м)', profileProjectiles: 'Привязанные снаряды', profileTables: 'Баллистические таблицы', mapRotationHint: 'Левая кнопка мыши по орудию: задать азимут', mapWarningPrefix: 'Предупреждение'
+    calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', applyManualMarkers: 'Применить ручные метки', mapSettingsTitle: 'Настройки карты', mapSettingsHint: 'Настройки карты скрыты и не мешают работе с метками.', markerLocked: 'Постоянную метку нельзя перемещать или менять', clearManualMarkers: 'Очистить ручные метки', profilesTitle: 'Профили орудий и боеприпасов', profilesHint: 'Профили загружаются из tables/<gun>/profile.json и редактируются вручную в файлах.', profileTraverseDeg: 'Сектор наведения (°)', profileMinRange: 'Минимальная дальность (м)', profileMaxRange: 'Максимальная дальность (м)', profileProjectiles: 'Привязанные снаряды', profileTables: 'Баллистические таблицы', mapRotationHint: 'Левая кнопка мыши по орудию: задать азимут', mapWarningPrefix: 'Предупреждение'
   },
   en: {
     appVersion: 'Calc v1', appTitle: 'Ballistics Calculator', appSubtitle: 'Unified shell for fire mission planning and operational data.',
@@ -147,7 +145,7 @@ const i18n = {
     calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points', calibrationRequiredBeforeWork: 'Complete map calibration first. Calculations and map tools are locked until calibration is applied.', lastCalibrationLabel: 'Last calibration', lastCalibrationMissing: 'No saved calibration yet',
     markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolTarget: 'Target', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target', markerEditorTitle: 'Marker parameters', markerNameLabel: 'Name', markerAzimuthLabel: 'Azimuth', markerEditorSaved: 'Marker parameters updated', markerDeleted: 'Marker deleted',
     rulerPointSet: 'Ruler point set', rulerMeasurement: 'Ruler', rulerCleared: 'Ruler removed', coordsCaptured: 'Picked coordinates',
-    calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', applyManualMarkers: 'Apply manual markers', mapSettingsTitle: 'Map settings', mapSettingsHint: 'Map settings are collapsible so they do not interfere with marker work.', markerLocked: 'Permanent marker cannot be moved or edited', clearManualMarkers: 'Clear manual markers', profilesTitle: 'Gun and ammo profiles', profilesHint: 'Configure fire sector, min/max range zones, and projectile/table bindings.', profileTraverseDeg: 'Traverse sector (°)', profileMinRange: 'Min range (m)', profileMaxRange: 'Max range (m)', profileProjectiles: 'Linked projectiles', profileTables: 'Ballistic tables', mapRotationHint: 'Left mouse on gun: point gun azimuth', mapWarningPrefix: 'Warning' 
+    calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', applyManualMarkers: 'Apply manual markers', mapSettingsTitle: 'Map settings', mapSettingsHint: 'Map settings are collapsible so they do not interfere with marker work.', markerLocked: 'Permanent marker cannot be moved or edited', clearManualMarkers: 'Clear manual markers', profilesTitle: 'Gun and ammo profiles', profilesHint: 'Profiles are loaded from tables/<gun>/profile.json and should be edited manually in files.', profileTraverseDeg: 'Traverse sector (°)', profileMinRange: 'Min range (m)', profileMaxRange: 'Max range (m)', profileProjectiles: 'Linked projectiles', profileTables: 'Ballistic tables', mapRotationHint: 'Left mouse on gun: point gun azimuth', mapWarningPrefix: 'Warning' 
   },
 };
 
@@ -222,21 +220,14 @@ function getMissionTargetLabel(targetId) {
   return getMissionTargetNameByIndex(index >= 0 ? index : 0);
 }
 
-let gunProfiles = ['mortar-120-standard', 'm777-howitzer', 'd30-standard'];
+let gunProfiles = [];
 let serverArtilleryProfiles = null;
 function getDefaultArtilleryProfiles() {
-  if (serverArtilleryProfiles && Object.keys(serverArtilleryProfiles).length) {
-    return { ...serverArtilleryProfiles };
-  }
-  return {
-    'mortar-120-standard': { name: 'Mortar 120', traverseDeg: 360, minRange: 450, maxRange: 7100, projectiles: 'HE/Smoke', tables: 'STD' },
-    'm777-howitzer': { name: 'M777', traverseDeg: 30, minRange: 3500, maxRange: 24500, projectiles: 'M107 HE', tables: 'M777/M107' },
-    'd30-standard': { name: 'D-30', traverseDeg: 60, minRange: 1000, maxRange: 15300, projectiles: 'HE', tables: 'D30/STD' },
-  };
+  return serverArtilleryProfiles ? { ...serverArtilleryProfiles } : {};
 }
 
 function getArtilleryProfiles() {
-  return { ...getDefaultArtilleryProfiles(), ...(state.settings.artilleryProfiles ?? {}) };
+  return getDefaultArtilleryProfiles();
 }
 
 function buildProfilesFromCatalog(catalog) {
@@ -251,9 +242,12 @@ function buildProfilesFromCatalog(catalog) {
     profiles[gun.id] = {
       name: profile.name ?? gun.id,
       traverseDeg: Number(profile.traverse_sector_deg ?? profile.traverseDeg ?? 360),
+      headingCenterDeg: Number(profile.heading_center_deg ?? profile.headingCenterDeg ?? 0),
+      minElevationMil: Number(profile.min_elevation_mil ?? profile.minElevationMil ?? 0),
+      maxElevationMil: Number(profile.max_elevation_mil ?? profile.maxElevationMil ?? 0),
       minRange: Number(profile.min_range_m ?? profile.minRange ?? 0),
       maxRange: Number(profile.max_range_m ?? profile.maxRange ?? 0),
-      projectiles: projectileNames.join('/'),
+      projectiles: profile.ammo_types?.join('/') ?? projectileNames.join('/'),
       tables: projectileNames.map((projectileId) => `${gun.id}/${projectileId}`).join(', '),
     };
   }
@@ -688,21 +682,6 @@ function persistLauncherSettings() {
     };
   });
 
-  const profileDraft = getArtilleryProfiles();
-  document.querySelectorAll('[data-profile-traverse]').forEach((input) => {
-    const profileId = input.dataset.profileTraverse;
-    const existing = profileDraft[profileId] ?? { name: profileId };
-    profileDraft[profileId] = {
-      ...existing,
-      traverseDeg: clamp(Number(input.value) || 360, 1, 360),
-      minRange: Math.max(0, Number(document.querySelector(`[data-profile-min-range="${profileId}"]`)?.value || 0)),
-      maxRange: Math.max(0, Number(document.querySelector(`[data-profile-max-range="${profileId}"]`)?.value || 0)),
-      projectiles: document.querySelector(`[data-profile-projectiles="${profileId}"]`)?.value ?? '',
-      tables: document.querySelector(`[data-profile-tables="${profileId}"]`)?.value ?? '',
-    };
-  });
-  state.settings.artilleryProfiles = profileDraft;
-
   state.settings.observerBindings = {};
   document.querySelectorAll('[data-observer-index]').forEach((input) => {
     const observerId = input.dataset.observerIndex;
@@ -884,15 +863,11 @@ async function runHealthCheck() {
 function clearLocalData() {
   if (!window.confirm(t('clearAllDataConfirm'))) return;
 
-  const persistedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
-  const preservedArtilleryProfiles = persistedSettings.artilleryProfiles ?? state.settings.artilleryProfiles ?? {};
-
   localStorage.removeItem(SETTINGS_KEY);
   localStorage.removeItem('calc.mapUrl');
   localStorage.removeItem('calc.missions');
 
   state.settings = loadLauncherSettings();
-  state.settings.artilleryProfiles = preservedArtilleryProfiles;
   state.mapUrl = '';
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
   applyI18n();
@@ -984,7 +959,7 @@ function renderProfilesEditor() {
   Object.entries(profiles).forEach(([profileId, profile]) => {
     const row = document.createElement('div');
     row.className = 'profile-row';
-    row.innerHTML = `<h3>${profile.name ?? profileId}</h3><div class="pair pair-5"><input data-profile-traverse="${profileId}" type="number" min="1" max="360" value="${profile.traverseDeg ?? 360}" placeholder="${t('profileTraverseDeg')}" /><input data-profile-min-range="${profileId}" type="number" min="0" value="${profile.minRange ?? 0}" placeholder="${t('profileMinRange')}" /><input data-profile-max-range="${profileId}" type="number" min="0" value="${profile.maxRange ?? 0}" placeholder="${t('profileMaxRange')}" /><input data-profile-projectiles="${profileId}" value="${profile.projectiles ?? ''}" placeholder="${t('profileProjectiles')}" /><input data-profile-tables="${profileId}" value="${profile.tables ?? ''}" placeholder="${t('profileTables')}" /></div>`;
+    row.innerHTML = `<h3>${profile.name ?? profileId}</h3><div class="pair pair-5"><input type="text" value="${profile.traverseDeg ?? 360}" placeholder="${t('profileTraverseDeg')}" readonly /><input type="text" value="${profile.minRange ?? 0}" placeholder="${t('profileMinRange')}" readonly /><input type="text" value="${profile.maxRange ?? 0}" placeholder="${t('profileMaxRange')}" readonly /><input type="text" value="${profile.projectiles ?? ''}" placeholder="${t('profileProjectiles')}" readonly /><input type="text" value="${profile.tables ?? ''}" placeholder="${t('profileTables')}" readonly /></div>`;
     profilesEditor.append(row);
   });
 }
@@ -2983,7 +2958,7 @@ document.addEventListener('change', (event) => {
 });
 document.addEventListener('change', (event) => {
   if (!(event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement)) return;
-  if (!event.target.matches('[data-gun-heading], [data-profile-traverse], [data-profile-min-range], [data-profile-max-range], [data-profile-projectiles], [data-profile-tables]')) return;
+  if (!event.target.matches('[data-gun-heading]')) return;
   persistLauncherSettings();
   renderProfilesEditor();
   renderGunsGrid();

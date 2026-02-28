@@ -1,6 +1,15 @@
 {
-  "profile_id": "m777",
+  "profile_id": "M777",
+  "name": "M777 155mm",
   "traverse_sector_deg": 30,
+  "heading_center_deg": 0,
+  "min_elevation_mil": -58,
+  "max_elevation_mil": 1250,
+  "min_range_m": 3500,
+  "max_range_m": 24500,
+  "ammo_types": [
+    "M107_155MM_HE"
+  ],
   "barrel_length_mm": 5080,
   "wear_factor": 0.98,
   "twist_rate": "1:20",

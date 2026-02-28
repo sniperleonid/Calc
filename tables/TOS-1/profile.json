@@ -1,0 +1,13 @@
+{
+  "profile_id": "TOS-1",
+  "name": "TOS-1",
+  "min_elevation_mil": 0,
+  "max_elevation_mil": 967,
+  "traverse_sector_deg": 90,
+  "heading_center_deg": 0,
+  "ammo_types": [
+    "220MM_Thermobaric"
+  ],
+  "min_range_m": 400,
+  "max_range_m": 6000
+}
