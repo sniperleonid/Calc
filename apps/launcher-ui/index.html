@@ -129,6 +129,37 @@
                 <input id="fire-rect-spacing" type="number" min="5" step="5" data-fire-setting="rectSpacing" placeholder="Spacing (m)" />
               </div>
             </div>
+            <h3>Fire Mission (FDC)</h3>
+            <div class="pair pair-2">
+              <select id="fm-target-type">
+                <option value="POINT">POINT</option>
+                <option value="LINE">LINE</option>
+                <option value="RECTANGLE">RECTANGLE</option>
+                <option value="CIRCLE">CIRCLE</option>
+              </select>
+              <select id="fm-sheaf-type">
+                <option value="CONVERGED">CONVERGED</option>
+                <option value="PARALLEL">PARALLEL</option>
+                <option value="OPEN">OPEN</option>
+              </select>
+              <select id="fm-control-type">
+                <option value="SIMULTANEOUS">SIMULTANEOUS</option>
+                <option value="SEQUENCE">SEQUENCE</option>
+                <option value="CREEPING">CREEPING</option>
+                <option value="TOT">TOT</option>
+                <option value="MRSI">MRSI</option>
+              </select>
+              <input id="fm-spacing" type="number" step="1" placeholder="Spacing m" value="40" />
+              <input id="fm-bearing" type="number" step="1" placeholder="Bearing°" value="0" />
+              <input id="fm-sheaf-width" type="number" step="1" placeholder="Sheaf width m" value="180" />
+              <input id="fm-open-factor" type="number" step="0.1" placeholder="Open factor" value="2" />
+              <input id="fm-step-m" type="number" step="1" placeholder="Creeping step m" value="50" />
+              <input id="fm-steps-count" type="number" step="1" placeholder="Creeping steps" value="3" />
+              <input id="fm-step-interval" type="number" step="0.5" placeholder="Step interval s" value="10" />
+              <input id="fm-tot-time" type="number" step="1" placeholder="TOT desired impact sec" value="0" />
+              <input id="fm-mrsi-rounds" type="number" step="1" placeholder="MRSI rounds" value="3" />
+              <input id="fm-mrsi-min-sep" type="number" step="0.5" placeholder="MRSI min sep s" value="2" />
+            </div>
           </article>
           <article class="card">
             <h2 data-i18n="actionsTitle">Действия</h2>
@@ -137,6 +168,9 @@
               <button class="btn" id="calculate-btn" data-i18n="calculate">Рассчитать</button>
               <button class="btn ghost" id="show-mto" data-i18n="showMto">Показать MTO</button>
               <button class="btn ghost" id="save-mission" data-i18n="logMission">Сохранить миссию</button>
+              <button class="btn" id="build-fire-mission">Сформировать миссию</button>
+              <button class="btn" id="next-fire-package">Следующий расчёт</button>
+              <button class="btn ghost" id="reset-fire-mission">Сброс миссии</button>
             </div>
             <pre id="fire-output" class="output"></pre>
           </article>

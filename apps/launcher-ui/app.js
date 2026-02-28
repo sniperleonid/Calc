@@ -1,6 +1,7 @@
 import { createCounterBatteryModule } from '/apps/counter-battery/module.js';
-import { computeFireSolution } from '/apps/ballistics-core/index.js';
+import { computeFireSolution, computeFireSolutionsMulti } from '/apps/ballistics-core/index.js';
 import { FIRE_MODE_IDS, buildFireModeConfig, generateAimPoints, pickAimPointForGun } from './fire-modes.js';
+import { buildAimPlan, getNextFirePackage, advancePlanCursor, isPlanComplete } from './fire-mission.js';
 
 const SETTINGS_KEY = 'calc.launcherSettings';
 const LIMITS = {
@@ -175,6 +176,10 @@ const trajectorySupportHint = document.querySelector('#trajectory-support-hint')
 const correctionObserverSelect = document.querySelector('#correction-observer');
 const correctionAnchorInfo = document.querySelector('#correction-anchor-info');
 const fireOutput = document.querySelector('#fire-output');
+const fmTargetTypeSelect = document.querySelector('#fm-target-type');
+const fmSheafTypeSelect = document.querySelector('#fm-sheaf-type');
+const fmControlTypeSelect = document.querySelector('#fm-control-type');
+let activeAimPlan = null;
 const cbMethodSelect = document.querySelector('#cb-method');
 const cbObservationsContainer = document.querySelector('#cb-observations');
 const cbOutput = document.querySelector('#cb-output');
@@ -1599,6 +1604,115 @@ async function saveMission() {
   });
   localStorage.setItem('calc.missions', JSON.stringify(missions));
   fireOutput.textContent = `${fireOutput.textContent}\n\n${t('missionSaved')} (${missions.length})`;
+}
+
+
+
+function getFireMissionConfigFromUI() {
+  const point = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
+  const targetHeight = parseHeightValue(document.querySelector('#target-height')?.value);
+  const battery = Number(missionBatterySelect.value || 1);
+  const selectedGun = missionGunSelect.value;
+  const gunCount = getGunCountForBattery(battery);
+  const gunIds = selectedGun === 'all' ? Array.from({ length: gunCount }, (_, idx) => String(idx + 1)) : [String(selectedGun)];
+  const toNum = (selector, fallback = 0) => {
+    const value = Number(document.querySelector(selector)?.value);
+    return Number.isFinite(value) ? value : fallback;
+  };
+  return {
+    missionName: document.querySelector('#mission-name')?.value || 'Mission',
+    targetType: fmTargetTypeSelect?.value || 'POINT',
+    sheafType: fmSheafTypeSelect?.value || 'CONVERGED',
+    control: fmControlTypeSelect?.value || 'SIMULTANEOUS',
+    guns: selectedGun === 'all' ? 'ALL' : gunIds,
+    roundsPerGun: 1,
+    point: point ? { ...point, z: targetHeight } : undefined,
+    center: point ? { ...point, z: targetHeight } : undefined,
+    spacingM: toNum('#fm-spacing', 40),
+    bearingDeg: toNum('#fm-bearing', 0),
+    sheafWidthM: toNum('#fm-sheaf-width', 180),
+    openFactor: toNum('#fm-open-factor', 2),
+    stepM: toNum('#fm-step-m', 50),
+    stepsCount: toNum('#fm-steps-count', 3),
+    stepIntervalSec: toNum('#fm-step-interval', 10),
+    desiredImpactTimeSec: toNum('#fm-tot-time', 0),
+    totMode: toNum('#fm-tot-time', 0) > 0 ? 'AT_TIME' : 'SYNC_NOW',
+    mrsiRoundsPerGun: toNum('#fm-mrsi-rounds', 3),
+    mrsiMinSeparationSec: toNum('#fm-mrsi-min-sep', 2),
+    mrsiAllowedArcs: ['LOW', 'HIGH'],
+  };
+}
+
+function getGunsForMissionEnv() {
+  const battery = Number(missionBatterySelect.value || 1);
+  const selectedGun = missionGunSelect.value;
+  const gunCount = getGunCountForBattery(battery);
+  const gunIds = selectedGun === 'all' ? Array.from({ length: gunCount }, (_, idx) => idx + 1) : [Number(selectedGun)];
+  return gunIds.map((gunId) => {
+    const gunPos = readXYFromInputs(
+      document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
+      document.querySelector(`[data-gun-y="${battery}-${gunId}"]`),
+    );
+    const batteryHeight = getBatteryHeight(battery);
+    const { profileId, profile } = getProfileForGun(battery, gunId);
+    const projectile = document.querySelector(`[data-mission-projectile-profile="${profileId}"]`)?.value || parseProjectileOptions(profile)[0];
+    return {
+      id: String(gunId),
+      pos: { x: gunPos?.x ?? 0, y: gunPos?.y ?? 0, z: batteryHeight },
+      weaponId: `${profileId}/${projectile}`,
+    };
+  });
+}
+
+function buildFireMissionPlan() {
+  const config = getFireMissionConfigFromUI();
+  const guns = getGunsForMissionEnv();
+  activeAimPlan = buildAimPlan(config, guns);
+  fireOutput.textContent = `Миссия ${config.missionName} сформирована. Фаз: ${activeAimPlan.summary.totalPhases}. Нажмите «Следующий расчёт».`;
+}
+
+async function showNextFirePackage() {
+  if (!activeAimPlan) {
+    fireOutput.textContent = 'Сначала нажмите «Сформировать миссию».';
+    return;
+  }
+  if (isPlanComplete(activeAimPlan)) {
+    fireOutput.textContent = 'Миссия завершена.';
+    return;
+  }
+  const guns = getGunsForMissionEnv();
+  const env = {
+    gunPositions: Object.fromEntries(guns.map((g) => [g.id, g.pos])),
+    weaponByGunId: Object.fromEntries(guns.map((g) => [g.id, g.weaponId])),
+    computeFireSolution,
+    computeFireSolutionsMulti,
+    wind: { speedMps: 0, fromDeg: 0 },
+    arc: 'AUTO',
+  };
+  const pkg = await getNextFirePackage(activeAimPlan, env);
+  if (!pkg) {
+    fireOutput.textContent = 'Нет доступных фаз.';
+    return;
+  }
+  const rows = pkg.assignments.flatMap((assignment) => assignment.commands.map((command, idx) => {
+    const point = activeAimPlan.aimPoints[command.aimPointIndex];
+    const solution = pkg.solutions.perGunSolutions[assignment.gunId]?.[idx]?.solution;
+    const base = `Gun ${assignment.gunId}: Aim X=${point.x.toFixed(1)} Y=${point.y.toFixed(1)} Az=${Number(solution?.azimuthDeg || 0).toFixed(2)} Elev=${Number(solution?.elevMil || 0).toFixed(1)} TOF=${Number(solution?.tofSec || 0).toFixed(2)}`;
+    if (command.mrsiShotPlan?.length) {
+      return `${base} | MRSI ${command.mrsiShotPlan.map((shot) => `#${shot.shotIndex} d=${shot.fireDelaySec.toFixed(1)}s ch=${shot.chargeId}`).join(', ')}`;
+    }
+    if (Number.isFinite(command.fireDelaySec)) {
+      return `${base} | Delay=${command.fireDelaySec.toFixed(2)}s`;
+    }
+    return base;
+  }));
+  fireOutput.textContent = `Фаза ${pkg.phase.phaseIndex + 1}/${activeAimPlan.phases.length} (${pkg.phase.label})\n${rows.join('\n')}`;
+  activeAimPlan = advancePlanCursor(activeAimPlan);
+}
+
+function resetFireMissionPlan() {
+  activeAimPlan = null;
+  fireOutput.textContent = 'Миссия сброшена.';
 }
 
 function initializeMap() {
@@ -3074,6 +3188,9 @@ document.querySelector('#open-map')?.addEventListener('click', openMap);
 document.querySelector('#calculate-btn')?.addEventListener('click', () => { calculateFire(); });
 document.querySelector('#show-mto')?.addEventListener('click', () => { showMto(); });
 document.querySelector('#save-mission')?.addEventListener('click', () => { saveMission(); });
+document.querySelector('#build-fire-mission')?.addEventListener('click', () => { buildFireMissionPlan(); });
+document.querySelector('#next-fire-package')?.addEventListener('click', () => { showNextFirePackage(); });
+document.querySelector('#reset-fire-mission')?.addEventListener('click', () => { resetFireMissionPlan(); });
 document.querySelector('#save-correction')?.addEventListener('click', saveCorrectionSettings);
 document.querySelector('#reset-correction')?.addEventListener('click', resetCorrectionSettings);
 document.querySelector('#apply-observer-targeting')?.addEventListener('click', applyObserverTargeting);

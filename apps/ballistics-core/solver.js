@@ -94,7 +94,7 @@ function interpolateRows(rows, distance) {
   return sorted.at(-1);
 }
 
-function pickChargeByDistance(table, distance) {
+function pickChargeByDistance(table, distance, preferredChargeId) {
   const candidates = [];
   for (const chargeId of table?.charges || []) {
     const rows = getRangeTableRows(table, String(chargeId));
@@ -104,6 +104,11 @@ function pickChargeByDistance(table, distance) {
     const minRange = Math.min(...ranges);
     const maxRange = Math.max(...ranges);
     candidates.push({ chargeId: String(chargeId), minRange, maxRange, rows });
+  }
+
+  if (preferredChargeId) {
+    const preferred = candidates.find((candidate) => candidate.chargeId === String(preferredChargeId));
+    if (preferred) return preferred;
   }
 
   const inRange = candidates
@@ -116,8 +121,8 @@ function pickChargeByDistance(table, distance) {
     .at(-1) ?? null;
 }
 
-function solveFromTable({ table, arcType, weapon, bearingRad, range2D, dz, crossWindMps }) {
-  const selected = pickChargeByDistance(table, range2D);
+function solveFromTable({ table, arcType, weapon, bearingRad, range2D, dz, crossWindMps, preferredChargeId }) {
+  const selected = pickChargeByDistance(table, range2D, preferredChargeId);
   if (!selected) return null;
 
   const base = interpolateRows(selected.rows, range2D);
@@ -194,6 +199,7 @@ export async function solveFiringSolution(input) {
         range2D,
         dz,
         crossWindMps: ff.cross,
+        preferredChargeId: req.preferredChargeId,
       });
       if (solved) return solved;
     }
@@ -205,7 +211,8 @@ export async function solveFiringSolution(input) {
     const guesses = [];
     if (table?.charges?.length) {
       for (const chargeId of table.charges) {
-        const rows = getRangeTableRows(table, String(chargeId));
+      if (req.preferredChargeId && String(chargeId) !== String(req.preferredChargeId)) continue;
+      const rows = getRangeTableRows(table, String(chargeId));
         const base = interpolateRows(rows, range2D);
         if (!base || !Number.isFinite(base.elevation)) continue;
         guesses.push({ chargeId: String(chargeId), elevMil: base.elevation, dElev: base.dElev });
@@ -262,6 +269,27 @@ export async function solveFiringSolution(input) {
 }
 
 export const computeFireSolution = solveFiringSolution;
+export async function computeFireSolutionsMulti(input, options = {}) {
+  const arcs = Array.isArray(options.allowedArcs) && options.allowedArcs.length ? options.allowedArcs : ['LOW', 'HIGH', 'DIRECT'];
+  const weapon = await getWeapon(input.weaponId);
+  const charges = options.chargesToTry?.length
+    ? options.chargesToTry.map((item) => String(item))
+    : (weapon.charges || []).map((charge) => String(charge.id));
+
+  const results = [];
+  for (const arc of arcs) {
+    for (const chargeId of charges) {
+      const solved = await solveFiringSolution({ ...input, arc, preferredChargeId: chargeId });
+      if (!solved || !Number.isFinite(solved.tofSec)) continue;
+      if (results.some((item) => Math.abs(item.tofSec - solved.tofSec) < 0.3 && item.arcType === solved.arcType)) continue;
+      results.push(solved);
+    }
+  }
+
+  const sorted = results.sort((a, b) => (a.missDistance - b.missDistance) || (a.tofSec - b.tofSec));
+  const maxSolutions = Math.max(1, Number(options.maxSolutions) || sorted.length);
+  return sorted.slice(0, maxSolutions);
+}
 export const calcDistance2D = distance2D;
 export function calcBearingDeg(dx, dy) { return wrapDeg(radToDeg(bearingFromNorthRad(dx, dy))); }
 export function degToMil(deg, milsPerCircle = 6400) { return radToMil((deg * Math.PI) / 180, milsPerCircle); }
