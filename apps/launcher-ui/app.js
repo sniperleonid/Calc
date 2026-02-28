@@ -1630,6 +1630,41 @@ function getGunsForMissionEnv() {
   });
 }
 
+function evaluateGunEngagementConstraints({ batteryId, gunId, point }) {
+  if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+    return { allowed: false, inSector: false, inRange: false, targetAz: null, distance: null };
+  }
+
+  const gunPoint = readXYFromInputs(
+    document.querySelector(`[data-gun-x="${batteryId}-${gunId}"]`),
+    document.querySelector(`[data-gun-y="${batteryId}-${gunId}"]`),
+  );
+  if (!gunPoint) {
+    return { allowed: false, inSector: false, inRange: false, targetAz: null, distance: null };
+  }
+
+  const { profile, heading } = getProfileForGun(batteryId, Number(gunId));
+  const traverseDeg = Math.max(0, Number(profile?.traverseDeg) || 360);
+  const minRange = Math.max(0, Number(profile?.minRange) || 0);
+  const maxRange = Math.max(minRange, Number(profile?.maxRange) || 0);
+  const dx = point.x - gunPoint.x;
+  const dy = point.y - gunPoint.y;
+  const targetAz = normalizeAzimuth((Math.atan2(dx, dy) * 180) / Math.PI);
+  const distance = Math.hypot(dx, dy);
+  const hasHeading = Number.isFinite(heading) && heading < 360;
+  const sectorHalf = traverseDeg / 2;
+  const inSector = !hasHeading || traverseDeg >= 360 || getAzimuthDelta(heading, targetAz) <= sectorHalf;
+  const inRange = distance >= minRange && (maxRange <= 0 || distance <= maxRange);
+
+  return {
+    allowed: inSector && inRange,
+    inSector,
+    inRange,
+    targetAz,
+    distance,
+  };
+}
+
 function buildFireMissionPlan() {
   const config = migrateOldMissionToFdc(getFireMissionConfigFromUI());
   const guns = getGunsForMissionEnv();
@@ -1679,7 +1714,25 @@ async function showNextFirePackage() {
     if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
       return `Gun ${assignment.gunId}: недоступна точка прицеливания (индекс ${command.aimPointIndex ?? 'n/a'})`;
     }
+
+    const constraints = evaluateGunEngagementConstraints({
+      batteryId: Number(missionBatterySelect?.value || 1),
+      gunId: assignment.gunId,
+      point,
+    });
+    if (!constraints.allowed) {
+      const azPart = Number.isFinite(constraints.targetAz) ? ` Az=${constraints.targetAz.toFixed(2)}°` : '';
+      const distPart = Number.isFinite(constraints.distance) ? ` D=${constraints.distance.toFixed(1)}m` : '';
+      const reasons = [constraints.inSector ? null : 'вне сектора', constraints.inRange ? null : 'вне дальности']
+        .filter(Boolean)
+        .join(', ');
+      return `Gun ${assignment.gunId}: недоступно (${reasons || 'ограничение орудия'})${azPart}${distPart}`;
+    }
+
     const solution = solvedRow?.solution;
+    if (!solution || !Number.isFinite(solution.azimuthDeg) || !Number.isFinite(solution.elevMil)) {
+      return `Gun ${assignment.gunId}: недоступно (нет баллистического решения в таблицах)`;
+    }
     const base = `Gun ${assignment.gunId}: Aim X=${point.x.toFixed(1)} Y=${point.y.toFixed(1)} Az=${Number(solution?.azimuthDeg || 0).toFixed(2)} Elev=${Number(solution?.elevMil || 0).toFixed(1)} TOF=${Number(solution?.tofSec || 0).toFixed(2)}`;
     if (command.mrsiShotPlan?.length) {
       return `${base} | MRSI ${command.mrsiShotPlan.map((shot) => `#${shot.shotIndex} d=${shot.fireDelaySec.toFixed(1)}s ch=${shot.chargeId}`).join(', ')}`;
