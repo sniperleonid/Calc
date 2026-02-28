@@ -18,13 +18,13 @@
       </header>
 
       <nav class="tabs" aria-label="Sections">
-        <button class="tab active" data-tab="home" data-i18n="tabHome" data-i18n-title="tipTabHome">Главная</button>
-        <button class="tab" data-tab="global" data-i18n="tabGlobal" data-i18n-title="tipTabGlobal">Глобальные настройки</button>
-        <button class="tab" data-tab="fire" data-i18n="tabFire" data-i18n-title="tipTabFire">Огневые задачи</button>
-        <button class="tab" data-tab="counter-battery" data-i18n="tabCounterBattery">Контрбатарейная борьба</button>
-        <button class="tab" data-tab="map" data-i18n="tabMap" data-i18n-title="tipTabMap">Карта</button>
-        <button class="tab" data-tab="safety" data-i18n="tabSafety" data-i18n-title="tipTabSafety">Безопасность и данные</button>
-        <button class="tab" data-tab="settings" data-i18n="tabSettings" data-i18n-title="tipTabSettings">Настройки</button>
+        <button class="tab active" data-tab="home" data-tab-icon="🏠" data-i18n="tabHome" data-i18n-title="tipTabHome">Главная</button>
+        <button class="tab" data-tab="global" data-tab-icon="🧭" data-i18n="tabGlobal" data-i18n-title="tipTabGlobal">Глобальные настройки</button>
+        <button class="tab" data-tab="fire" data-tab-icon="🎯" data-i18n="tabFire" data-i18n-title="tipTabFire">Огневые задачи</button>
+        <button class="tab" data-tab="counter-battery" data-tab-icon="🛰️" data-i18n="tabCounterBattery">Контрбатарейная борьба</button>
+        <button class="tab" data-tab="map" data-tab-icon="🗺️" data-i18n="tabMap" data-i18n-title="tipTabMap">Карта</button>
+        <button class="tab" data-tab="safety" data-tab-icon="🛡️" data-i18n="tabSafety" data-i18n-title="tipTabSafety">Безопасность и данные</button>
+        <button class="tab" data-tab="settings" data-tab-icon="⚙️" data-i18n="tabSettings" data-i18n-title="tipTabSettings">Настройки</button>
       </nav>
 
       <section class="tab-panel active" data-panel="home">
@@ -181,7 +181,7 @@
             <p class="hint" data-i18n="mapLegendHint">Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».</p>
             <div id="map-legend" class="stack"></div>
 
-            <h2 data-i18n="mapToolsTitle">Инструменты карты и калибровки</h2>
+            <h2 data-i18n="mapToolsTitle">Инструменты меток</h2>
             <label for="marker-tool" data-i18n="markerToolLabel">Тип метки</label>
             <select id="marker-tool">
               <option value="gun" data-i18n="markerToolGun">Активное орудие</option>
@@ -193,34 +193,7 @@
             <label for="marker-target" data-i18n="markerTargetLabel">Активная цель метки</label>
             <select id="marker-target"></select>
             <div class="card-actions">
-              <button class="btn ghost" id="toggle-calibration-mode" data-i18n="calibrationModeToggle">Калибровка: выкл</button>
-            </div>
-
-            <div id="calibration-controls" class="stack hidden">
-              <p class="hint" data-i18n="calibrationHint">Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.</p>
-              <p class="hint" id="calibration-last-info"></p>
-              <div class="pair pair-2">
-                <input id="cal-p0-x" type="number" placeholder="P0 X" />
-                <input id="cal-p0-y" type="number" placeholder="P0 Y" />
-              </div>
-              <div class="pair pair-1">
-                <input id="cal-scale-meters" type="number" min="0" step="0.1" placeholder="P1-P2 scale (m)" />
-              </div>
-              <div class="card-actions inline-actions">
-                <button class="btn ghost" id="apply-calibration" data-i18n="applyCalibration">Применить калибровку</button>
-                <button class="btn ghost" id="reset-calibration" data-i18n="resetCalibration">Сбросить калибровку</button>
-              </div>
-            </div>
-
-            <label for="map-image-upload" data-i18n="mapImageUpload">Загрузить свою карту (PNG/JPG)</label>
-            <input id="map-image-upload" type="file" accept="image/png,image/jpeg,image/webp" />
-            <div class="card-actions">
-              <button class="btn ghost" id="paste-map-image" data-i18n="pasteMapImage">Вставить карту из буфера</button>
-            </div>
-            <div class="card-actions inline-actions">
-              <button class="btn ghost" id="clear-map-image" data-i18n="clearMapImage">Убрать карту</button>
-            </div>
-            <div class="card-actions">
+              <button class="btn" id="apply-manual-markers" data-i18n="applyManualMarkers">Применить ручные метки</button>
               <button class="btn ghost" id="clear-manual-markers" data-i18n="clearManualMarkers">Очистить ручные метки</button>
             </div>
             <pre id="map-tools-output" class="output compact-output"></pre>
@@ -300,6 +273,35 @@
               <option value="terminal" data-i18n="themeTerminal">Terminal Green</option>
               <option value="midnight" data-i18n="themeMidnight">Midnight Blue</option>
             </select>
+          </article>
+
+          <article class="card">
+            <h2 data-i18n="mapSettingsTitle">Настройки карты</h2>
+            <p class="hint" data-i18n="mapSettingsHint">Калибровка и загрузка карты вынесены сюда, чтобы не загромождать вкладку с метками.</p>
+            <div class="card-actions">
+              <button class="btn ghost" id="toggle-calibration-mode" data-i18n="calibrationModeToggle">Калибровка: выкл</button>
+            </div>
+            <div id="calibration-controls" class="stack hidden">
+              <p class="hint" data-i18n="calibrationHint">Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.</p>
+              <p class="hint" id="calibration-last-info"></p>
+              <div class="pair pair-2">
+                <input id="cal-p0-x" type="number" placeholder="P0 X" />
+                <input id="cal-p0-y" type="number" placeholder="P0 Y" />
+              </div>
+              <div class="pair pair-1">
+                <input id="cal-scale-meters" type="number" min="0" step="0.1" placeholder="P1-P2 scale (m)" />
+              </div>
+              <div class="card-actions inline-actions">
+                <button class="btn ghost" id="apply-calibration" data-i18n="applyCalibration">Применить калибровку</button>
+                <button class="btn ghost" id="reset-calibration" data-i18n="resetCalibration">Сбросить калибровку</button>
+              </div>
+            </div>
+            <label for="map-image-upload" data-i18n="mapImageUpload">Загрузить свою карту (PNG/JPG)</label>
+            <input id="map-image-upload" type="file" accept="image/png,image/jpeg,image/webp" />
+            <div class="card-actions inline-actions">
+              <button class="btn ghost" id="paste-map-image" data-i18n="pasteMapImage">Вставить карту из буфера</button>
+              <button class="btn ghost" id="clear-map-image" data-i18n="clearMapImage">Убрать карту</button>
+            </div>
           </article>
 
           <article class="card">
