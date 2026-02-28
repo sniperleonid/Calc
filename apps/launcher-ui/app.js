@@ -1565,6 +1565,29 @@ function buildActiveFirePattern({ mode, centerPoint, aimPoints }) {
   return { mode, geometry: { type: 'point-cloud', points: aimPoints } };
 }
 
+function deriveFireModeFromFdcConfig(config = {}) {
+  if (config.targetType === 'LINE') return FIRE_MODE_IDS.LINEAR;
+  if (config.targetType === 'RECTANGLE') return FIRE_MODE_IDS.RECT_AREA;
+  if (config.targetType === 'CIRCLE') return FIRE_MODE_IDS.CIRCULAR_AREA;
+  if (config.sheafType === 'PARALLEL') return FIRE_MODE_IDS.PARALLEL_SHEAF;
+  if (config.sheafType === 'OPEN') return FIRE_MODE_IDS.OPEN_SHEAF;
+  if (config.sheafType === 'CONVERGED') return FIRE_MODE_IDS.CONVERGED;
+  return FIRE_MODE_IDS.POINT;
+}
+
+function updateActiveFirePatternOnMap(plan, config) {
+  const tools = getMapToolsSettings();
+  const mode = deriveFireModeFromFdcConfig(config);
+  const centerPoint = config?.geometry?.center ?? config?.geometry?.point ?? plan?.aimPoints?.[0] ?? null;
+  const pattern = buildActiveFirePattern({ mode, centerPoint, aimPoints: plan?.aimPoints ?? [] });
+  state.settings.mapTools = {
+    ...tools,
+    activeFirePattern: pattern,
+  };
+  persistLauncherSettings();
+  refreshMapOverlay();
+}
+
 async function calculateFire() {
   try {
     buildFireMissionPlan();
@@ -1680,6 +1703,7 @@ function buildFireMissionPlan() {
   const config = migrateOldMissionToFdc(getFireMissionConfigFromUI());
   const guns = getGunsForMissionEnv();
   activeAimPlan = buildAimPlanFromFdc(config, guns);
+  updateActiveFirePatternOnMap(activeAimPlan, config);
   if (adjustmentSession) {
     const correction = getMissionCorrection();
     const anchorGun = Number(missionGunSelect?.value === 'all' ? 1 : missionGunSelect?.value || 1);
@@ -1744,6 +1768,12 @@ async function showNextFirePackage() {
 function resetFireMissionPlan() {
   activeAimPlan = null;
   adjustmentSession = null;
+  state.settings.mapTools = {
+    ...getMapToolsSettings(),
+    activeFirePattern: null,
+  };
+  persistLauncherSettings();
+  refreshMapOverlay();
   updateAdjustmentHud();
   fireOutput.textContent = 'Миссия сброшена.';
 }
