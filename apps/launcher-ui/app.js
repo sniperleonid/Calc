@@ -2,6 +2,7 @@ import { createCounterBatteryModule } from '/apps/counter-battery/module.js';
 import { computeFireSolution, computeFireSolutionsMulti } from '/apps/ballistics-core/index.js';
 import { FIRE_MODE_IDS, buildFireModeConfig, generateAimPoints, pickAimPointForGun } from './fire-modes.js';
 import { buildAimPlan, getNextFirePackage, advancePlanCursor, isPlanComplete } from '/apps/fire-control/src/fire-mission.js';
+import { adjustDirection, adjustRange, createAdjustmentState, decomposeWind, getAdjustmentOffset } from '/apps/fire-control/src/adjustment.js';
 
 const SETTINGS_KEY = 'calc.launcherSettings';
 const LIMITS = {
@@ -175,11 +176,14 @@ const indirectArcSettings = document.querySelector('#indirect-arc-settings');
 const trajectorySupportHint = document.querySelector('#trajectory-support-hint');
 const correctionObserverSelect = document.querySelector('#correction-observer');
 const correctionAnchorInfo = document.querySelector('#correction-anchor-info');
+const adjustmentOffsetInfo = document.querySelector('#adjustment-offset-info');
+const windComponentsInfo = document.querySelector('#wind-components-info');
 const fireOutput = document.querySelector('#fire-output');
 const fmTargetTypeSelect = document.querySelector('#fm-target-type');
 const fmSheafTypeSelect = document.querySelector('#fm-sheaf-type');
 const fmControlTypeSelect = document.querySelector('#fm-control-type');
 let activeAimPlan = null;
+let adjustmentSession = null;
 const cbMethodSelect = document.querySelector('#cb-method');
 const cbObservationsContainer = document.querySelector('#cb-observations');
 const cbOutput = document.querySelector('#cb-output');
@@ -1180,10 +1184,16 @@ function renderMissionSelectors() {
 
   syncCorrectionObserverOptions();
   const correction = state.settings.mission.correction ?? {};
+  const wind = state.settings.mission.wind ?? {};
   const correctionLrInput = document.querySelector('#correction-lr');
   const correctionAddDropInput = document.querySelector('#correction-add-drop');
+  const windSpeedInput = document.querySelector('#wind-speed');
+  const windDirectionInput = document.querySelector('#wind-direction');
   if (correctionLrInput) correctionLrInput.value = correction.lateralMeters ?? 0;
   if (correctionAddDropInput) correctionAddDropInput.value = correction.rangeMeters ?? 0;
+  if (windSpeedInput) windSpeedInput.value = wind.speedMps ?? 0;
+  if (windDirectionInput) windDirectionInput.value = wind.directionDeg ?? 0;
+  updateAdjustmentHud();
 
   document.querySelector('#observer-target-distance').value = state.settings.mission.observerTargeting?.distance ?? '';
   document.querySelector('#observer-target-horizontal-distance').value = state.settings.mission.observerTargeting?.horizontalDistance ?? '';
@@ -1264,6 +1274,47 @@ function getMissionCorrection() {
   };
 }
 
+function getMissionWindSettings() {
+  const missionWind = state.settings.mission?.wind ?? {};
+  return {
+    speedMps: Number(document.querySelector('#wind-speed')?.value ?? missionWind.speedMps ?? 0) || 0,
+    directionDeg: Number(document.querySelector('#wind-direction')?.value ?? missionWind.directionDeg ?? 0) || 0,
+    model: 'CONSTANT',
+  };
+}
+
+function updateAdjustmentHud() {
+  if (!adjustmentOffsetInfo || !windComponentsInfo) return;
+  const offset = getAdjustmentOffset(adjustmentSession);
+  adjustmentOffsetInfo.textContent = `ΔTarget: ΔX ${offset.dx.toFixed(1)} m | ΔY ${offset.dy.toFixed(1)} m`;
+  const firstGun = getGunsForMissionEnv()[0]?.pos;
+  const target = adjustmentSession?.currentTarget ?? readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
+  if (!firstGun || !target) {
+    windComponentsInfo.textContent = 'Headwind: 0 m/s | Crosswind: 0 m/s | Drift correction: 0 m';
+    return;
+  }
+  const bearingFire = Math.atan2(target.x - firstGun.x, target.y - firstGun.y) * 180 / Math.PI;
+  const windComp = decomposeWind(getMissionWindSettings(), bearingFire);
+  const lastTof = Number(adjustmentSession?.lastTofSec ?? 0);
+  const drift = windComp.crosswindMps * (Number.isFinite(lastTof) ? lastTof : 0);
+  windComponentsInfo.textContent = `Headwind: ${windComp.headwindMps.toFixed(2)} m/s | Crosswind: ${windComp.crosswindMps.toFixed(2)} m/s | Drift correction: ${drift.toFixed(1)} m`;
+}
+
+function applyAdjustmentStep(kind) {
+  if (!adjustmentSession?.currentTarget || !adjustmentSession.origin) return;
+  if (kind === 'ADD_50') adjustmentSession = adjustRange(adjustmentSession, adjustmentSession.origin, 50);
+  if (kind === 'DROP_50') adjustmentSession = adjustRange(adjustmentSession, adjustmentSession.origin, -50);
+  if (kind === 'RIGHT_25') adjustmentSession = adjustDirection(adjustmentSession, adjustmentSession.origin, 25);
+  if (kind === 'LEFT_25') adjustmentSession = adjustDirection(adjustmentSession, adjustmentSession.origin, -25);
+  if (activeAimPlan) {
+    activeAimPlan = { ...activeAimPlan, runtime: { ...(activeAimPlan.runtime ?? {}), adjustment: adjustmentSession } };
+  }
+  updateAdjustmentHud();
+  if (activeAimPlan?.config?.control === 'ADJUSTMENT') {
+    showNextFirePackage();
+  }
+}
+
 function applyCorrectionToTarget(target, anchor, correction) {
   const dx = target.x - anchor.x;
   const dy = target.y - anchor.y;
@@ -1284,9 +1335,11 @@ function saveCorrectionSettings() {
     lateralMeters: Number(document.querySelector('#correction-lr')?.value || 0),
     rangeMeters: Number(document.querySelector('#correction-add-drop')?.value || 0),
   };
-  state.settings.mission = { ...(state.settings.mission ?? {}), correction };
+  const wind = getMissionWindSettings();
+  state.settings.mission = { ...(state.settings.mission ?? {}), correction, wind };
   persistLauncherSettings();
   fireOutput.textContent = t('correctionApplied');
+  updateAdjustmentHud();
 }
 
 function resetCorrectionSettings() {
@@ -1295,8 +1348,13 @@ function resetCorrectionSettings() {
   if (lrInput) lrInput.value = '0';
   if (addDropInput) addDropInput.value = '0';
   state.settings.mission = { ...(state.settings.mission ?? {}), correction: { observerId: correctionObserverSelect?.value || '1', lateralMeters: 0, rangeMeters: 0 } };
+  if (adjustmentSession?.baseTarget) {
+    adjustmentSession = createAdjustmentState(adjustmentSession.baseTarget, adjustmentSession.bracketSizeM);
+    if (activeAimPlan) activeAimPlan = { ...activeAimPlan, runtime: { ...(activeAimPlan.runtime ?? {}), adjustment: adjustmentSession } };
+  }
   persistLauncherSettings();
   fireOutput.textContent = t('correctionResetDone');
+  updateAdjustmentHud();
 }
 
 function applyObserverTargeting() {
@@ -1667,7 +1725,21 @@ function getGunsForMissionEnv() {
 function buildFireMissionPlan() {
   const config = getFireMissionConfigFromUI();
   const guns = getGunsForMissionEnv();
+  if (config.control === 'ADJUSTMENT' && config.point) {
+    adjustmentSession = createAdjustmentState(config.point, 200);
+  }
   activeAimPlan = buildAimPlan(config, guns);
+  if (adjustmentSession) {
+    const correction = getMissionCorrection();
+    const anchorGun = Number(missionGunSelect?.value === 'all' ? 1 : missionGunSelect?.value || 1);
+    const anchor = getObserverAnchorForMission(correction.observerId, Number(missionBatterySelect?.value || 1), anchorGun);
+    if (anchor) {
+      adjustmentSession.origin = anchor;
+      adjustmentSession = adjustRange(adjustDirection(adjustmentSession, anchor, correction.lateralMeters), anchor, correction.rangeMeters);
+    }
+    activeAimPlan = { ...activeAimPlan, runtime: { ...(activeAimPlan.runtime ?? {}), adjustment: adjustmentSession } };
+  }
+  updateAdjustmentHud();
   fireOutput.textContent = `Миссия ${config.missionName} сформирована. Фаз: ${activeAimPlan.summary.totalPhases}. Нажмите «Следующий расчёт».`;
 }
 
@@ -1676,7 +1748,7 @@ async function showNextFirePackage() {
     fireOutput.textContent = 'Сначала нажмите «Сформировать миссию».';
     return;
   }
-  if (isPlanComplete(activeAimPlan)) {
+  if (activeAimPlan.config.control !== 'ADJUSTMENT' && isPlanComplete(activeAimPlan)) {
     fireOutput.textContent = 'Миссия завершена.';
     return;
   }
@@ -1686,7 +1758,7 @@ async function showNextFirePackage() {
     weaponByGunId: Object.fromEntries(guns.map((g) => [g.id, g.weaponId])),
     computeFireSolution,
     computeFireSolutionsMulti,
-    wind: { speedMps: 0, fromDeg: 0 },
+    wind: getMissionWindSettings(),
     arc: 'AUTO',
   };
   const pkg = await getNextFirePackage(activeAimPlan, env);
@@ -1695,8 +1767,9 @@ async function showNextFirePackage() {
     return;
   }
   const rows = pkg.assignments.flatMap((assignment) => assignment.commands.map((command, idx) => {
-    const point = activeAimPlan.aimPoints[command.aimPointIndex];
-    const solution = pkg.solutions.perGunSolutions[assignment.gunId]?.[idx]?.solution;
+    const solvedRow = pkg.solutions.perGunSolutions[assignment.gunId]?.[idx];
+    const point = solvedRow?.aimPoint ?? activeAimPlan.aimPoints[command.aimPointIndex];
+    const solution = solvedRow?.solution;
     const base = `Gun ${assignment.gunId}: Aim X=${point.x.toFixed(1)} Y=${point.y.toFixed(1)} Az=${Number(solution?.azimuthDeg || 0).toFixed(2)} Elev=${Number(solution?.elevMil || 0).toFixed(1)} TOF=${Number(solution?.tofSec || 0).toFixed(2)}`;
     if (command.mrsiShotPlan?.length) {
       return `${base} | MRSI ${command.mrsiShotPlan.map((shot) => `#${shot.shotIndex} d=${shot.fireDelaySec.toFixed(1)}s ch=${shot.chargeId}`).join(', ')}`;
@@ -1706,12 +1779,18 @@ async function showNextFirePackage() {
     }
     return base;
   }));
+  adjustmentSession = activeAimPlan.runtime?.adjustment ?? adjustmentSession;
+  const firstShot = Object.values(pkg.solutions.perGunSolutions).flat()[0];
+  if (firstShot?.solution) adjustmentSession = { ...(adjustmentSession ?? {}), lastTofSec: Number(firstShot.solution.tofSec || 0) };
+  updateAdjustmentHud();
   fireOutput.textContent = `Фаза ${pkg.phase.phaseIndex + 1}/${activeAimPlan.phases.length} (${pkg.phase.label})\n${rows.join('\n')}`;
   activeAimPlan = advancePlanCursor(activeAimPlan);
 }
 
 function resetFireMissionPlan() {
   activeAimPlan = null;
+  adjustmentSession = null;
+  updateAdjustmentHud();
   fireOutput.textContent = 'Миссия сброшена.';
 }
 
@@ -3194,6 +3273,12 @@ document.querySelector('#reset-fire-mission')?.addEventListener('click', () => {
 document.querySelector('#save-correction')?.addEventListener('click', saveCorrectionSettings);
 document.querySelector('#reset-correction')?.addEventListener('click', resetCorrectionSettings);
 document.querySelector('#apply-observer-targeting')?.addEventListener('click', applyObserverTargeting);
+document.querySelector('#adj-add-50')?.addEventListener('click', () => applyAdjustmentStep('ADD_50'));
+document.querySelector('#adj-drop-50')?.addEventListener('click', () => applyAdjustmentStep('DROP_50'));
+document.querySelector('#adj-right-25')?.addEventListener('click', () => applyAdjustmentStep('RIGHT_25'));
+document.querySelector('#adj-left-25')?.addEventListener('click', () => applyAdjustmentStep('LEFT_25'));
+document.querySelector('#wind-speed')?.addEventListener('input', updateAdjustmentHud);
+document.querySelector('#wind-direction')?.addEventListener('input', updateAdjustmentHud);
 document.querySelector('#cb-add-point')?.addEventListener('click', counterBatteryModule.addObservationPoint);
 document.querySelector('#cb-clear-points')?.addEventListener('click', counterBatteryModule.clearObservationPoints);
 document.querySelector('#cb-locate-target')?.addEventListener('click', locateEnemyGun);

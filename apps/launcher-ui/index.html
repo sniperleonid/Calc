@@ -148,6 +148,7 @@
                 <option value="CREEPING">CREEPING</option>
                 <option value="TOT">TOT</option>
                 <option value="MRSI">MRSI</option>
+                <option value="ADJUSTMENT">ADJUSTMENT</option>
               </select>
               <input id="fm-spacing" type="number" step="1" placeholder="Spacing m" value="40" />
               <input id="fm-bearing" type="number" step="1" placeholder="Bearing°" value="0" />
@@ -189,6 +190,18 @@
             <div class="pair pair-2">
               <input id="correction-lr" type="number" step="1" placeholder="L/R (m)" />
               <input id="correction-add-drop" type="number" step="1" placeholder="Add/Drop (m)" />
+            </div>
+            <div class="pair pair-2">
+              <input id="wind-speed" type="number" step="0.1" placeholder="Wind speed (m/s)" value="0" />
+              <input id="wind-direction" type="number" step="0.1" placeholder="Wind from (°)" value="0" />
+            </div>
+            <p id="adjustment-offset-info" class="hint">ΔTarget: 0m / 0m</p>
+            <p id="wind-components-info" class="hint">Headwind: 0 m/s | Crosswind: 0 m/s | Drift correction: 0 m</p>
+            <div class="card-actions inline-actions">
+              <button class="btn ghost" id="adj-add-50">+50м</button>
+              <button class="btn ghost" id="adj-drop-50">-50м</button>
+              <button class="btn ghost" id="adj-right-25">+25м вправо</button>
+              <button class="btn ghost" id="adj-left-25">-25м влево</button>
             </div>
             <div class="card-actions inline-actions">
               <button class="btn ghost" id="save-correction" data-i18n="saveCorrection">Сохранить поправку</button>
