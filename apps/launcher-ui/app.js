@@ -2425,44 +2425,8 @@ function refreshMapOverlay() {
     const minRange = Math.max(0, Number(profile?.minRange) || 0);
     const maxRange = Math.max(minRange, Number(profile?.maxRange) || 0);
 
-    if (maxRange > 0) {
-      const maxCircle = window.L.circle(gamePointToLatLng(gunX, gunY), {
-        radius: maxRange,
-        color: getBatteryColor(batteryId),
-        fillColor: getBatteryColor(batteryId),
-        fillOpacity: 0.05,
-        weight: 1,
-      }).addTo(leafletMap);
-      gunMarkers.push(maxCircle);
-    }
-    if (minRange > 0) {
-      const minCircle = window.L.circle(gamePointToLatLng(gunX, gunY), {
-        radius: minRange,
-        color: '#ff4d4d',
-        fillOpacity: 0,
-        weight: 1,
-        dashArray: '4 6',
-      }).addTo(leafletMap);
-      gunMarkers.push(minCircle);
-    }
-
-    if (traverseDeg < 360 && maxRange > 0) {
-      const sector = buildSectorPolygonPoints({
-        x: gunX,
-        y: gunY,
-        heading: renderedHeading,
-        traverseDeg,
-        radius: maxRange,
-        innerRadius: minRange,
-      });
-      const sectorPolygon = window.L.polygon(sector.map((point) => gamePointToLatLng(point.x, point.y)), {
-        color: '#ffe066',
-        fillColor: '#ffe066',
-        fillOpacity: 0.08,
-        weight: 1,
-      }).addTo(leafletMap);
-      gunMarkers.push(sectorPolygon);
-    }
+    // Keep map overlays focused on tactical markers (guns, observers, target, user markers).
+    // Range circles / sectors created visual clutter and were mistaken for marker artifacts.
 
     const gunColor = getBatteryColor(batteryId);
     const marker = window.L.circleMarker(gamePointToLatLng(gunX, gunY), {
