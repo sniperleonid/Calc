@@ -1320,9 +1320,10 @@ function applyObserverTargeting() {
   }
   const horizontal = distance * Math.cos((angle * Math.PI) / 180);
   const vertical = distance * Math.sin((angle * Math.PI) / 180);
+  const targetHeightDelta = angle < 0 ? -Math.abs(vertical) : Math.abs(vertical);
   const targetX = observerPoint.x + Math.sin((azimuth * Math.PI) / 180) * horizontal;
   const targetY = observerPoint.y + Math.cos((azimuth * Math.PI) / 180) * horizontal;
-  const targetHeight = clamp(Math.round(observerHeight + vertical), HEIGHT_LIMITS.min, HEIGHT_LIMITS.max);
+  const targetHeight = clamp(Math.round(observerHeight + targetHeightDelta), HEIGHT_LIMITS.min, HEIGHT_LIMITS.max);
 
   const targetXInput = document.querySelector('#target-x');
   const targetYInput = document.querySelector('#target-y');

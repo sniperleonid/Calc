@@ -389,6 +389,16 @@ test('observer polar-plot and gun drag azimuth helpers are available', () => {
   assert.equal(Math.round(polar.targetAltitude), 348);
   assert.equal(Math.round(polar.heightDifference), 208);
 
+  const descendingPolar = observers.solvePolarPlotMission({
+    observer: { x: 500, y: 500 },
+    azimuth: 90,
+    distance: 1000,
+    observerAltitude: 140,
+    verticalAngle: -20,
+  });
+  assert.equal(Math.round(descendingPolar.targetAltitude), -202);
+  assert.equal(Math.round(descendingPolar.heightDifference), -342);
+
   ballistics.upsertManual({ id: 'gun-1', position: { x: 0, y: 0 } });
   const drag = ballistics.rotateGunByDrag({ gunId: 'gun-1', marker: { x: 0, y: 0 }, mousePoint: { x: 100, y: 0 } });
   assert.equal(Math.round(drag.azimuthDeg), 90);
