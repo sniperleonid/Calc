@@ -103,7 +103,7 @@ const i18n = {
     target: 'Цель', openedExternalMap: 'Открыта внешняя карта',
     invalidCoordinates: 'Ошибка координат: разрешены только цифры и допустимые пределы',
     mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', pasteMapImage: 'Вставить карту из буфера', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту', mapImageTooLarge: 'Файл карты больше 150 МБ. Уменьшите файл и попробуйте снова.', mapImageUploadFailed: 'Не удалось загрузить изображение карты на сервер.', mapImageClipboardUnsupported: 'Буфер обмена не поддерживается браузером или недоступен без HTTPS/localhost.', mapImageClipboardEmpty: 'В буфере обмена не найдено изображение.',
-    calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
+    calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки', calibrationRequiredBeforeWork: 'Сначала выполните калибровку карты. Пока калибровка не завершена, расчёты и рабочие инструменты заблокированы.', lastCalibrationLabel: 'Последняя калибровка', lastCalibrationMissing: 'Последняя калибровка отсутствует',
     markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolBattery: 'Активная батарея', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
     rulerPointSet: 'Точка линейки установлена', rulerMeasurement: 'Линейка', rulerCleared: 'Линейка удалена', coordsCaptured: 'Координаты точки',
     calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', clearManualMarkers: 'Очистить ручные метки', profilesTitle: 'Профили орудий и боеприпасов', profilesHint: 'Настройка сектора огня, зон минимальной/максимальной дальности и привязок к снарядам/таблицам.', profileTraverseDeg: 'Сектор наведения (°)', profileMinRange: 'Минимальная дальность (м)', profileMaxRange: 'Максимальная дальность (м)', profileProjectiles: 'Привязанные снаряды', profileTables: 'Баллистические таблицы', mapRotationHint: 'Shift + левая кнопка мыши: задать азимут орудия', mapWarningPrefix: 'Предупреждение'
@@ -141,7 +141,7 @@ const i18n = {
     target: 'Target', openedExternalMap: 'Opened external map',
     invalidCoordinates: 'Coordinate error: only digits and allowed limits are accepted',
     mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', pasteMapImage: 'Paste map from clipboard', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image', mapImageTooLarge: 'Map image is larger than 150 MB. Reduce file size and try again.', mapImageUploadFailed: 'Failed to upload map image to server.', mapImageClipboardUnsupported: 'Clipboard image read is not available in this browser or without HTTPS/localhost.', mapImageClipboardEmpty: 'No image found in clipboard.',
-    calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
+    calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points', calibrationRequiredBeforeWork: 'Complete map calibration first. Calculations and map tools are locked until calibration is applied.', lastCalibrationLabel: 'Last calibration', lastCalibrationMissing: 'No saved calibration yet',
     markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolBattery: 'Active battery', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
     rulerPointSet: 'Ruler point set', rulerMeasurement: 'Ruler', rulerCleared: 'Ruler removed', coordsCaptured: 'Picked coordinates',
     calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', clearManualMarkers: 'Clear manual markers', profilesTitle: 'Gun and ammo profiles', profilesHint: 'Configure fire sector, min/max range zones, and projectile/table bindings.', profileTraverseDeg: 'Traverse sector (°)', profileMinRange: 'Min range (m)', profileMaxRange: 'Max range (m)', profileProjectiles: 'Linked projectiles', profileTables: 'Ballistic tables', mapRotationHint: 'Shift + left mouse: point gun azimuth', mapWarningPrefix: 'Warning' 
@@ -178,6 +178,7 @@ const markerToolSelect = document.querySelector('#marker-tool');
 const markerTargetSelect = document.querySelector('#marker-target');
 const calibrationModeButton = document.querySelector('#toggle-calibration-mode');
 const calibrationControls = document.querySelector('#calibration-controls');
+const calibrationLastInfo = document.querySelector('#calibration-last-info');
 const profilesEditor = document.querySelector('#profiles-editor');
 
 const t = (key) => i18n[state.lang][key] ?? key;
@@ -217,6 +218,46 @@ function getMapToolsSettings() {
     activeFirePattern: null,
   };
   return { ...defaults, ...state.settings.mapTools, calibration: { ...defaults.calibration, ...(state.settings.mapTools?.calibration ?? {}) } };
+}
+
+function hasCalibrationConfigured(tools = getMapToolsSettings()) {
+  const calibration = tools.calibration ?? {};
+  const hasLastCalibration = Boolean(tools.lastCalibration?.appliedAt);
+  if (hasLastCalibration) return true;
+  const hasNonDefaultCalibration = Number(calibration.scale) > 0
+    && (Number(calibration.originMapX) !== 0
+      || Number(calibration.originMapY) !== 0
+      || Number(calibration.originWorldX) !== 0
+      || Number(calibration.originWorldY) !== 0
+      || Number(tools.calibrationScaleMeters) > 0);
+  return hasNonDefaultCalibration;
+}
+
+function formatCalibrationTimestamp(rawDate) {
+  if (!rawDate) return '';
+  const parsed = new Date(rawDate);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleString(state.lang === 'ru' ? 'ru-RU' : 'en-US');
+}
+
+function ensureCalibrationOrWarn(outputElement = fireOutput) {
+  const tools = getMapToolsSettings();
+  if (hasCalibrationConfigured(tools)) return true;
+  const warning = t('calibrationRequiredBeforeWork');
+  if (outputElement) outputElement.textContent = warning;
+  if (mapToolsOutput) mapToolsOutput.textContent = warning;
+  if (!tools.calibrationMode) setCalibrationMode(true);
+  switchTab('map');
+  return false;
+}
+
+function updateCalibrationSummary() {
+  if (!calibrationLastInfo) return;
+  const tools = getMapToolsSettings();
+  const timestamp = formatCalibrationTimestamp(tools.lastCalibration?.appliedAt);
+  calibrationLastInfo.textContent = timestamp
+    ? `${t('lastCalibrationLabel')}: ${timestamp}`
+    : t('lastCalibrationMissing');
 }
 
 let leafletMap;
@@ -1197,6 +1238,7 @@ function buildActiveFirePattern({ mode, targetX, targetY }) {
 }
 
 function calculateFire() {
+  if (!ensureCalibrationOrWarn(fireOutput)) return null;
   const targetInput = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
   if (!targetInput) {
     fireOutput.textContent = t('invalidCoordinates');
@@ -1266,12 +1308,14 @@ function calculateFire() {
 
 function showMto() {
   const calc = calculateFire();
+  if (!calc) return;
   const mtoRows = calc.results.map((row) => `${t('gun')} ${row.gunId}: HE x3, Smoke x1`).join('\n');
   fireOutput.textContent = `${fireOutput.textContent}\n\n${t('mtoHeader')}\n${mtoRows}`;
 }
 
 function saveMission() {
   const calc = calculateFire();
+  if (!calc) return;
   const missions = JSON.parse(localStorage.getItem('calc.missions') || '[]');
   missions.push({
     name: document.querySelector('#mission-name')?.value || `Mission-${missions.length + 1}`,
@@ -1587,6 +1631,10 @@ function onMapDoubleClick(event) {
   const imagePoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
   logMapClickDiagnostics(event.latlng, imagePoint);
   if (!tools.calibrationMode) {
+    if (!hasCalibrationConfigured(tools)) {
+      if (mapToolsOutput) mapToolsOutput.textContent = t('calibrationRequiredBeforeWork');
+      return;
+    }
     const toolType = markerToolSelect?.value || 'gun';
     if (toolType === 'coords') {
       const gamePoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
@@ -1630,6 +1678,7 @@ function hydrateMapToolsForm() {
   fill('#cal-scale-meters', calibrationScaleMeters);
   if (calibrationControls) calibrationControls.classList.toggle('hidden', !calibrationMode);
   if (calibrationModeButton) calibrationModeButton.textContent = calibrationMode ? t('calibrationModeToggleActive') : t('calibrationModeToggle');
+  updateCalibrationSummary();
 }
 
 function upsertMapOverlay() {
@@ -1701,8 +1750,10 @@ function applyCalibration() {
   }
 
   const scale = scaleMeters / mapDistance;
+  const appliedAt = new Date().toISOString();
   state.settings.mapTools = {
     ...tools,
+    calibrationMode: false,
     calibrationScaleMeters: scaleMeters,
     calibration: {
       scale,
@@ -1711,10 +1762,16 @@ function applyCalibration() {
       originWorldX: p0x,
       originWorldY: p0y,
     },
+    lastCalibration: {
+      appliedAt,
+      calibrationScaleMeters: scaleMeters,
+      originWorldX: p0x,
+      originWorldY: p0y,
+    },
   };
-  persistLauncherSettings();
-  refreshMapOverlay();
-  if (mapToolsOutput) mapToolsOutput.textContent = t('calibrationApplied');
+  setCalibrationMode(false);
+  updateCalibrationSummary();
+  if (mapToolsOutput) mapToolsOutput.textContent = `${t('calibrationApplied')} (${formatCalibrationTimestamp(appliedAt)})`;
 }
 
 function resetCalibration() {
@@ -1725,9 +1782,11 @@ function resetCalibration() {
     nextCalibrationPointIndex: 0,
     calibrationScaleMeters: '',
     activeFirePattern: null,
+    lastCalibration: null,
   };
   persistLauncherSettings();
   refreshMapOverlay();
+  updateCalibrationSummary();
   if (mapToolsOutput) mapToolsOutput.textContent = t('calibrationResetDone');
 }
 
@@ -2536,6 +2595,7 @@ languageSelect?.addEventListener('change', (event) => {
   state.lang = event.target.value;
   localStorage.setItem('calc.lang', state.lang);
   applyI18n();
+  updateCalibrationSummary();
   runHealthCheck();
 });
 
@@ -2569,6 +2629,7 @@ pasteMapImageButton?.addEventListener('click', async () => {
 
 document.body.dataset.theme = state.theme;
 applyI18n();
+updateCalibrationSummary();
 persistLauncherSettings();
 hydrateMapImageFromServer();
 runHealthCheck();
