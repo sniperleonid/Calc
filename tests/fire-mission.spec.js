@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildAimPlan,
+  migrateOldMissionToFdc,
   getNextFirePackage,
   getCurrentPhase,
   getPhaseAssignments,
@@ -44,6 +45,27 @@ test('CREEPING shifts each phase by forward*k*stepM', () => {
   const p0 = plan.aimPoints[plan.phases[0].aimPointIndices[0]];
   const p2 = plan.aimPoints[plan.phases[2].aimPointIndices[0]];
   assert.equal(Math.round(p2.x - p0.x), 100);
+});
+
+test('migrateOldMissionToFdc keeps nested FDC blocks for CREEPING/MRSI/TOT', () => {
+  const fdc = migrateOldMissionToFdc({
+    targetType: 'POINT',
+    sheafType: 'CONVERGED',
+    controlType: 'CREEPING',
+    geometry: { point: { x: 0, y: 0 }, bearingDeg: 45 },
+    creeping: { stepM: 60, stepsCount: 4, stepIntervalSec: 9, bearingDeg: 30 },
+    tot: { desiredImpactSec: 25 },
+    mrsi: { mrsiRounds: 3, mrsiMinSepSec: 2, mrsiAllowedArcs: ['LOW'] },
+  });
+
+  assert.equal(fdc.creeping.stepM, 60);
+  assert.equal(fdc.creeping.stepsCount, 4);
+  assert.equal(fdc.creeping.stepIntervalSec, 9);
+  assert.equal(fdc.creeping.bearingDeg, 30);
+  assert.equal(fdc.tot.desiredImpactSec, 25);
+  assert.equal(fdc.mrsi.mrsiRounds, 3);
+  assert.equal(fdc.mrsi.mrsiMinSepSec, 2);
+  assert.deepEqual(fdc.mrsi.mrsiAllowedArcs, ['LOW']);
 });
 
 test('SEQUENCE creates one phase per aim point', () => {
