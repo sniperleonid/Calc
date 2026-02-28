@@ -1211,6 +1211,7 @@ function initializeMap() {
   leafletMap = window.L.map('leaflet-map', {
     zoomControl: true,
     doubleClickZoom: false,
+    boxZoom: false,
     zoomSnap: 0.25,
     zoomDelta: 0.25,
     wheelPxPerZoomLevel: 80,
