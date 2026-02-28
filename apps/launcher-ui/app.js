@@ -1557,6 +1557,27 @@ function buildSectorGuideLines({ x, y, heading, traverseDeg, minRadius = 0, maxR
   return { outerArc, innerArc, edgeStart, edgeEnd };
 }
 
+function buildCircularRingPolygonPoints({ x, y, radius, innerRadius = 0, segments = 64 }) {
+  const outerRing = [];
+  for (let idx = 0; idx <= segments; idx += 1) {
+    const angle = (idx / segments) * 360;
+    const rad = (angle * Math.PI) / 180;
+    outerRing.push({ x: x + Math.sin(rad) * radius, y: y + Math.cos(rad) * radius });
+  }
+
+  if (innerRadius <= 0) {
+    return [outerRing];
+  }
+
+  const innerRing = [];
+  for (let idx = segments; idx >= 0; idx -= 1) {
+    const angle = (idx / segments) * 360;
+    const rad = (angle * Math.PI) / 180;
+    innerRing.push({ x: x + Math.sin(rad) * innerRadius, y: y + Math.cos(rad) * innerRadius });
+  }
+  return [outerRing, innerRing];
+}
+
 function formatRulerMeasurement(p1, p2) {
   const pointA = normalizeRulerPoint(p1);
   const pointB = normalizeRulerPoint(p2);
@@ -2478,15 +2499,21 @@ function refreshMapOverlay() {
     const sectorColor = `${gunColor}88`;
     if (maxRange > 0) {
       if (traverseDeg >= 360) {
-        const outerRing = window.L.circle(gamePointToLatLng(gunX, gunY), {
+        const ringPolygon = buildCircularRingPolygonPoints({
+          x: gunX,
+          y: gunY,
           radius: maxRange,
+          innerRadius: minRange,
+        }).map((ring) => ring.map((point) => gamePointToLatLng(point.x, point.y)));
+        const fullTraverseRing = window.L.polygon(ringPolygon, {
           color: sectorColor,
           weight: 1.5,
           fillColor: sectorColor,
           fillOpacity: 0.08,
           dashArray: '6 8',
+          interactive: false,
         }).addTo(leafletMap);
-        gunMarkers.push(outerRing);
+        gunMarkers.push(fullTraverseRing);
 
         if (minRange > 0) {
           const innerRing = window.L.circle(gamePointToLatLng(gunX, gunY), {
