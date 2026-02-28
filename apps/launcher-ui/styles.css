@@ -233,6 +233,32 @@ h1 {
   background: var(--card-bg);
 }
 
+.mission-form-card label {
+  margin: 10px 0 4px;
+}
+
+.mission-form-card input,
+.mission-form-card select {
+  max-width: 420px;
+  min-height: 40px;
+  padding: 9px 10px;
+}
+
+.mission-form-card .hint,
+.mission-form-card .stack,
+.mission-form-card h2,
+.mission-form-card h3,
+.mission-form-card p,
+.mission-form-card #mission-projectile-selectors,
+.mission-form-card #trajectory-support-hint {
+  max-width: 560px;
+}
+
+.tab-panel[data-panel='fire'] .section-layout {
+  grid-template-columns: minmax(360px, 560px) minmax(320px, 1fr) minmax(320px, 1fr);
+  align-items: start;
+}
+
 .card h3 {
   margin: 0;
   font-size: 1.1rem;
@@ -620,6 +646,10 @@ body.theme-commander .tab.active {
   .section-layout,
   .inline-actions,
   .map-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-panel[data-panel='fire'] .section-layout {
     grid-template-columns: 1fr;
   }
 
