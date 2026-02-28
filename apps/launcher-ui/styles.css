@@ -492,6 +492,33 @@ select,
   font-weight: 700;
 }
 
+.target-cross-icon {
+  background: transparent;
+  border: 0;
+}
+
+.target-cross-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.target-cross-icon .outline {
+  stroke: #000;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+}
+
+.target-cross-icon .main {
+  stroke: #ff3b30;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.target-cross-icon.selected .main {
+  stroke: #ff5a52;
+  stroke-width: 1.5;
+}
+
 @media (max-width: 980px) {
   .tabs,
   .panel-grid-3,
