@@ -64,6 +64,23 @@ function loadLauncherSettings() {
   }
 }
 
+const DEFAULT_EXTERNAL_MAP_URL = 'http://localhost:4173';
+
+function normalizeExternalMapUrl(rawValue) {
+  const trimmed = (rawValue || '').trim();
+  if (!trimmed) return DEFAULT_EXTERNAL_MAP_URL;
+
+  try {
+    return new URL(trimmed).toString();
+  } catch {
+    try {
+      return new URL(`http://${trimmed}`).toString();
+    } catch {
+      return DEFAULT_EXTERNAL_MAP_URL;
+    }
+  }
+}
+
 const state = {
   lang: localStorage.getItem('calc.lang') || 'ru',
   theme: localStorage.getItem('calc.theme') || 'terminal',
@@ -2860,15 +2877,14 @@ function deleteSelectedMapMarker() {
 
 
 function openMap() {
-  state.mapUrl = mapUrlInput.value || '';
+  state.mapUrl = normalizeExternalMapUrl(mapUrlInput.value);
+  mapUrlInput.value = state.mapUrl;
   localStorage.setItem('calc.mapUrl', state.mapUrl);
   switchTab('map');
   initializeMap();
   refreshMapOverlay();
-  if (state.mapUrl) {
-    window.open(state.mapUrl, '_blank', 'noopener,noreferrer');
-    safetyOutput.textContent = t('openedExternalMap');
-  }
+  window.open(state.mapUrl, '_blank', 'noopener,noreferrer');
+  safetyOutput.textContent = t('openedExternalMap');
 }
 
 async function openLogs() {
