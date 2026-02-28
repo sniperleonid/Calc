@@ -207,7 +207,10 @@ export function getFdcUiSchema(missionFdc = {}) {
 export function migrateOldMissionToFdc(oldMission = {}) {
   const geometry = oldMission.geometry ?? {};
   const sheaf = oldMission.sheaf ?? {};
-  const control = oldMission.control ?? {};
+  const sequence = oldMission.sequence ?? oldMission.control ?? {};
+  const creeping = oldMission.creeping ?? {};
+  const tot = oldMission.tot ?? {};
+  const mrsi = oldMission.mrsi ?? {};
   return {
     targetType: oldMission.targetType ?? LEGACY_TARGET_MAP[oldMission.fireMode] ?? LEGACY_TARGET_MAP[oldMission.fireType] ?? 'POINT',
     sheafType: oldMission.sheafType ?? LEGACY_SHEAF_MAP[oldMission.fireMode] ?? LEGACY_SHEAF_MAP[oldMission.oldSheaf] ?? 'CONVERGED',
@@ -228,18 +231,18 @@ export function migrateOldMissionToFdc(oldMission = {}) {
       sheafWidthM: sheaf.sheafWidthM ?? oldMission.sheafWidthM,
       openFactor: sheaf.openFactor ?? oldMission.openFactor,
     },
-    sequence: { phaseIntervalSec: oldMission.phaseIntervalSec ?? control.phaseIntervalSec },
+    sequence: { phaseIntervalSec: oldMission.phaseIntervalSec ?? sequence.phaseIntervalSec },
     creeping: {
-      stepM: oldMission.stepM,
-      stepsCount: oldMission.stepsCount,
-      stepIntervalSec: oldMission.stepIntervalSec,
-      bearingDeg: oldMission.bearingDeg,
+      stepM: creeping.stepM ?? oldMission.stepM,
+      stepsCount: creeping.stepsCount ?? oldMission.stepsCount,
+      stepIntervalSec: creeping.stepIntervalSec ?? oldMission.stepIntervalSec,
+      bearingDeg: creeping.bearingDeg ?? oldMission.bearingDeg,
     },
-    tot: { desiredImpactSec: oldMission.desiredImpactSec ?? oldMission.desiredImpactTimeSec },
+    tot: { desiredImpactSec: tot.desiredImpactSec ?? oldMission.desiredImpactSec ?? oldMission.desiredImpactTimeSec },
     mrsi: {
-      mrsiRounds: oldMission.mrsiRounds ?? oldMission.mrsiRoundsPerGun,
-      mrsiMinSepSec: oldMission.mrsiMinSepSec ?? oldMission.mrsiMinSeparationSec,
-      mrsiAllowedArcs: oldMission.mrsiAllowedArcs,
+      mrsiRounds: mrsi.mrsiRounds ?? oldMission.mrsiRounds ?? oldMission.mrsiRoundsPerGun,
+      mrsiMinSepSec: mrsi.mrsiMinSepSec ?? oldMission.mrsiMinSepSec ?? oldMission.mrsiMinSeparationSec,
+      mrsiAllowedArcs: mrsi.mrsiAllowedArcs ?? oldMission.mrsiAllowedArcs,
     },
     guns: oldMission.guns ?? 'ALL',
     roundsPerGun: oldMission.roundsPerGun ?? 1,
