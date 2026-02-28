@@ -244,6 +244,24 @@ function openLogsDirectory() {
 }
 
 
+
+async function proxyBallisticsCoreSolve(req, res) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+
+  const upstream = await fetch('http://localhost:8000/solve-fire-mission', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: Buffer.concat(chunks),
+  });
+
+  const text = await upstream.text();
+  res.writeHead(upstream.status, { 'Content-Type': upstream.headers.get('content-type') ?? 'application/json; charset=utf-8' });
+  res.end(text);
+}
+
 function getLatestMapImageUrl() {
   if (!existsSync(uploadsRoot)) return null;
 
@@ -336,6 +354,15 @@ const server = createServer(async (req, res) => {
 
   if (req.url === '/api/artillery-catalog' && req.method === 'GET') {
     sendJson(res, 200, listArtilleryCatalog());
+    return;
+  }
+
+  if (req.url === '/api/ballistics-core/solve-fire-mission' && req.method === 'POST') {
+    try {
+      await proxyBallisticsCoreSolve(req, res);
+    } catch {
+      sendJson(res, 502, { error: 'Ballistics core unavailable.' });
+    }
     return;
   }
 

@@ -45,7 +45,7 @@ class FireMissionRequest:
     shooter_alt_m: float
     target_alt_m: float
     weather: WeatherInput
-    ammo_type: AmmoType
+    ammo_type: AmmoType | str
     charge: int
     barrel_profile_id: str
 

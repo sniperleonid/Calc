@@ -102,3 +102,20 @@ def test_triangulation_rejects_negative_polar_distance():
         triangulation_endpoint("crater", triangulation_req)
 
     assert "distance_m must be >= 0" in str(exc.value)
+
+
+def test_loads_projectile_from_tables_directory():
+    req = FireMissionRequest(
+        mission_id="mission-table",
+        shooter=Coordinates(x=0, y=0),
+        target=Coordinates(x=1000, y=0),
+        shooter_alt_m=0,
+        target_alt_m=0,
+        weather=WeatherInput(),
+        ammo_type="122mm_HE",
+        charge=1,
+        barrel_profile_id="D30",
+    )
+
+    response = solve_fire_mission_endpoint(req)
+    assert response["solution"].range_m == 1000

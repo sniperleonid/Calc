@@ -1,0 +1,7 @@
+{
+  "ammo_type": "122mm_HE",
+  "charge": 1,
+  "muzzle_velocity_ms": 320,
+  "drag_model": "G1",
+  "notes": "Table-backed charge for D-30"
+}
