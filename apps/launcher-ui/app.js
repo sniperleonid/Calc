@@ -326,6 +326,13 @@ function sanitizeIntegerInput(input, limits) {
   input.value = normalized;
 }
 
+function parseDecimalInput(rawValue) {
+  const normalized = String(rawValue ?? '').trim().replace(',', '.');
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function parseCoordinatePairValue(rawValue) {
   const text = String(rawValue ?? '').trim();
   if (!text) return null;
@@ -497,7 +504,7 @@ function persistLauncherSettings() {
   document.querySelectorAll('[data-gun-heading]').forEach((headingInput) => {
     const key = headingInput.dataset.gunHeading;
     const prev = state.settings.gunSettings[key] ?? {};
-    const headingNumber = Number(headingInput?.value);
+    const headingNumber = parseDecimalInput(headingInput?.value);
     state.settings.gunSettings[key] = {
       ...prev,
       heading: headingInput && headingInput.value !== '' && Number.isFinite(headingNumber)
@@ -887,7 +894,7 @@ function renderGunsGrid() {
       row.className = 'pair';
       const headingValue = Number.isFinite(gunState.heading) ? normalizeAzimuth(gunState.heading).toFixed(1) : '';
       const headingField = hasLimitedTraverse
-        ? `<input data-gun-heading="${key}" type="number" min="0" max="360" step="0.1" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`
+        ? `<input data-gun-heading="${key}" type="text" inputmode="decimal" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`
         : '';
       row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" />${headingField}`;
       container.append(row);
@@ -2353,14 +2360,18 @@ function refreshMapOverlay() {
     center.x /= batteryGunPoints.length;
     center.y /= batteryGunPoints.length;
     const isSelectedBattery = batteryId === battery;
-    const batteryHalfSize = 18;
+    const minX = Math.min(...batteryGunPoints.map((point) => point.x));
+    const maxX = Math.max(...batteryGunPoints.map((point) => point.x));
+    const minY = Math.min(...batteryGunPoints.map((point) => point.y));
+    const maxY = Math.max(...batteryGunPoints.map((point) => point.y));
+    const batteryPadding = 20;
     const batteryBox = window.L.rectangle([
-      gamePointToLatLng(center.x - batteryHalfSize, center.y - batteryHalfSize),
-      gamePointToLatLng(center.x + batteryHalfSize, center.y + batteryHalfSize),
+      gamePointToLatLng(minX - batteryPadding, minY - batteryPadding),
+      gamePointToLatLng(maxX + batteryPadding, maxY + batteryPadding),
     ], {
-      color: markerStyle.battery,
+      color: isSelectedBattery ? '#ff3b30' : markerStyle.battery,
       fill: false,
-      weight: isSelectedBattery ? 2 : 1,
+      weight: isSelectedBattery ? 3 : 1,
     }).addTo(leafletMap);
     const batteryCrossV = window.L.polyline([
       gamePointToLatLng(center.x, center.y - 5),
@@ -2443,7 +2454,7 @@ function refreshMapOverlay() {
     const isSelected = selectedManualMarkerId === item.id;
     const marker = window.L.circleMarker(gamePointToLatLng(Number(item.x), Number(item.y)), {
       radius: isSelected ? 10 : 8,
-      color,
+      color: isSelected ? '#ff3b30' : color,
       fillColor: color,
       fillOpacity: 0.9,
       weight: isSelected ? 4 : 2,
@@ -2711,7 +2722,7 @@ document.addEventListener('input', (event) => {
     if (event.target.matches('[data-height]')) sanitizeIntegerInput(event.target, HEIGHT_LIMITS);
     if (event.target.matches('[data-gun-heading]')) {
       const gunKey = event.target.dataset.gunHeading;
-      const heading = Number(event.target.value);
+      const heading = parseDecimalInput(event.target.value);
       if (gunKey && Number.isFinite(heading)) {
         event.target.value = normalizeAzimuth(heading).toFixed(1);
       }
