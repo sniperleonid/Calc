@@ -155,7 +155,10 @@ const server = createServer((req, res) => {
 
   const ext = extname(filePath);
   const body = readFileSync(filePath);
-  res.writeHead(200, { 'Content-Type': mimeTypes[ext] ?? 'application/octet-stream' });
+  res.writeHead(200, {
+    'Content-Type': mimeTypes[ext] ?? 'application/octet-stream',
+    'Cache-Control': 'no-store',
+  });
   res.end(body);
 });
 
