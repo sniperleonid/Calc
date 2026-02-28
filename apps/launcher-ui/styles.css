@@ -24,6 +24,17 @@ body[data-theme='terminal'] {
   --text: #48ff8f;
   --muted: #b8ffcf;
   --danger: #ff4f4f;
+  --input-bg: var(--panel);
+  --input-border: var(--border);
+  --button-bg: var(--panel);
+  --button-ghost-bg: transparent;
+  --button-hover-bg: var(--panel-soft);
+  --tab-bg: color-mix(in srgb, var(--panel), transparent 10%);
+  --tab-active-bg: color-mix(in srgb, var(--panel-soft), transparent 4%);
+  --card-bg: color-mix(in srgb, var(--panel-soft), transparent 15%);
+  --shell-bg: color-mix(in srgb, var(--panel), transparent 10%);
+  --status-bg: color-mix(in srgb, var(--panel), transparent 10%);
+  --elevation-shadow: 0 0 24px color-mix(in srgb, var(--border), transparent 75%);
 }
 
 body[data-theme='midnight'] {
@@ -34,6 +45,40 @@ body[data-theme='midnight'] {
   --text: #e5e7eb;
   --muted: #cbd5e1;
   --danger: #fb7185;
+  --input-bg: var(--panel);
+  --input-border: var(--border);
+  --button-bg: var(--panel);
+  --button-ghost-bg: transparent;
+  --button-hover-bg: var(--panel-soft);
+  --tab-bg: color-mix(in srgb, var(--panel), transparent 10%);
+  --tab-active-bg: color-mix(in srgb, var(--panel-soft), transparent 4%);
+  --card-bg: color-mix(in srgb, var(--panel-soft), transparent 15%);
+  --shell-bg: color-mix(in srgb, var(--panel), transparent 10%);
+  --status-bg: color-mix(in srgb, var(--panel), transparent 10%);
+  --elevation-shadow: 0 0 24px color-mix(in srgb, var(--border), transparent 75%);
+}
+
+body[data-theme='commander'],
+body.theme-commander {
+  color-scheme: light;
+  --bg: #f3f0e3;
+  --panel: #f8f5ea;
+  --panel-soft: #efe9d6;
+  --border: #5e6f45;
+  --text: #1f291b;
+  --muted: #46583a;
+  --danger: #a9342a;
+  --input-bg: #fffdf6;
+  --input-border: #6a7b51;
+  --button-bg: #d9e0c8;
+  --button-ghost-bg: #f6f2e6;
+  --button-hover-bg: #cfd9bb;
+  --tab-bg: #ece6d4;
+  --tab-active-bg: #dde5cc;
+  --card-bg: #f8f4e8;
+  --shell-bg: #f6f2e6;
+  --status-bg: #f2eddd;
+  --elevation-shadow: none;
 }
 
 .shell {
@@ -42,8 +87,8 @@ body[data-theme='midnight'] {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 24px;
-  background: color-mix(in srgb, var(--panel), transparent 10%);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--border), transparent 75%);
+  background: var(--shell-bg);
+  box-shadow: var(--elevation-shadow);
 }
 
 .shell-header {
@@ -78,8 +123,8 @@ h1 {
 .tab {
   border: 1px solid var(--border);
   color: var(--text);
-  background: color-mix(in srgb, var(--panel), transparent 10%);
-  border-radius: 10px;
+  background: var(--tab-bg);
+  border-radius: 4px;
   padding: 10px 12px;
   cursor: pointer;
   text-transform: uppercase;
@@ -96,8 +141,8 @@ h1 {
 
 .tab.active,
 .tab:hover {
-  background: color-mix(in srgb, var(--panel-soft), transparent 4%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border), transparent 50%);
+  background: var(--tab-active-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border), transparent 35%);
 }
 
 .tab-panel {
@@ -185,7 +230,7 @@ h1 {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 20px;
-  background: color-mix(in srgb, var(--panel-soft), transparent 15%);
+  background: var(--card-bg);
 }
 
 .card h3 {
@@ -223,15 +268,17 @@ input,
 select,
 .btn {
   width: 100%;
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   color: var(--text);
-  background: var(--panel);
+  background: var(--input-bg);
   border-radius: 6px;
   padding: 12px;
   font: inherit;
 }
 
 .btn {
+  background: var(--button-bg);
+  border-color: var(--border);
   cursor: pointer;
   text-decoration: none;
   text-align: center;
@@ -242,7 +289,14 @@ select,
 }
 
 .btn.ghost {
-  background: transparent;
+  background: var(--button-ghost-bg);
+}
+
+.btn:hover,
+.btn:focus-visible,
+.tab:focus-visible {
+  background: var(--button-hover-bg);
+  outline: none;
 }
 
 .btn.danger {
@@ -256,7 +310,7 @@ select,
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 14px;
-  background: color-mix(in srgb, var(--panel), transparent 10%);
+  background: var(--status-bg);
 }
 
 .status {
@@ -407,6 +461,19 @@ select,
   background: color-mix(in srgb, var(--panel), transparent 10%);
 }
 
+#fire-output {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+}
+
+body[data-theme='commander'] .output,
+body.theme-commander .output {
+  background: #f7f3e6;
+  border-color: #63744a;
+}
+
 .compact-output {
   min-height: 100px;
 }
@@ -465,6 +532,14 @@ select,
   pointer-events: none;
 }
 
+body[data-theme='commander'] .map-info-overlay,
+body.theme-commander .map-info-overlay {
+  color: #1f291b;
+  background: rgb(243 238 222 / 92%);
+  border: 1px solid #6a7b51;
+  backdrop-filter: none;
+}
+
 .map-info-overlay:empty {
   display: none;
 }
@@ -479,6 +554,26 @@ select,
   -webkit-user-select: none;
   background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--panel), white 5%) 0 24px, color-mix(in srgb, var(--panel), transparent 15%) 24px 48px),
     repeating-linear-gradient(90deg, color-mix(in srgb, var(--panel), white 5%) 0 24px, color-mix(in srgb, var(--panel), transparent 15%) 24px 48px);
+}
+
+body[data-theme='commander'] .leaflet-map,
+body.theme-commander .leaflet-map {
+  background: repeating-linear-gradient(0deg, #ece5d0 0 24px, #f4eedf 24px 48px),
+    repeating-linear-gradient(90deg, #ece5d0 0 24px, #f4eedf 24px 48px);
+}
+
+body[data-theme='commander'] .tab,
+body.theme-commander .tab {
+  border-radius: 2px;
+  border-width: 1px;
+  border-color: #5d6e43;
+  box-shadow: inset 0 -2px 0 #bcc7a6;
+  letter-spacing: 0.06em;
+}
+
+body[data-theme='commander'] .tab.active,
+body.theme-commander .tab.active {
+  box-shadow: inset 0 -3px 0 #5e6f45;
 }
 
 
