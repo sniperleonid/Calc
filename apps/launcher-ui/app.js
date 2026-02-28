@@ -104,7 +104,7 @@ const i18n = {
     invalidCoordinates: 'Ошибка координат: разрешены только цифры и допустимые пределы',
     mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', pasteMapImage: 'Вставить карту из буфера', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту', mapImageTooLarge: 'Файл карты больше 150 МБ. Уменьшите файл и попробуйте снова.', mapImageUploadFailed: 'Не удалось загрузить изображение карты на сервер.', mapImageClipboardUnsupported: 'Буфер обмена не поддерживается браузером или недоступен без HTTPS/localhost.', mapImageClipboardEmpty: 'В буфере обмена не найдено изображение.',
     calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки', calibrationRequiredBeforeWork: 'Сначала выполните калибровку карты. Пока калибровка не завершена, расчёты и рабочие инструменты заблокированы.', lastCalibrationLabel: 'Последняя калибровка', lastCalibrationMissing: 'Последняя калибровка отсутствует',
-    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolBattery: 'Активная батарея', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
+    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolBattery: 'Активная батарея', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки', markerEditorTitle: 'Параметры метки', markerNameLabel: 'Название', markerAzimuthLabel: 'Азимут', markerEditorSaved: 'Параметры метки обновлены', markerDeleted: 'Метка удалена',
     rulerPointSet: 'Точка линейки установлена', rulerMeasurement: 'Линейка', rulerCleared: 'Линейка удалена', coordsCaptured: 'Координаты точки',
     calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', clearManualMarkers: 'Очистить ручные метки', profilesTitle: 'Профили орудий и боеприпасов', profilesHint: 'Настройка сектора огня, зон минимальной/максимальной дальности и привязок к снарядам/таблицам.', profileTraverseDeg: 'Сектор наведения (°)', profileMinRange: 'Минимальная дальность (м)', profileMaxRange: 'Максимальная дальность (м)', profileProjectiles: 'Привязанные снаряды', profileTables: 'Баллистические таблицы', mapRotationHint: 'Shift + левая кнопка мыши: задать азимут орудия', mapWarningPrefix: 'Предупреждение'
   },
@@ -142,7 +142,7 @@ const i18n = {
     invalidCoordinates: 'Coordinate error: only digits and allowed limits are accepted',
     mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', pasteMapImage: 'Paste map from clipboard', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image', mapImageTooLarge: 'Map image is larger than 150 MB. Reduce file size and try again.', mapImageUploadFailed: 'Failed to upload map image to server.', mapImageClipboardUnsupported: 'Clipboard image read is not available in this browser or without HTTPS/localhost.', mapImageClipboardEmpty: 'No image found in clipboard.',
     calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points', calibrationRequiredBeforeWork: 'Complete map calibration first. Calculations and map tools are locked until calibration is applied.', lastCalibrationLabel: 'Last calibration', lastCalibrationMissing: 'No saved calibration yet',
-    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolBattery: 'Active battery', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
+    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolBattery: 'Active battery', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target', markerEditorTitle: 'Marker parameters', markerNameLabel: 'Name', markerAzimuthLabel: 'Azimuth', markerEditorSaved: 'Marker parameters updated', markerDeleted: 'Marker deleted',
     rulerPointSet: 'Ruler point set', rulerMeasurement: 'Ruler', rulerCleared: 'Ruler removed', coordsCaptured: 'Picked coordinates',
     calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', clearManualMarkers: 'Clear manual markers', profilesTitle: 'Gun and ammo profiles', profilesHint: 'Configure fire sector, min/max range zones, and projectile/table bindings.', profileTraverseDeg: 'Traverse sector (°)', profileMinRange: 'Min range (m)', profileMaxRange: 'Max range (m)', profileProjectiles: 'Linked projectiles', profileTables: 'Ballistic tables', mapRotationHint: 'Shift + left mouse: point gun azimuth', mapWarningPrefix: 'Warning' 
   },
@@ -1549,11 +1549,95 @@ function addManualMarker(type, latlng) {
     y: point.y,
     mapX: imagePoint.x,
     mapY: imagePoint.y,
+    azimuth: null,
+    name: '',
   };
   state.settings.mapTools = { ...tools, manualMarkers: [...(tools.manualMarkers ?? []).filter((item) => !(item.type === type && item.targetId === targetId)), marker] };
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = `${t('markerPlaced')}: ${type} (${marker.x.toFixed(1)}, ${marker.y.toFixed(1)})`;
+}
+
+function updateManualMarker(markerId, updater) {
+  if (!markerId || typeof updater !== 'function') return null;
+  const tools = getMapToolsSettings();
+  let nextMarker = null;
+  const updated = (tools.manualMarkers ?? []).map((marker) => {
+    if (marker.id !== markerId) return marker;
+    nextMarker = updater(marker);
+    return nextMarker;
+  });
+  if (!nextMarker) return null;
+  state.settings.mapTools = { ...tools, manualMarkers: updated };
+  persistLauncherSettings();
+  refreshMapOverlay();
+  return nextMarker;
+}
+
+function openManualMarkerEditor(markerId, markerLayer) {
+  const currentMarker = (getMapToolsSettings().manualMarkers ?? []).find((marker) => marker.id === markerId);
+  if (!currentMarker || !markerLayer) return;
+  const markerTitle = buildMarkerLabel(currentMarker.type, currentMarker.targetId);
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'stack';
+  wrapper.innerHTML = `
+    <strong>${t('markerEditorTitle')}</strong>
+    <label>${t('markerNameLabel')}<input data-field="name" type="text" value="${String(currentMarker.name ?? '').replace(/"/g, '&quot;')}" /></label>
+    <label>X<input data-field="x" type="number" step="0.1" value="${Number(currentMarker.x).toFixed(1)}" /></label>
+    <label>Y<input data-field="y" type="number" step="0.1" value="${Number(currentMarker.y).toFixed(1)}" /></label>
+    <label>${t('markerAzimuthLabel')}<input data-field="azimuth" type="number" min="0" max="359.9" step="0.1" value="${Number.isFinite(Number(currentMarker.azimuth)) ? Number(currentMarker.azimuth).toFixed(1) : ''}" /></label>
+    <div class="row">
+      <button class="btn" data-action="save" type="button">OK</button>
+      <button class="btn ghost" data-action="delete" type="button">Delete</button>
+    </div>
+    <p class="hint">${markerTitle}</p>
+  `;
+
+  const popup = window.L.popup({ closeOnClick: false }).setLatLng(markerLayer.getLatLng()).setContent(wrapper);
+  popup.on('remove', () => {
+    if (selectedManualMarkerId === markerId) refreshMapOverlay();
+  });
+  markerLayer.bindPopup(popup).openPopup();
+
+  wrapper.querySelector('[data-action="save"]')?.addEventListener('click', () => {
+    const nextName = String(wrapper.querySelector('[data-field="name"]')?.value || '').trim();
+    const x = Number(wrapper.querySelector('[data-field="x"]')?.value);
+    const y = Number(wrapper.querySelector('[data-field="y"]')?.value);
+    const azimuthRaw = String(wrapper.querySelector('[data-field="azimuth"]')?.value || '').trim();
+    const azimuth = azimuthRaw ? normalizeAzimuth(Number(azimuthRaw)) : null;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || (azimuthRaw && !Number.isFinite(azimuth))) return;
+
+    updateManualMarker(markerId, (marker) => {
+      const mapPoint = gamePointToImagePoint(x, y);
+      applyMarkerCoordinatesToBoundInputs(marker, { x, y });
+      return {
+        ...marker,
+        name: nextName,
+        x,
+        y,
+        mapX: mapPoint.x,
+        mapY: mapPoint.y,
+        azimuth,
+      };
+    });
+    if (mapToolsOutput) mapToolsOutput.textContent = t('markerEditorSaved');
+    markerLayer.closePopup();
+  });
+
+  wrapper.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
+    const tools = getMapToolsSettings();
+    const markerToDelete = (tools.manualMarkers ?? []).find((marker) => marker.id === markerId);
+    state.settings.mapTools = {
+      ...tools,
+      manualMarkers: (tools.manualMarkers ?? []).filter((marker) => marker.id !== markerId),
+    };
+    if (markerToDelete) clearBoundMarkerCoordinates(markerToDelete);
+    if (selectedManualMarkerId === markerId) selectedManualMarkerId = null;
+    persistLauncherSettings();
+    refreshMapOverlay();
+    if (mapToolsOutput) mapToolsOutput.textContent = t('markerDeleted');
+  });
 }
 
 function startManualMarkerDrag(markerId, markerLayer) {
@@ -2323,17 +2407,29 @@ function refreshMapOverlay() {
       weight: isSelected ? 4 : 2,
     }).addTo(leafletMap);
     const markerTitle = buildMarkerLabel(item.type, item.targetId);
-    marker.bindPopup(`${markerTitle}<br>${getMarkerTypeName(item.type)}<br>X: ${Number(item.x).toFixed(1)}, Y: ${Number(item.y).toFixed(1)}`);
-    addPersistentLabel(marker, markerTitle);
+    const markerName = String(item.name || markerTitle);
+    const azimuthText = Number.isFinite(Number(item.azimuth)) ? `<br>${t('markerAzimuthLabel')}: ${normalizeAzimuth(Number(item.azimuth)).toFixed(1)}°` : '';
+    marker.bindPopup(`${markerName}<br>${getMarkerTypeName(item.type)}<br>X: ${Number(item.x).toFixed(1)}, Y: ${Number(item.y).toFixed(1)}${azimuthText}`);
+    addPersistentLabel(marker, markerName);
     marker.on('click', () => {
       selectedManualMarkerId = item.id;
-      refreshMapOverlay();
+      marker.openPopup();
     });
     marker.on('mousedown', (event) => {
       if (event.originalEvent?.button !== 0) return;
-      selectedManualMarkerId = item.id;
+      if (selectedManualMarkerId !== item.id) {
+        selectedManualMarkerId = item.id;
+        marker.openPopup();
+        return;
+      }
       startManualMarkerDrag(item.id, marker);
     });
+    marker.on('dblclick', (event) => {
+      window.L.DomEvent.stop(event);
+      selectedManualMarkerId = item.id;
+      openManualMarkerEditor(item.id, marker);
+    });
+    if (isSelected) marker.openPopup();
     manualMarkers.push(marker);
   });
 
