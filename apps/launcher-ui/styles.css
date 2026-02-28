@@ -353,6 +353,13 @@ select,
   gap: 12px 16px;
 }
 
+.gun-index-label {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .global-layout .battery-guns-group > .pair {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 16px;

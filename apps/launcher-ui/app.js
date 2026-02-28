@@ -883,13 +883,18 @@ function renderGunsGrid() {
     const gunsPerBattery = getGunCountForBattery(b);
     for (let g = 1; g <= gunsPerBattery; g += 1) {
       const key = `${b}-${g}`;
+      const gunObserverSuffix = getObserverSuffixForGun(key);
       const saved = state.settings.gunCoords[key] ?? {};
       const gunState = getGunSetting(key);
       const { profile } = getProfileForGun(b, g);
       const traverseDeg = clamp(Number(profile?.traverseDeg) || 360, 1, 360);
       const hasLimitedTraverse = traverseDeg < 360;
       const row = document.createElement('div');
-      row.className = `pair ${hasLimitedTraverse ? 'pair-4' : 'pair-3'}`;
+      const gunIndexLabel = document.createElement('div');
+      gunIndexLabel.className = 'gun-index-label';
+      gunIndexLabel.textContent = `${t('batteryShort')}${b}-${t('gunShort')}${g}${gunObserverSuffix}`;
+      batteryGroup.append(gunIndexLabel);
+      row.className = `gun-row pair ${hasLimitedTraverse ? 'pair-4' : 'pair-3'}`;
       const headingValue = Number.isFinite(gunState.heading) ? normalizeAzimuth(gunState.heading).toFixed(1) : '';
       const headingField = hasLimitedTraverse
         ? `<div class="field"><input data-gun-heading="${key}" type="text" inputmode="decimal" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" /><label>${t('gunDirectionAzimuth')}</label></div>`
@@ -919,11 +924,26 @@ function syncObserverBindingVisibility(scope) {
     const observerId = modeSelect.dataset.observerMode;
     const gunSelect = root.querySelector(`[data-observer-gun="${observerId}"]`);
     const batterySelect = root.querySelector(`[data-observer-battery="${observerId}"]`);
-    const isGunMode = modeSelect.value === 'gun';
-    if (gunSelect) gunSelect.classList.toggle('hidden', !isGunMode);
-    if (batterySelect) batterySelect.classList.toggle('hidden', isGunMode);
+    if (gunSelect) gunSelect.classList.remove('hidden');
+    if (batterySelect) batterySelect.classList.remove('hidden');
   });
   applyObserverRowAccent(root);
+}
+
+function getObserverSuffixForGun(gunKey) {
+  const observers = Number(observerCountInput?.value || 1);
+  for (let observerId = 1; observerId <= observers; observerId += 1) {
+    const mode = document.querySelector(`[data-observer-mode="${observerId}"]`)?.value
+      ?? state.settings.observerBindings?.[String(observerId)]?.mode
+      ?? 'gun';
+    const linkedGun = document.querySelector(`[data-observer-gun="${observerId}"]`)?.value
+      ?? state.settings.observerBindings?.[String(observerId)]?.gunId
+      ?? '';
+    if (mode === 'gun' && linkedGun === `gun-${gunKey}`) {
+      return `-${t('observerShort')}${observerId}`;
+    }
+  }
+  return '';
 }
 
 function renderObservers() {
@@ -1405,7 +1425,7 @@ function getActiveMarkerTargets(type) {
     const gunsPerBattery = getGunCountForBattery(b);
     for (let g = 1; g <= gunsPerBattery; g += 1) {
       const key = `${b}-${g}`;
-      targets.push({ id: key, label: `${t('batteryShort')}${b}-${t('gunShort')}${g}` });
+      targets.push({ id: key, label: `${t('batteryShort')}${b}-${t('gunShort')}${g}${getObserverSuffixForGun(key)}` });
     }
   }
   return targets;
@@ -2277,7 +2297,7 @@ function getMarkerTypeName(type) {
 function buildMarkerLabel(type, markerId) {
   if (type === 'gun' && markerId?.includes('-')) {
     const [batteryId, gunId] = markerId.split('-');
-    return `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}`;
+    return `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}${getObserverSuffixForGun(`${batteryId}-${gunId}`)}`;
   }
   if (type === 'observer' && markerId) return getObserverDisplayName(markerId);
   return getMarkerTypeName(type);
@@ -2434,7 +2454,7 @@ function refreshMapOverlay() {
 
     marker.on('mousedown', (event) => startGunHeadingDrag(event, { gunKey, gunX, gunY, batteryId, gunId }));
 
-    const gunLabel = `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}`;
+    const gunLabel = `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}${getObserverSuffixForGun(`${batteryId}-${gunId}`)}`;
     marker.bindPopup(`${gunLabel}<br>X: ${gunX}, Y: ${gunY}<br>Az: ${renderedHeading.toFixed(1)}°<br>${profile?.name ?? ''}`);
     addPersistentLabel(marker, gunLabel);
     gunMarkers.push(marker);
