@@ -1,7 +1,0 @@
-{
-  "ammo_type": "HE",
-  "charge": 3,
-  "muzzle_velocity_ms": 420,
-  "drag_model": "G1",
-  "notes": "M107 155MM HE for M777"
-}

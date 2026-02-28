@@ -1,7 +1,0 @@
-{
-  "ammo_type": "SMOKE",
-  "charge": 2,
-  "muzzle_velocity_ms": 360,
-  "drag_model": "G1",
-  "notes": "M110 smoke for M777"
-}
