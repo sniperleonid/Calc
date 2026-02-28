@@ -20,6 +20,7 @@
       <nav class="tabs" aria-label="Sections">
         <button class="tab active" data-tab="global" data-i18n="tabGlobal" data-i18n-title="tipTabGlobal">Глобальные настройки</button>
         <button class="tab" data-tab="fire" data-i18n="tabFire" data-i18n-title="tipTabFire">Огневые задачи</button>
+        <button class="tab" data-tab="correction" data-i18n="tabCorrection" data-i18n-title="tipTabCorrection">Корректировка</button>
         <button class="tab" data-tab="counter-battery" data-i18n="tabCounterBattery">Контрбатарейная борьба</button>
         <button class="tab" data-tab="map" data-i18n="tabMap" data-i18n-title="tipTabMap">Карта</button>
         <button class="tab" data-tab="safety" data-i18n="tabSafety" data-i18n-title="tipTabSafety">Безопасность и данные</button>
@@ -132,6 +133,21 @@
           <article class="card">
             <h2 data-i18n="actionsTitle">Действия</h2>
             <p class="hint" data-i18n="gunnerHint">Все расчёты выполняются на основе глобальных настроек.</p>
+            <div class="card-actions">
+              <button class="btn" id="calculate-btn" data-i18n="calculate">Рассчитать</button>
+              <button class="btn ghost" id="show-mto" data-i18n="showMto">Показать MTO</button>
+              <button class="btn ghost" id="save-mission" data-i18n="logMission">Сохранить миссию</button>
+            </div>
+            <pre id="fire-output" class="output"></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="correction">
+        <div class="section-layout">
+          <article class="card">
+            <h2 data-i18n="correctionTabTitle">Корректировка по активной цели</h2>
+            <p class="hint" data-i18n="correctionTabHint">Используются активная цель и выбранные орудия из вкладки «Огневые задачи».</p>
             <h3 data-i18n="correctionTitle">Корректировка</h3>
             <label for="correction-observer" data-i18n="correctionObserver">Наблюдатель корректировки</label>
             <select id="correction-observer"></select>
@@ -156,12 +172,6 @@
             <div class="card-actions inline-actions">
               <button class="btn ghost" id="apply-observer-targeting" data-i18n="applyObserverTargeting">Рассчитать цель от наблюдателя</button>
             </div>
-            <div class="card-actions">
-              <button class="btn" id="calculate-btn" data-i18n="calculate">Рассчитать</button>
-              <button class="btn ghost" id="show-mto" data-i18n="showMto">Показать MTO</button>
-              <button class="btn ghost" id="save-mission" data-i18n="logMission">Сохранить миссию</button>
-            </div>
-            <pre id="fire-output" class="output"></pre>
           </article>
         </div>
       </section>
