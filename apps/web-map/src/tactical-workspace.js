@@ -840,7 +840,7 @@ class ObserverModule extends UnitModule {
     const groundDistance = Math.max(0, Math.sqrt(Math.max(0, distance * distance - droneAltitude * droneAltitude)));
     const rawHeightDifference = distance * Math.sin((verticalAngle * Math.PI) / 180);
     const heightDifference = verticalAngle < 0 ? -Math.abs(rawHeightDifference) : Math.abs(rawHeightDifference);
-    const targetAltitude = observerAltitude + heightDifference;
+    const targetAltitude = Math.max(0, observerAltitude + heightDifference);
     return {
       observer,
       target: {
