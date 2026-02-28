@@ -1,8 +1,9 @@
 import { calcBearingDeg } from '../../ballistics-core/index.js';
+import { getAdjustmentOffset, windForShot } from './adjustment.js';
 
 export const TARGET_TYPES = ['POINT', 'LINE', 'RECTANGLE', 'CIRCLE'];
 export const SHEAF_TYPES = ['CONVERGED', 'PARALLEL', 'OPEN'];
-export const CONTROL_TYPES = ['SIMULTANEOUS', 'SEQUENCE', 'CREEPING', 'TOT', 'MRSI'];
+export const CONTROL_TYPES = ['SIMULTANEOUS', 'SEQUENCE', 'CREEPING', 'TOT', 'MRSI', 'ADJUSTMENT'];
 
 function toFinite(value, fallback = 0) {
   const n = Number(value);
@@ -228,6 +229,15 @@ export function getPhaseAssignments(plan, phaseIndex) {
     .filter((assignment) => assignment.commands.length);
 }
 
+
+function resolveAdjustedAimPoint(plan, command, gunPos) {
+  const base = plan.aimPoints[command.aimPointIndex];
+  const offset = getAdjustmentOffset(plan.runtime?.adjustment);
+  const hasOffset = Math.abs(offset.dx) > 0.001 || Math.abs(offset.dy) > 0.001;
+  if (!hasOffset) return base;
+  return { ...base, x: base.x + offset.dx, y: base.y + offset.dy, meta: { ...(base.meta || {}), adjusted: true } };
+}
+
 export async function computePhaseSolutions(plan, phaseIndex, env) {
   const assignments = getPhaseAssignments(plan, phaseIndex);
   const perGunSolutions = {};
@@ -235,15 +245,21 @@ export async function computePhaseSolutions(plan, phaseIndex, env) {
     perGunSolutions[assignment.gunId] = [];
     for (const command of assignment.commands) {
       const gunPos = env.gunPositions?.[assignment.gunId];
-      const point = plan.aimPoints[command.aimPointIndex];
+      const point = resolveAdjustedAimPoint(plan, command, gunPos);
+      const wind = windForShot({
+        gunPos,
+        targetPos: point,
+        windSettings: env.wind ?? { speedMps: 0, directionDeg: 0, model: 'CONSTANT' },
+        fallbackBearingDeg: plan.config.bearingDeg,
+      });
       const solution = await env.computeFireSolution({
         gunPos,
         targetPos: { x: point.x, y: point.y, z: Number.isFinite(point.z) ? point.z : 0 },
         weaponId: env.weaponByGunId?.[assignment.gunId],
-        wind: env.wind ?? { speedMps: 0, fromDeg: 0 },
+        wind,
         arc: env.arc ?? 'AUTO',
       });
-      perGunSolutions[assignment.gunId].push({ commandRef: command, aimPoint: point, solution });
+      perGunSolutions[assignment.gunId].push({ commandRef: command, aimPoint: point, wind, solution });
     }
   }
   return { perGunSolutions };
@@ -316,6 +332,7 @@ export async function getNextFirePackage(plan, env) {
 }
 
 export function advancePlanCursor(plan) {
+  if (plan?.config?.control === 'ADJUSTMENT') return plan;
   return { ...plan, cursor: { phaseIndex: plan.cursor.phaseIndex + 1 } };
 }
 

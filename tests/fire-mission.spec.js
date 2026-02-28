@@ -6,7 +6,9 @@ import {
   getNextFirePackage,
   getCurrentPhase,
   getPhaseAssignments,
+  advancePlanCursor,
 } from '../apps/fire-control/src/fire-mission.js';
+import { createAdjustmentState, adjustRange, adjustDirection, decomposeWind } from '../apps/fire-control/src/adjustment.js';
 
 const guns = [
   { id: '1', pos: { x: 0, y: 0, z: 0 } },
@@ -87,4 +89,35 @@ test('MRSI delays are ordered and impacts are simultaneous with min separation',
   const impactTimes = shots.map((shot) => shot.fireDelaySec + shot.tofSec);
   assert.equal(Math.max(...impactTimes) - Math.min(...impactTimes) < 0.001, true);
   assert.equal(getCurrentPhase(plan).phaseIndex, 0);
+});
+
+test('ADJUSTMENT control keeps phase cursor and applies target offset without rebuilding plan', async () => {
+  const plan = buildAimPlan({
+    targetType: 'POINT', sheafType: 'CONVERGED', control: 'ADJUSTMENT', guns: ['1'], roundsPerGun: 1,
+    point: { x: 100, y: 100 },
+  }, guns);
+  const origin = { x: 0, y: 0 };
+  let adjustment = createAdjustmentState({ x: 100, y: 100, z: 0 }, 200);
+  adjustment.origin = origin;
+  adjustment = adjustRange(adjustDirection(adjustment, origin, 25), origin, 50);
+  const runtimePlan = { ...plan, runtime: { adjustment } };
+  const env = {
+    gunPositions: { '1': { x: 0, y: 0, z: 0 } },
+    weaponByGunId: { '1': 'w1' },
+    computeFireSolution: async ({ targetPos, wind }) => ({ azimuthDeg: 0, elevMil: 100, tofSec: 10, targetPos, wind }),
+    computeFireSolutionsMulti: async () => [],
+    wind: { speedMps: 8, directionDeg: 90 },
+  };
+  const pkg = await getNextFirePackage(runtimePlan, env);
+  const solved = pkg.solutions.perGunSolutions['1'][0];
+  assert.notEqual(solved.aimPoint.x, plan.aimPoints[0].x);
+  assert.notEqual(solved.wind.crosswindMps, 0);
+  const advanced = advancePlanCursor(runtimePlan);
+  assert.equal(advanced.cursor.phaseIndex, 0);
+});
+
+test('wind decomposition returns headwind/crosswind from meteorological direction', () => {
+  const out = decomposeWind({ speedMps: 10, directionDeg: 0, model: 'CONSTANT' }, 90);
+  assert.equal(Math.round(out.headwindMps), 0);
+  assert.equal(Math.round(out.crosswindMps), 10);
 });

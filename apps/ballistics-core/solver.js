@@ -61,6 +61,8 @@ function getRangeTableRows(table, chargeId) {
       tof: tof[i],
       dElev: dElev[i],
       tofPer100m: tofPer100m[i],
+      dElevPerHeadwind: chargeData?.dElevPerHeadwind?.[i] ?? chargeData?.dElevPerHeadwindMs?.[i],
+      driftPerCrosswind: chargeData?.driftPerCrosswind?.[i] ?? chargeData?.driftPerCrosswindMs?.[i],
     });
   }
   return rows;
@@ -88,6 +90,8 @@ function interpolateRows(rows, distance) {
         tof: lerp(left.tof, right.tof),
         dElev: lerp(left.dElev, right.dElev),
         tofPer100m: lerp(left.tofPer100m, right.tofPer100m),
+        dElevPerHeadwind: lerp(left.dElevPerHeadwind, right.dElevPerHeadwind),
+        driftPerCrosswind: lerp(left.driftPerCrosswind, right.driftPerCrosswind),
       };
     }
   }
@@ -121,14 +125,14 @@ function pickChargeByDistance(table, distance, preferredChargeId) {
     .at(-1) ?? null;
 }
 
-function solveFromTable({ table, arcType, weapon, bearingRad, range2D, dz, crossWindMps, preferredChargeId }) {
+function solveFromTable({ table, arcType, weapon, bearingRad, range2D, dz, crossWindMps, headWindMps, preferredChargeId }) {
   const selected = pickChargeByDistance(table, range2D, preferredChargeId);
   if (!selected) return null;
 
   const base = interpolateRows(selected.rows, range2D);
   if (!base || !Number.isFinite(base.elevation)) return null;
 
-  const elevationMil = applyHeightCorrection({
+  const baseElevationMil = applyHeightCorrection({
     baseElevationMil: base.elevation,
     heightDiff: dz,
     distance: range2D,
@@ -140,20 +144,28 @@ function solveFromTable({ table, arcType, weapon, bearingRad, range2D, dz, cross
     tofPer100m: base.tofPer100m,
   });
 
+  const driftMeters = Number.isFinite(base.driftPerCrosswind)
+    ? crossWindMps * base.driftPerCrosswind
+    : crossWindMps * (Number.isFinite(tofSec) ? tofSec : 0);
+  const headwindElevMil = Number.isFinite(base.dElevPerHeadwind) ? headWindMps * base.dElevPerHeadwind : 0;
+  const deltaAzimuthDeg = computeRk4AzimuthCorrectionDeg(driftMeters, range2D);
+
+  const correctedElevationMil = baseElevationMil + headwindElevMil;
+
   return {
     chargeId: selected.chargeId,
-    elevMil: elevationMil,
-    azimuthDeg: wrapDeg(radToDeg(bearingRad)),
+    elevMil: correctedElevationMil,
+    azimuthDeg: wrapDeg(radToDeg(bearingRad) + deltaAzimuthDeg),
     tofSec,
     muzzleVel: (weapon.charges || []).find((charge) => String(charge.id) === selected.chargeId)?.muzzleVel,
-    driftMeters: crossWindMps * (Number.isFinite(tofSec) ? tofSec : 0),
+    driftMeters,
     impactX: range2D,
     impactY: dz,
-    impactZ: crossWindMps * (Number.isFinite(tofSec) ? tofSec : 0),
+    impactZ: driftMeters,
     missDistance: 0,
     arcType,
-    deltaAzimuthDegFromNoWind: 0,
-    elevationDeg: radToDeg(milToRad(elevationMil, weapon.milSystem?.milsPerCircle ?? 6400)),
+    deltaAzimuthDegFromNoWind: deltaAzimuthDeg,
+    elevationDeg: radToDeg(milToRad(correctedElevationMil, weapon.milSystem?.milsPerCircle ?? 6400)),
     solverMode: 'table',
   };
 }
@@ -180,9 +192,13 @@ export async function solveFiringSolution(input) {
   const range2D = distance2D(dx, dy);
   const bearingRad = bearingFromNorthRad(dx, dy);
 
-  const windWorld = windFromSpeedDir(req.wind?.speedMps ?? 0, req.wind?.fromDeg ?? 0);
+  const windHeadInput = Number(req.wind?.headwindMps);
+  const windCrossInput = Number(req.wind?.crosswindMps);
+  const windWorld = windFromSpeedDir(req.wind?.speedMps ?? 0, req.wind?.fromDeg ?? req.wind?.directionDeg ?? 0);
   const ff = rotateWorldToFireFrame(windWorld.wx, windWorld.wy, bearingRad);
-  const windFF = { x: ff.along, y: 0, z: ff.cross };
+  const headWindMps = Number.isFinite(windHeadInput) ? windHeadInput : ff.along;
+  const crossWindMps = Number.isFinite(windCrossInput) ? windCrossInput : ff.cross;
+  const windFF = { x: headWindMps, y: 0, z: crossWindMps };
 
   const tables = await getTables(req.weaponId, weapon.tables || {});
   const allowTableMode = !req.simulate;
@@ -198,7 +214,8 @@ export async function solveFiringSolution(input) {
         bearingRad,
         range2D,
         dz,
-        crossWindMps: ff.cross,
+        crossWindMps,
+        headWindMps,
         preferredChargeId: req.preferredChargeId,
       });
       if (solved) return solved;
