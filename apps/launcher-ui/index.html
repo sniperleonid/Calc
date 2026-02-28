@@ -108,6 +108,19 @@
             <h3 data-i18n="missionProjectileSelectionTitle">Выбор снарядов по типам орудий</h3>
             <p class="hint" data-i18n="missionProjectileSelectionHint">Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.</p>
             <div id="mission-projectile-selectors" class="stack compact-stack"></div>
+            <label for="trajectory-type" data-i18n="trajectoryType">Тип траектории</label>
+            <select id="trajectory-type">
+              <option value="indirect" data-i18n="trajectoryTypeIndirect">Навесная</option>
+              <option value="direct" data-i18n="trajectoryTypeDirect">Прямая</option>
+            </select>
+            <div id="indirect-arc-settings" class="stack compact-stack">
+              <label for="indirect-arc" data-i18n="indirectArcType">Навесная траектория</label>
+              <select id="indirect-arc">
+                <option value="low" data-i18n="indirectArcLow">Низкая</option>
+                <option value="high" data-i18n="indirectArcHigh">Высокая</option>
+              </select>
+            </div>
+            <p id="trajectory-support-hint" class="hint"></p>
             <label for="fire-mode" data-i18n="fireMode">Тип огня</label>
             <select id="fire-mode">
               <option value="linear" data-i18n="fireModeLinear">Линейный сноп</option>

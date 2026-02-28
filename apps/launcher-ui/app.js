@@ -106,7 +106,7 @@ const i18n = {
     correctionAnchorObserver: 'Привязан к наблюдателю', correctionAnchorGun: 'Корректировка от орудия (наблюдатель не привязан)',
     observerTargetingTitle: 'Наведение наблюдателем', observerTargetingHint: 'Если координаты цели неизвестны, задайте дальность и азимут. Угол/высота — опционально.', applyObserverTargeting: 'Рассчитать цель от наблюдателя',
     correctionApplied: 'Поправка сохранена', correctionResetDone: 'Поправка сброшена', observerTargetingApplied: 'Координаты цели обновлены от наблюдателя', observerTargetingUnavailable: 'Нет координат наблюдателя для наведения',
-    missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', missionProjectileSelectionTitle: 'Выбор снарядов по типам орудий', missionProjectileSelectionHint: 'Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.', activeTargetLabel: 'Активная цель', targetX: 'Координата цели X', targetY: 'Координата цели Y', targetHeight: 'Высота цели (м)',
+    missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', missionProjectileSelectionTitle: 'Выбор снарядов по типам орудий', missionProjectileSelectionHint: 'Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.', trajectoryType: 'Тип траектории', trajectoryTypeIndirect: 'Навесная', trajectoryTypeDirect: 'Прямая', indirectArcType: 'Навесная траектория', indirectArcLow: 'Низкая', indirectArcHigh: 'Высокая', trajectorySupportHintDirectUnsupported: 'Прямая траектория недоступна: для выбранного орудия/снаряда нет таблицы direct.', trajectorySupportHintIndirectUnsupported: 'Навесная траектория недоступна: для выбранного орудия/снаряда нет таблиц low/high.', trajectorySupportHintArcHighOnly: 'Доступна только высокая навесная траектория.', trajectorySupportHintArcLowOnly: 'Доступна только низкая навесная траектория.', trajectorySupportHintArcUnavailable: 'Для навесной траектории нет таблиц low/high. Будет выбрана доступная траектория автоматически.', activeTargetLabel: 'Активная цель', targetX: 'Координата цели X', targetY: 'Координата цели Y', targetHeight: 'Высота цели (м)',
     fireMode: 'Тип огня', fireModeLinear: 'Линейный сноп', fireModeParallel: 'Параллельный', fireModeConverging: 'Сходящийся', fireModeOpen: 'Открытый', fireModeCircular: 'Круговой',
     counterBatteryTitle: 'Контрбатарейное обнаружение', counterBatteryHint: 'Реальные методы: звукопеленгация, анализ воронок с обратным азимутом, триангуляция по азимутам и гипербола TDOA.', counterBatteryMethod: 'Метод определения', cbMethodSound: 'Звукопеленгация (sound ranging)', cbMethodCrater: 'Анализ воронок и обратный азимут', cbMethodTriangulation: 'Триангуляция по азимутам наблюдателей', cbMethodHyperbola: 'Гипербола по разности времени прихода (TDOA)', cbBearing: 'Азимут на источник (°)', cbEstimatedDistance: 'Оценочная дальность (м)', cbTdoaDelta: 'Разница времени прихода (мс)', cbImpactBearing: 'Обратный азимут от воронки (°)', counterBatteryObservers: 'Данные наблюдателей', counterBatteryObserversHint: 'Чем больше точек наблюдения, тем точнее координаты вражеского орудия.', cbAddPoint: 'Добавить точку', cbClearPoints: 'Очистить точки', cbLocateTarget: 'Найти вражеское орудие', cbCalculateResponse: 'Рассчитать ответный огонь', cbObserverPoint: 'Точка', cbObserver: 'Наблюдатель', cbObservationAzimuth: 'Азимут наблюдения (°)', cbObservationDelay: 'Задержка звука (с)', cbNeedTwoPoints: 'Нужно минимум две валидные точки наблюдения.', cbTargetLocated: 'Цель определена', cbTargetNotFound: 'Не удалось определить координаты цели по выбранному методу.', cbResponseHeader: 'Ответный огонь (доступные орудия в зоне досягаемости)', cbNoReachableGuns: 'Нет доступных орудий в зоне досягаемости.', cbMethodUsed: 'Метод', cbRecommendedGun: 'Рекомендуем:', cbGunFacing: 'направление ', cbNeedsReposition: '(понадобится разворот вне сектора)',
     mapPanelTitle: 'Тактическая карта (Leaflet)', mapLegendTitle: 'Легенда', mapLegendHint: 'Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».',
@@ -144,7 +144,7 @@ const i18n = {
     correctionAnchorObserver: 'Anchored to observer', correctionAnchorGun: 'Correction from gun (observer not linked)',
     observerTargetingTitle: 'Observer targeting', observerTargetingHint: 'If target coordinates are unknown, enter distance and azimuth. Angle/height are optional.', applyObserverTargeting: 'Compute target from observer',
     correctionApplied: 'Correction saved', correctionResetDone: 'Correction reset', observerTargetingApplied: 'Target coordinates updated from observer', observerTargetingUnavailable: 'Observer coordinates are unavailable',
-    missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', missionProjectileSelectionTitle: 'Projectile selection by gun type', missionProjectileSelectionHint: 'Pick a projectile separately for each gun type involved in the mission.', activeTargetLabel: 'Active target', targetX: 'Target X coordinate', targetY: 'Target Y coordinate', targetHeight: 'Target altitude (m)',
+    missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', missionProjectileSelectionTitle: 'Projectile selection by gun type', missionProjectileSelectionHint: 'Pick a projectile separately for each gun type involved in the mission.', trajectoryType: 'Trajectory type', trajectoryTypeIndirect: 'Indirect', trajectoryTypeDirect: 'Direct', indirectArcType: 'Indirect trajectory arc', indirectArcLow: 'Low', indirectArcHigh: 'High', trajectorySupportHintDirectUnsupported: 'Direct trajectory is not available: no direct table for selected gun/projectile.', trajectorySupportHintIndirectUnsupported: 'Indirect trajectory is not available: no low/high tables for selected gun/projectile.', trajectorySupportHintArcHighOnly: 'Only high indirect trajectory is available.', trajectorySupportHintArcLowOnly: 'Only low indirect trajectory is available.', trajectorySupportHintArcUnavailable: 'No low/high tables for indirect trajectory. Available trajectory will be selected automatically.', activeTargetLabel: 'Active target', targetX: 'Target X coordinate', targetY: 'Target Y coordinate', targetHeight: 'Target altitude (m)',
     fireMode: 'Fire mode', fireModeLinear: 'Linear sheaf', fireModeParallel: 'Parallel', fireModeConverging: 'Converging', fireModeOpen: 'Open', fireModeCircular: 'Circular',
     counterBatteryTitle: 'Counter-battery detection', counterBatteryHint: 'Real techniques: sound ranging, crater analysis with reverse azimuth, observer azimuth triangulation, and TDOA hyperbola.', counterBatteryMethod: 'Detection method', cbMethodSound: 'Sound ranging', cbMethodCrater: 'Crater analysis + reverse azimuth', cbMethodTriangulation: 'Observer azimuth triangulation', cbMethodHyperbola: 'TDOA hyperbola', cbBearing: 'Bearing to source (°)', cbEstimatedDistance: 'Estimated range (m)', cbTdoaDelta: 'Arrival time difference (ms)', cbImpactBearing: 'Reverse azimuth from crater (°)', counterBatteryObservers: 'Observer data', counterBatteryObserversHint: 'More observation points produce better enemy gun localization.', cbAddPoint: 'Add point', cbClearPoints: 'Clear points', cbLocateTarget: 'Locate enemy gun', cbCalculateResponse: 'Calculate counter-fire', cbObserverPoint: 'Point', cbObserver: 'Observer', cbObservationAzimuth: 'Observation azimuth (°)', cbObservationDelay: 'Sound delay (s)', cbNeedTwoPoints: 'At least two valid observation points are required.', cbTargetLocated: 'Target localized', cbTargetNotFound: 'Unable to compute target coordinates with selected method.', cbResponseHeader: 'Counter-fire (reachable friendly guns)', cbNoReachableGuns: 'No reachable guns in range.', cbMethodUsed: 'Method', cbRecommendedGun: 'Recommended:', cbGunFacing: 'facing ', cbNeedsReposition: '(requires reposition outside traverse)',
     mapPanelTitle: 'Tactical map (Leaflet)', mapLegendTitle: 'Legend', mapLegendHint: 'The map shows guns in selected battery and the current target from Fire Missions tab.',
@@ -184,6 +184,10 @@ const missionGunSelect = document.querySelector('#mission-gun');
 const missionProjectileSelectors = document.querySelector('#mission-projectile-selectors');
 const activeTargetSelect = document.querySelector('#active-target');
 const fireModeSelect = document.querySelector('#fire-mode');
+const trajectoryTypeSelect = document.querySelector('#trajectory-type');
+const indirectArcSelect = document.querySelector('#indirect-arc');
+const indirectArcSettings = document.querySelector('#indirect-arc-settings');
+const trajectorySupportHint = document.querySelector('#trajectory-support-hint');
 const correctionObserverSelect = document.querySelector('#correction-observer');
 const correctionAnchorInfo = document.querySelector('#correction-anchor-info');
 const fireOutput = document.querySelector('#fire-output');
@@ -256,6 +260,16 @@ function buildProfilesFromCatalog(catalog) {
     if (!gun?.id) continue;
     ids.push(gun.id);
     const projectileNames = (gun.projectiles ?? []).map((projectile) => projectile.id).filter(Boolean);
+    const trajectoryCapabilities = Object.fromEntries((gun.projectiles ?? [])
+      .filter((projectile) => projectile?.id)
+      .map((projectile) => {
+        const files = Array.isArray(projectile.ballisticTables) ? projectile.ballisticTables.map((name) => String(name).toLowerCase()) : [];
+        return [projectile.id, {
+          direct: files.some((name) => name.includes('direct')),
+          low: files.some((name) => name.includes('low')),
+          high: files.some((name) => name.includes('high')),
+        }];
+      }));
     const profile = gun.profile ?? {};
     profiles[gun.id] = {
       name: profile.name ?? gun.id,
@@ -267,6 +281,7 @@ function buildProfilesFromCatalog(catalog) {
       maxRange: Number(profile.max_range_m ?? profile.maxRange ?? 0),
       projectiles: profile.ammo_types?.join('/') ?? projectileNames.join('/'),
       tables: projectileNames.map((projectileId) => `${gun.id}/${projectileId}`).join(', '),
+      trajectoryCapabilities,
     };
   }
   return { profiles, ids };
@@ -758,6 +773,8 @@ function persistLauncherSettings() {
     activeTargetId: selectedTargetId,
     battery: missionBatterySelect?.value ?? '1',
     gun: missionGunSelect?.value ?? 'all',
+    trajectoryType: trajectoryTypeSelect?.value ?? 'indirect',
+    indirectArc: indirectArcSelect?.value ?? 'low',
     fireMode: fireModeSelect?.value ?? 'linear',
     correction: {
       observerId: correctionObserverSelect?.value ?? '1',
@@ -1049,6 +1066,99 @@ function parseProjectileOptions(profile) {
   return parsed.length ? parsed : [raw];
 }
 
+
+function getProjectileForProfile(profileId, profile) {
+  return document.querySelector(`[data-mission-projectile-profile="${profileId}"]`)?.value || parseProjectileOptions(profile)[0];
+}
+
+function getTrajectoryCapabilities(profile, projectile) {
+  const defaults = { direct: false, low: false, high: false };
+  const fromCatalog = profile?.trajectoryCapabilities?.[projectile];
+  if (fromCatalog) return { ...defaults, ...fromCatalog };
+  return defaults;
+}
+
+function getTrajectorySelectionContext() {
+  const battery = Number(missionBatterySelect?.value || 1);
+  const selectedGun = missionGunSelect?.value ?? 'all';
+  const gunsPerBattery = getGunCountForBattery(battery);
+  const gunIds = selectedGun === 'all' ? Array.from({ length: gunsPerBattery }, (_, idx) => idx + 1) : [Number(selectedGun)];
+  const weapons = gunIds.map((gunId) => {
+    const { profileId, profile } = getProfileForGun(battery, gunId);
+    const projectile = getProjectileForProfile(profileId, profile);
+    const capability = getTrajectoryCapabilities(profile, projectile);
+    return { profileId, profile, projectile, capability };
+  });
+
+  const directSupported = weapons.some((weapon) => weapon.capability.direct);
+  const lowSupported = weapons.some((weapon) => weapon.capability.low);
+  const highSupported = weapons.some((weapon) => weapon.capability.high);
+  const indirectSupported = lowSupported || highSupported;
+
+  return { weapons, directSupported, lowSupported, highSupported, indirectSupported };
+}
+
+function syncTrajectoryControls() {
+  if (!trajectoryTypeSelect || !indirectArcSelect) return;
+  const context = getTrajectorySelectionContext();
+  const directOption = trajectoryTypeSelect.querySelector('option[value="direct"]');
+  const indirectOption = trajectoryTypeSelect.querySelector('option[value="indirect"]');
+  if (directOption) directOption.disabled = !context.directSupported;
+  if (indirectOption) indirectOption.disabled = !context.indirectSupported;
+
+  if (trajectoryTypeSelect.value === 'direct' && !context.directSupported) {
+    trajectoryTypeSelect.value = context.indirectSupported ? 'indirect' : 'direct';
+  }
+  if (trajectoryTypeSelect.value === 'indirect' && !context.indirectSupported) {
+    trajectoryTypeSelect.value = context.directSupported ? 'direct' : 'indirect';
+  }
+
+  const lowOption = indirectArcSelect.querySelector('option[value="low"]');
+  const highOption = indirectArcSelect.querySelector('option[value="high"]');
+  if (lowOption) lowOption.disabled = !context.lowSupported;
+  if (highOption) highOption.disabled = !context.highSupported;
+  if (indirectArcSelect.value === 'high' && !context.highSupported) indirectArcSelect.value = context.lowSupported ? 'low' : 'high';
+  if (indirectArcSelect.value === 'low' && !context.lowSupported) indirectArcSelect.value = context.highSupported ? 'high' : 'low';
+
+  if (indirectArcSettings) {
+    indirectArcSettings.classList.toggle('hidden', trajectoryTypeSelect.value !== 'indirect');
+  }
+
+  if (trajectorySupportHint) {
+    let hint = '';
+    if (trajectoryTypeSelect.value === 'direct' && !context.directSupported) {
+      hint = t('trajectorySupportHintDirectUnsupported');
+    } else if (trajectoryTypeSelect.value === 'indirect' && !context.indirectSupported) {
+      hint = t('trajectorySupportHintIndirectUnsupported');
+    } else if (trajectoryTypeSelect.value === 'indirect' && context.highSupported && !context.lowSupported) {
+      hint = t('trajectorySupportHintArcHighOnly');
+    } else if (trajectoryTypeSelect.value === 'indirect' && context.lowSupported && !context.highSupported) {
+      hint = t('trajectorySupportHintArcLowOnly');
+    }
+    trajectorySupportHint.textContent = hint;
+  }
+}
+
+function resolveArcRequest(capability, trajectoryType, indirectArc) {
+  if (trajectoryType === 'direct') {
+    if (capability.direct) return 'DIRECT';
+    if (capability.low) return 'LOW';
+    if (capability.high) return 'HIGH';
+    return 'AUTO';
+  }
+
+  if (trajectoryType === 'indirect') {
+    const preferred = indirectArc === 'high' ? 'high' : 'low';
+    if (capability[preferred]) return preferred.toUpperCase();
+    const fallback = preferred === 'high' ? 'low' : 'high';
+    if (capability[fallback]) return fallback.toUpperCase();
+    if (capability.direct) return 'DIRECT';
+    return 'AUTO';
+  }
+
+  return 'AUTO';
+}
+
 function renderMissionProjectileSelectors() {
   if (!missionProjectileSelectors) return;
   const battery = Number(missionBatterySelect?.value || 1);
@@ -1074,6 +1184,7 @@ function renderMissionProjectileSelectors() {
     const select = row.querySelector(`[data-mission-projectile-profile="${profileId}"]`);
     if (select) select.value = options.includes(saved[profileId]) ? saved[profileId] : options[0];
   });
+  syncTrajectoryControls();
 }
 
 function renderMissionSelectors() {
@@ -1110,11 +1221,14 @@ function renderMissionSelectors() {
   document.querySelector('#observer-target-azimuth').value = state.settings.mission.observerTargeting?.azimuth ?? '';
   document.querySelector('#observer-target-angle').value = state.settings.mission.observerTargeting?.angle ?? '';
 
+  if (trajectoryTypeSelect) trajectoryTypeSelect.value = state.settings.mission.trajectoryType ?? 'indirect';
+  if (indirectArcSelect) indirectArcSelect.value = state.settings.mission.indirectArc ?? 'low';
   if (fireModeSelect) fireModeSelect.value = state.settings.mission.fireMode ?? 'linear';
   const fireModeSettings = state.settings.mission.fireModeSettings ?? {};
   document.querySelectorAll('[data-fire-setting]').forEach((input) => {
     input.value = fireModeSettings[input.dataset.fireSetting] ?? '';
   });
+  syncTrajectoryControls();
   syncFireModeSettingsVisibility();
 }
 
@@ -1391,6 +1505,8 @@ async function calculateFire() {
   const battery = Number(missionBatterySelect.value || 1);
   const selectedGun = missionGunSelect.value;
   const fireMode = fireModeSelect?.value ?? 'linear';
+  const trajectoryType = trajectoryTypeSelect?.value ?? 'indirect';
+  const indirectArc = indirectArcSelect?.value ?? 'low';
   const gunsPerBattery = getGunCountForBattery(battery);
   const gunIds = selectedGun === 'all' ? Array.from({ length: gunsPerBattery }, (_, idx) => idx + 1) : [Number(selectedGun)];
   const batteryHeight = getBatteryHeight(battery);
@@ -1416,11 +1532,13 @@ async function calculateFire() {
     if (!gunPoint) return null;
     const { profileId, profile } = getProfileForGun(battery, gunId);
     const projectile = document.querySelector(`[data-mission-projectile-profile="${profileId}"]`)?.value || parseProjectileOptions(profile)[0];
+    const capability = getTrajectoryCapabilities(profile, projectile);
+    const requestedArc = resolveArcRequest(capability, trajectoryType, indirectArc);
     const solution = await computeFireSolution({
       gunPos: { x: gunPoint.x, y: gunPoint.y, z: batteryHeight },
       targetPos: { x: targetX, y: targetY, z: targetHeight },
       wind: { speedMps: 0, fromDeg: 0 },
-      arc: 'AUTO',
+      arc: requestedArc,
       toleranceMeters: 10,
       weaponId: `${profileId}/${projectile}`,
     });
@@ -1442,6 +1560,7 @@ async function calculateFire() {
       chargeId: solution.chargeId,
       missDistance: Number(solution.missDistance).toFixed(1),
       arcType: solution.arcType,
+      requestedArc,
     };
   });
   const results = await Promise.all(resultPromises);
@@ -1454,7 +1573,7 @@ async function calculateFire() {
   const output = [`${t('calcDone')}: ${document.querySelector('#mission-name')?.value || 'Mission'}`,
     `${t('fireMode')}: ${t(`fireMode${fireMode[0].toUpperCase()}${fireMode.slice(1)}`)}`,
     `Target: X=${targetX.toFixed(1)} Y=${targetY.toFixed(1)} H=${targetHeight.toFixed(1)}` ,
-    ...results.map((row) => `${t('gun')} ${row.gunId} (${row.profileId}, ${row.projectile}): D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil TOF=${row.tofSec}s Drift=${row.driftMeters}m Charge=${row.chargeId} Arc=${row.arcType} Miss=${row.missDistance}m · Tbl=${row.tableRef}`)].join('\n');
+    ...results.map((row) => `${t('gun')} ${row.gunId} (${row.profileId}, ${row.projectile}): D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil TOF=${row.tofSec}s Drift=${row.driftMeters}m Charge=${row.chargeId} Arc=${row.arcType} (Req=${row.requestedArc}) Miss=${row.missDistance}m · Tbl=${row.tableRef}`)].join('\n');
 
   const observerCorrections = getObserverCorrections(battery, gunIds, batteryHeight);
   const observerRows = observerCorrections.map((item) => `${getObserverDisplayName(item.observerId)}: ΔH=${item.heightDelta}m`);
@@ -1464,7 +1583,7 @@ async function calculateFire() {
   state.settings.mapTools = { ...tools, activeFirePattern: buildActiveFirePattern({ mode: fireMode, targetX, targetY }) };
   persistLauncherSettings();
   refreshMapOverlay();
-  return { results, battery, selectedGun, targetX, targetY, rawTargetX, rawTargetY, batteryHeight, targetHeight, fireMode };
+  return { results, battery, selectedGun, targetX, targetY, rawTargetX, rawTargetY, batteryHeight, targetHeight, fireMode, trajectoryType, indirectArc };
 }
 
 async function showMto() {
@@ -3037,6 +3156,12 @@ missionGunSelect?.addEventListener('change', () => {
   refreshMapOverlay();
 });
 
+document.addEventListener('change', (event) => {
+  if (!(event.target instanceof HTMLSelectElement) || !event.target.matches('[data-mission-projectile-profile]')) return;
+  syncTrajectoryControls();
+  persistLauncherSettings();
+});
+
 activeTargetSelect?.addEventListener('change', () => {
   const previousTargetId = lastMissionTargetId;
   storeCurrentMissionTargetInputs(previousTargetId);
@@ -3058,6 +3183,16 @@ fireModeSelect?.addEventListener('change', () => {
   persistLauncherSettings();
   refreshMapOverlay();
 });
+trajectoryTypeSelect?.addEventListener('change', () => {
+  syncTrajectoryControls();
+  persistLauncherSettings();
+});
+
+indirectArcSelect?.addEventListener('change', () => {
+  syncTrajectoryControls();
+  persistLauncherSettings();
+});
+
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Control') {
     const now = Date.now();
