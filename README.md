@@ -169,7 +169,7 @@ npm run start
 
 ## Fire Mission (FDC MVP)
 
-В `apps/launcher-ui` добавлен модуль планирования `fire-mission.js`:
+Модуль планирования `fire-mission.js` перенесён в `apps/fire-control/src`:
 
 - `buildAimPlan(config, guns, context)` — строит план фаз и назначений.
 - `getNextFirePackage(plan, env)` — выдаёт текущий пакет фазы (цели, назначения, решения solver, TOT/MRSI задержки).

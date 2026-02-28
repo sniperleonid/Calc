@@ -1,4 +1,4 @@
-import { calcBearingDeg } from '../ballistics-core/index.js';
+import { calcBearingDeg } from '../../ballistics-core/index.js';
 
 export const TARGET_TYPES = ['POINT', 'LINE', 'RECTANGLE', 'CIRCLE'];
 export const SHEAF_TYPES = ['CONVERGED', 'PARALLEL', 'OPEN'];
