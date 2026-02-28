@@ -85,49 +85,6 @@
               </select>
             </div>
             <p id="trajectory-support-hint" class="hint"></p>
-            <label for="fire-mode" data-i18n="fireMode">Тип огня</label>
-            <select id="fire-mode">
-              <option value="POINT" data-i18n="fireModePoint">Точка (1 точка)</option>
-              <option value="CONVERGED" data-i18n="fireModeConverged">Сходящийся</option>
-              <option value="PARALLEL_SHEAF" data-i18n="fireModeParallelSheaf">Параллельный веер</option>
-              <option value="OPEN_SHEAF" data-i18n="fireModeOpenSheaf">Открытый веер</option>
-              <option value="CIRCULAR_AREA" data-i18n="fireModeCircularArea">Круговой</option>
-              <option value="LINEAR" data-i18n="fireModeLinear">Линейный</option>
-              <option value="RECT_AREA" data-i18n="fireModeRectArea">Прямоугольник</option>
-            </select>
-            <div id="fire-mode-settings" class="stack compact-stack">
-              <div data-fire-mode-panel="POINT" class="pair pair-2">
-                <p class="hint" data-i18n="fireModePointHint">Все орудия стреляют в одну точку цели.</p>
-              </div>
-              <div data-fire-mode-panel="CONVERGED" class="pair pair-2 hidden">
-                <p class="hint" data-i18n="fireModeConvergedHint">Сведение огня в одну точку с возможными индивидуальными поправками.</p>
-              </div>
-              <div data-fire-mode-panel="LINEAR" class="pair pair-2 hidden">
-                <input id="fire-linear-start-x" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearStartX" placeholder="Start X" />
-                <input id="fire-linear-start-y" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearStartY" placeholder="Start Y" />
-                <input id="fire-linear-end-x" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearEndX" placeholder="End X" />
-                <input id="fire-linear-end-y" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearEndY" placeholder="End Y" />
-                <input id="fire-linear-spacing" type="number" min="5" step="5" data-fire-setting="linearSpacing" placeholder="Spacing (m)" />
-              </div>
-              <div data-fire-mode-panel="PARALLEL_SHEAF" class="pair pair-2 hidden">
-                <input id="fire-parallel-width" type="number" min="10" step="10" data-fire-setting="parallelWidth" placeholder="Width (m)" />
-                <input id="fire-parallel-bearing" type="number" min="0" max="359" step="1" data-fire-setting="parallelBearing" placeholder="Bearing°" />
-              </div>
-              <div data-fire-mode-panel="OPEN_SHEAF" class="pair pair-2 hidden">
-                <input id="fire-open-width" type="number" min="10" step="10" data-fire-setting="openWidth" placeholder="Width (m)" />
-                <input id="fire-open-bearing" type="number" min="0" max="359" step="1" data-fire-setting="openBearing" placeholder="Bearing°" />
-              </div>
-              <div data-fire-mode-panel="CIRCULAR_AREA" class="pair pair-2 hidden">
-                <input id="fire-circular-radius" type="number" min="10" step="10" data-fire-setting="circularRadius" placeholder="Radius (m)" />
-                <input id="fire-circular-count" type="number" min="4" max="24" step="1" data-fire-setting="circularCount" placeholder="Points" />
-              </div>
-              <div data-fire-mode-panel="RECT_AREA" class="pair pair-2 hidden">
-                <input id="fire-rect-width" type="number" min="10" step="10" data-fire-setting="rectWidth" placeholder="Width (m)" />
-                <input id="fire-rect-length" type="number" min="10" step="10" data-fire-setting="rectLength" placeholder="Length (m)" />
-                <input id="fire-rect-bearing" type="number" min="0" max="359" step="1" data-fire-setting="rectBearing" placeholder="Bearing°" />
-                <input id="fire-rect-spacing" type="number" min="5" step="5" data-fire-setting="rectSpacing" placeholder="Spacing (m)" />
-              </div>
-            </div>
             <h3>Огневая задача (FDC)</h3>
             <div class="pair pair-2">
               <label>Тип цели

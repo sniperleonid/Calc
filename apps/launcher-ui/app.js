@@ -1,6 +1,6 @@
 import { createCounterBatteryModule } from '/apps/counter-battery/module.js';
 import { computeFireSolution, computeFireSolutionsMulti } from '/apps/ballistics-core/index.js';
-import { FIRE_MODE_IDS, buildFireModeConfig, generateAimPoints, pickAimPointForGun } from './fire-modes.js';
+import { FIRE_MODE_IDS } from './fire-modes.js';
 import {
   buildAimPlanFromFdc,
   getNextFirePackage,
@@ -176,7 +176,6 @@ const missionBatterySelect = document.querySelector('#mission-battery');
 const missionGunSelect = document.querySelector('#mission-gun');
 const missionProjectileSelectors = document.querySelector('#mission-projectile-selectors');
 const activeTargetSelect = document.querySelector('#active-target');
-const fireModeSelect = document.querySelector('#fire-mode');
 const trajectoryTypeSelect = document.querySelector('#trajectory-type');
 const indirectArcSelect = document.querySelector('#indirect-arc');
 const indirectArcSettings = document.querySelector('#indirect-arc-settings');
@@ -751,11 +750,6 @@ function persistLauncherSettings() {
     manualMarkers: mapToolsSettings.manualMarkers ?? [],
   };
 
-  const fireModeSettings = {};
-  document.querySelectorAll('[data-fire-setting]').forEach((input) => {
-    fireModeSettings[input.dataset.fireSetting] = input.value ?? '';
-  });
-
   const selectedTargetId = getSelectedMissionTargetId();
   const targetXValue = document.querySelector('#target-x')?.value ?? '';
   const targetYValue = document.querySelector('#target-y')?.value ?? '';
@@ -779,7 +773,6 @@ function persistLauncherSettings() {
     gun: missionGunSelect?.value ?? 'all',
     trajectoryType: trajectoryTypeSelect?.value ?? 'indirect',
     indirectArc: indirectArcSelect?.value ?? 'low',
-    fireMode: fireModeSelect?.value ?? FIRE_MODE_IDS.POINT,
     correction: {
       observerId: correctionObserverSelect?.value ?? '1',
       lateralMeters: Number(document.querySelector('#correction-lr')?.value ?? 0) || 0,
@@ -797,7 +790,6 @@ function persistLauncherSettings() {
       azimuth: document.querySelector('#observer-target-azimuth')?.value ?? '',
       angle: document.querySelector('#observer-target-angle')?.value ?? '',
     },
-    fireModeSettings,
     missionFdc: migrateOldMissionToFdc(getFireMissionConfigFromUI()),
   };
 
@@ -843,7 +835,6 @@ function applyI18n() {
   renderObservers();
   renderMissionSelectors();
   renderCounterBatterySection();
-  syncFireModeSettingsVisibility();
   syncFdcSettingsVisibility();
   hydrateMapToolsForm();
   syncMarkerTargetOptions();
@@ -1217,17 +1208,11 @@ function renderMissionSelectors() {
 
   if (trajectoryTypeSelect) trajectoryTypeSelect.value = state.settings.mission.trajectoryType ?? 'indirect';
   if (indirectArcSelect) indirectArcSelect.value = state.settings.mission.indirectArc ?? 'low';
-  if (fireModeSelect) fireModeSelect.value = state.settings.mission.fireMode ?? FIRE_MODE_IDS.POINT;
   const missionFdc = migrateOldMissionToFdc(state.settings.mission?.missionFdc ?? state.settings.mission ?? {});
   if (fmTargetTypeSelect) fmTargetTypeSelect.value = missionFdc.targetType;
   if (fmSheafTypeSelect) fmSheafTypeSelect.value = missionFdc.sheafType;
   if (fmControlTypeSelect) fmControlTypeSelect.value = missionFdc.controlType;
-  const fireModeSettings = state.settings.mission.fireModeSettings ?? {};
-  document.querySelectorAll('[data-fire-setting]').forEach((input) => {
-    input.value = fireModeSettings[input.dataset.fireSetting] ?? '';
-  });
   syncTrajectoryControls();
-  syncFireModeSettingsVisibility();
   syncFdcSettingsVisibility();
 }
 
@@ -1455,13 +1440,6 @@ function getObserverCorrections(batteryId, gunIds, batteryHeight) {
   return corrections;
 }
 
-function syncFireModeSettingsVisibility() {
-  const mode = fireModeSelect?.value ?? FIRE_MODE_IDS.POINT;
-  document.querySelectorAll('[data-fire-mode-panel]').forEach((panel) => {
-    panel.classList.toggle('hidden', panel.dataset.fireModePanel !== mode);
-  });
-}
-
 function syncFdcSettingsVisibility() {
   const schema = getFdcUiSchema({
     targetType: fmTargetTypeSelect?.value,
@@ -1494,56 +1472,6 @@ function buildFireModeLabelKey(mode) {
     [FIRE_MODE_IDS.RECT_AREA]: 'fireModeRectArea',
   };
   return map[mode] ?? 'fireModePoint';
-}
-
-function buildModeSpecificConfig({ mode, settings, targetX, targetY, targetHeight }) {
-  if (mode === FIRE_MODE_IDS.LINEAR) {
-    return {
-      startPoint: { x: toFiniteNumber(settings.linearStartX, targetX - 120), y: toFiniteNumber(settings.linearStartY, targetY - 120), z: targetHeight },
-      endPoint: { x: toFiniteNumber(settings.linearEndX, targetX + 120), y: toFiniteNumber(settings.linearEndY, targetY + 120), z: targetHeight },
-      spacingM: Math.max(5, toFiniteNumber(settings.linearSpacing, 40)),
-    };
-  }
-
-  if (mode === FIRE_MODE_IDS.PARALLEL_SHEAF) {
-    return {
-      sheafWidthM: Math.max(10, toFiniteNumber(settings.parallelWidth, 180)),
-      bearingDeg: toFiniteNumber(settings.parallelBearing, 0),
-      distribute: 'PATTERN',
-    };
-  }
-
-  if (mode === FIRE_MODE_IDS.OPEN_SHEAF) {
-    return {
-      sheafWidthM: Math.max(10, toFiniteNumber(settings.openWidth, 260)),
-      bearingDeg: toFiniteNumber(settings.openBearing, 0),
-      distribute: 'PATTERN',
-    };
-  }
-
-  if (mode === FIRE_MODE_IDS.CIRCULAR_AREA) {
-    return {
-      radiusM: Math.max(10, toFiniteNumber(settings.circularRadius, 120)),
-      aimpointCount: Math.max(4, Math.min(24, Math.round(toFiniteNumber(settings.circularCount, 8)))),
-      distribute: 'PATTERN',
-    };
-  }
-
-  if (mode === FIRE_MODE_IDS.RECT_AREA) {
-    return {
-      widthM: Math.max(10, toFiniteNumber(settings.rectWidth, 200)),
-      lengthM: Math.max(10, toFiniteNumber(settings.rectLength, 200)),
-      bearingDeg: toFiniteNumber(settings.rectBearing, 0),
-      spacingM: Math.max(5, toFiniteNumber(settings.rectSpacing, 40)),
-      distribute: 'PATTERN',
-    };
-  }
-
-  if (mode === FIRE_MODE_IDS.CONVERGED) {
-    return { convergePoint: { x: targetX, y: targetY, z: targetHeight }, distribute: 'SAME_POINT' };
-  }
-
-  return { distribute: 'SAME_POINT' };
 }
 
 function buildActiveFirePattern({ mode, centerPoint, aimPoints }) {
@@ -3364,11 +3292,6 @@ correctionObserverSelect?.addEventListener('change', () => {
   persistLauncherSettings();
 });
 
-fireModeSelect?.addEventListener('change', () => {
-  syncFireModeSettingsVisibility();
-  persistLauncherSettings();
-  refreshMapOverlay();
-});
 fmTargetTypeSelect?.addEventListener('change', () => {
   syncFdcSettingsVisibility();
   persistLauncherSettings();
@@ -3436,9 +3359,6 @@ document.addEventListener('input', (event) => {
     if (event.target.matches('#cal-scale-meters')) {
       const tools = getMapToolsSettings();
       state.settings.mapTools = { ...tools, calibrationScaleMeters: event.target.value };
-    }
-    if (event.target.matches('[data-fire-setting]')) {
-      syncFireModeSettingsVisibility();
     }
   }
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) {
