@@ -402,6 +402,39 @@ function applyMarkerCoordinatesToBoundInputs(marker, point) {
   }
 }
 
+function clearMarkerCoordinatesAndAzimuth(marker) {
+  if (!marker) return;
+
+  if (marker.type === 'gun' && marker.targetId) {
+    const gunXInput = document.querySelector(`[data-gun-x="${marker.targetId}"]`);
+    const gunYInput = document.querySelector(`[data-gun-y="${marker.targetId}"]`);
+    const gunHeadingInput = document.querySelector(`[data-gun-heading="${marker.targetId}"]`);
+    if (gunXInput) gunXInput.value = '';
+    if (gunYInput) gunYInput.value = '';
+    if (gunHeadingInput) gunHeadingInput.value = '';
+    state.settings.gunSettings = {
+      ...(state.settings.gunSettings ?? {}),
+      [marker.targetId]: { ...getGunSetting(marker.targetId), heading: null },
+    };
+    return;
+  }
+
+  if (marker.type === 'observer' && marker.targetId) {
+    const observerXInput = document.querySelector(`[data-observer-x="${marker.targetId}"]`);
+    const observerYInput = document.querySelector(`[data-observer-y="${marker.targetId}"]`);
+    if (observerXInput) observerXInput.value = '';
+    if (observerYInput) observerYInput.value = '';
+    return;
+  }
+
+  if (marker.type === 'target') {
+    const targetXInput = document.querySelector('#target-x');
+    const targetYInput = document.querySelector('#target-y');
+    if (targetXInput) targetXInput.value = '';
+    if (targetYInput) targetYInput.value = '';
+  }
+}
+
 function syncManualMarkersFromBoundInputs(markers) {
   return (markers ?? []).map((marker) => {
     if (marker.type === 'gun' && marker.targetId) {
@@ -1659,6 +1692,7 @@ function openManualMarkerEditor(markerId, markerLayer) {
   wrapper.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
     const tools = getMapToolsSettings();
     const markerToDelete = (tools.manualMarkers ?? []).find((marker) => marker.id === markerId);
+    if (markerToDelete) clearMarkerCoordinatesAndAzimuth(markerToDelete);
     state.settings.mapTools = {
       ...tools,
       manualMarkers: (tools.manualMarkers ?? []).filter((marker) => marker.id !== markerId),
@@ -2645,6 +2679,7 @@ function deleteSelectedManualMarker() {
   if (!selectedManualMarkerId) return;
   const tools = getMapToolsSettings();
   const markerToDelete = (tools.manualMarkers ?? []).find((marker) => marker.id === selectedManualMarkerId);
+  if (markerToDelete) clearMarkerCoordinatesAndAzimuth(markerToDelete);
   state.settings.mapTools = {
     ...tools,
     manualMarkers: (tools.manualMarkers ?? []).filter((marker) => marker.id !== selectedManualMarkerId),
