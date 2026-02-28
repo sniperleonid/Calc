@@ -835,24 +835,47 @@ class ObserverModule extends UnitModule {
     return { ...observer.lineOfSight };
   }
 
-  solvePolarPlotMission({ observer, azimuth, distance, droneAltitude = 0, observerAltitude = 0, verticalAngle = 0 }) {
-    const radians = (clampAngle(azimuth) * Math.PI) / 180;
-    const groundDistance = Math.max(0, Math.sqrt(Math.max(0, distance * distance - droneAltitude * droneAltitude)));
-    const rawHeightDifference = distance * Math.sin((verticalAngle * Math.PI) / 180);
-    const heightDifference = verticalAngle < 0 ? -Math.abs(rawHeightDifference) : Math.abs(rawHeightDifference);
-    const targetAltitude = Math.max(0, observerAltitude + heightDifference);
+  solvePolarPlotMission({
+    observer,
+    azimuth,
+    distance,
+    droneAltitude = 0,
+    observerAltitude = 0,
+    verticalAngle = 0,
+    horizontalRange,
+    verticalDelta,
+  }) {
+    const azimuthRad = (clampAngle(azimuth) * Math.PI) / 180;
+    const elevationRad = (verticalAngle * Math.PI) / 180;
+    const hasHorizontalVertical = Number.isFinite(horizontalRange) || Number.isFinite(verticalDelta);
+
+    const groundDistance = hasHorizontalVertical
+      ? Math.max(0, Number.isFinite(horizontalRange) ? horizontalRange : 0)
+      : Math.max(0, (Number.isFinite(distance) ? distance : 0) * Math.cos(elevationRad));
+
+    const heightDifference = hasHorizontalVertical
+      ? (Number.isFinite(verticalDelta) ? verticalDelta : 0)
+      : (Number.isFinite(distance) ? distance : 0) * Math.sin(elevationRad);
+
+    const targetAltitude = observerAltitude + heightDifference;
+    const slantDistance = hasHorizontalVertical
+      ? Math.hypot(groundDistance, heightDifference)
+      : (Number.isFinite(distance) ? distance : 0);
+
     return {
       observer,
       target: {
-        x: observer.x + Math.sin(radians) * groundDistance,
-        y: observer.y + Math.cos(radians) * groundDistance,
+        x: observer.x + Math.sin(azimuthRad) * groundDistance,
+        y: observer.y + Math.cos(azimuthRad) * groundDistance,
       },
       azimuth: clampAngle(azimuth),
-      distance,
+      distance: slantDistance,
       droneAltitude,
       observerAltitude,
       targetAltitude,
       heightDifference,
+      horizontalRange: groundDistance,
+      verticalDelta: heightDifference,
       verticalAngle,
       mode: 'polar-plot',
     };
