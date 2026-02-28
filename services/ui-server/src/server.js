@@ -42,6 +42,25 @@ function safeReadJson(path) {
 }
 
 
+function runPythonScript(script, filePath) {
+  const candidates = [
+    { command: 'python3', args: ['-c', script, filePath] },
+    { command: 'python', args: ['-c', script, filePath] },
+    { command: 'py', args: ['-3', '-c', script, filePath] },
+  ];
+
+  const errors = [];
+  for (const candidate of candidates) {
+    try {
+      return execFileSync(candidate.command, candidate.args, { encoding: 'utf-8' });
+    } catch (error) {
+      errors.push(`${candidate.command}: ${error.message}`);
+    }
+  }
+
+  throw new Error(`Unable to parse NPZ table. Python runtime was not found. Tried: ${errors.join(' | ')}`);
+}
+
 function parseNpzTable(filePath) {
   const script = `
 import json, zipfile, struct
@@ -105,7 +124,7 @@ print(json.dumps({
     }
 }))
 `
-  const raw = execFileSync('python3', ['-c', script, filePath], { encoding: 'utf-8' });
+  const raw = runPythonScript(script, filePath);
   return JSON.parse(raw);
 }
 
