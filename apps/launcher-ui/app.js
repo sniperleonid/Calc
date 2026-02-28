@@ -2588,12 +2588,14 @@ function refreshMapOverlay() {
       dashArray: '4 4',
     }).addTo(leafletMap);
     addPersistentLabel(marker, buildManualMarkerDisplayLabel(item));
-    marker.on('click', () => {
+    marker.on('click', (event) => {
+      window.L.DomEvent.stop(event);
       selectedManualMarkerId = item.id;
       writeMarkerInfo(item);
       refreshMapOverlay();
     });
     marker.on('mousedown', (event) => {
+      window.L.DomEvent.stop(event);
       if (event.originalEvent?.button !== 0) return;
       if (selectedManualMarkerId !== item.id) {
         selectedManualMarkerId = item.id;

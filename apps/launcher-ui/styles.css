@@ -445,17 +445,22 @@ select,
 
 .map-info-overlay {
   position: absolute;
-  top: 62px;
-  right: 28px;
+  top: 14px;
+  right: 14px;
   z-index: 500;
-  width: min(420px, calc(100% - 56px));
-  min-height: 100px;
+  width: fit-content;
+  max-width: min(420px, calc(100% - 28px));
   max-height: 45vh;
+  padding: 10px 12px;
   margin: 0;
   overflow: auto;
   white-space: pre-wrap;
-  background: color-mix(in srgb, var(--panel), transparent 7%);
-  backdrop-filter: blur(2px);
+  color: #f4f7ff;
+  background: rgb(8 12 20 / 72%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
 }
 
 .leaflet-map {
