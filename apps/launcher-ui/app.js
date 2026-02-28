@@ -2978,6 +2978,15 @@ document.addEventListener('change', (event) => {
   persistLauncherSettings();
   refreshMapOverlay();
 });
+document.addEventListener('change', (event) => {
+  if (!(event.target instanceof HTMLSelectElement) || !event.target.matches('[data-battery-gun-profile]')) return;
+  renderMissionProjectileSelectors();
+  renderCounterBatterySection();
+  updateCorrectionAnchorHint();
+  syncMarkerTargetOptions();
+  persistLauncherSettings();
+  refreshMapOverlay();
+});
 missionBatterySelect?.addEventListener('change', () => {
   renderMissionSelectors();
   updateCorrectionAnchorHint();
