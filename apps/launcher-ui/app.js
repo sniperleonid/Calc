@@ -1,4 +1,5 @@
 import { createCounterBatteryModule } from './counter-battery-module.js';
+import { computeFireSolution } from './ballistics/index.js';
 
 const SETTINGS_KEY = 'calc.launcherSettings';
 const LIMITS = {
@@ -1356,7 +1357,7 @@ function buildActiveFirePattern({ mode, targetX, targetY }) {
   };
 }
 
-function calculateFire() {
+async function calculateFire() {
   if (!ensureCalibrationOrWarn(fireOutput)) return null;
   const targetInput = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
   if (!targetInput) {
@@ -1390,7 +1391,7 @@ function calculateFire() {
   const targetX = correctedTarget.x;
   const targetY = correctedTarget.y;
 
-  const results = gunIds.map((gunId) => {
+  const resultPromises = gunIds.map(async (gunId) => {
     const gunPoint = readXYFromInputs(
       document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
       document.querySelector(`[data-gun-y="${battery}-${gunId}"]`),
@@ -1398,17 +1399,35 @@ function calculateFire() {
     if (!gunPoint) return null;
     const { profileId, profile } = getProfileForGun(battery, gunId);
     const projectile = document.querySelector(`[data-mission-projectile-profile="${profileId}"]`)?.value || parseProjectileOptions(profile)[0];
-    const gunX = gunPoint.x;
-    const gunY = gunPoint.y;
-    const dx = targetX - gunX;
-    const dy = targetY - gunY;
+    const solution = await computeFireSolution({
+      gunPos: { x: gunPoint.x, y: gunPoint.y, z: batteryHeight },
+      targetPos: { x: targetX, y: targetY, z: targetHeight },
+      wind: { speedMps: 0, fromDeg: 0 },
+      arc: 'AUTO',
+      toleranceMeters: 10,
+      weaponId: `${profileId}/${projectile}`,
+    });
+    const dx = targetX - gunPoint.x;
+    const dy = targetY - gunPoint.y;
     const distance = Math.hypot(dx, dy);
-    const azimuth = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
-    const azimuthMils = (azimuth * 6400) / 360;
-    const targetHeightDifference = targetHeight - batteryHeight;
-    const elevationMils = (Math.atan2(targetHeightDifference, distance || 1) * 6400) / (2 * Math.PI);
-    return { gunId, profileId, projectile, tableRef: profile?.tables ?? 'N/A', distance: distance.toFixed(1), azimuth: azimuth.toFixed(2), azimuthMils: azimuthMils.toFixed(1), elevation: elevationMils.toFixed(1) };
+    const azimuthMils = (Number(solution.azimuthDeg) * 6400) / 360;
+    return {
+      gunId,
+      profileId,
+      projectile,
+      tableRef: profile?.tables ?? 'N/A',
+      distance: distance.toFixed(1),
+      azimuth: Number(solution.azimuthDeg).toFixed(2),
+      azimuthMils: azimuthMils.toFixed(1),
+      elevation: Number(solution.elevMil).toFixed(1),
+      tofSec: Number(solution.tofSec).toFixed(2),
+      driftMeters: Number(solution.driftMeters).toFixed(1),
+      chargeId: solution.chargeId,
+      missDistance: Number(solution.missDistance).toFixed(1),
+      arcType: solution.arcType,
+    };
   });
+  const results = await Promise.all(resultPromises);
 
   if (results.some((row) => row === null)) {
     fireOutput.textContent = t('invalidCoordinates');
@@ -1418,7 +1437,7 @@ function calculateFire() {
   const output = [`${t('calcDone')}: ${document.querySelector('#mission-name')?.value || 'Mission'}`,
     `${t('fireMode')}: ${t(`fireMode${fireMode[0].toUpperCase()}${fireMode.slice(1)}`)}`,
     `Target: X=${targetX.toFixed(1)} Y=${targetY.toFixed(1)} H=${targetHeight.toFixed(1)}` ,
-    ...results.map((row) => `${t('gun')} ${row.gunId} (${row.profileId}, ${row.projectile}): D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil · Tbl=${row.tableRef}`)].join('\n');
+    ...results.map((row) => `${t('gun')} ${row.gunId} (${row.profileId}, ${row.projectile}): D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil TOF=${row.tofSec}s Drift=${row.driftMeters}m Charge=${row.chargeId} Arc=${row.arcType} Miss=${row.missDistance}m · Tbl=${row.tableRef}`)].join('\n');
 
   const observerCorrections = getObserverCorrections(battery, gunIds, batteryHeight);
   const observerRows = observerCorrections.map((item) => `${getObserverDisplayName(item.observerId)}: ΔH=${item.heightDelta}m`);
@@ -1431,15 +1450,15 @@ function calculateFire() {
   return { results, battery, selectedGun, targetX, targetY, rawTargetX, rawTargetY, batteryHeight, targetHeight, fireMode };
 }
 
-function showMto() {
-  const calc = calculateFire();
+async function showMto() {
+  const calc = await calculateFire();
   if (!calc) return;
   const mtoRows = calc.results.map((row) => `${t('gun')} ${row.gunId}: HE x3, Smoke x1`).join('\n');
   fireOutput.textContent = `${fireOutput.textContent}\n\n${t('mtoHeader')}\n${mtoRows}`;
 }
 
-function saveMission() {
-  const calc = calculateFire();
+async function saveMission() {
+  const calc = await calculateFire();
   if (!calc) return;
   const missions = JSON.parse(localStorage.getItem('calc.missions') || '[]');
   missions.push({
@@ -2914,9 +2933,9 @@ clearBrowserCacheBtn?.addEventListener('click', () => {
 openLogsBtn?.addEventListener('click', openLogs);
 exportDataBtn?.addEventListener('click', exportData);
 document.querySelector('#open-map')?.addEventListener('click', openMap);
-document.querySelector('#calculate-btn')?.addEventListener('click', calculateFire);
-document.querySelector('#show-mto')?.addEventListener('click', showMto);
-document.querySelector('#save-mission')?.addEventListener('click', saveMission);
+document.querySelector('#calculate-btn')?.addEventListener('click', () => { calculateFire(); });
+document.querySelector('#show-mto')?.addEventListener('click', () => { showMto(); });
+document.querySelector('#save-mission')?.addEventListener('click', () => { saveMission(); });
 document.querySelector('#save-correction')?.addEventListener('click', saveCorrectionSettings);
 document.querySelector('#reset-correction')?.addEventListener('click', resetCorrectionSettings);
 document.querySelector('#apply-observer-targeting')?.addEventListener('click', applyObserverTargeting);
