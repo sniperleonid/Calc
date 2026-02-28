@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { bearingFromNorthRad, windFromSpeedDir, targetFromObserver } from '../apps/launcher-ui/ballistics/geometry.js';
-import { solveFiringSolution, interpolateTable } from '../apps/launcher-ui/ballistics/solver.js';
+import { bearingFromNorthRad, windFromSpeedDir, targetFromObserver } from '../apps/ballistics-core/geometry.js';
+import { solveFiringSolution, interpolateTable } from '../apps/ballistics-core/solver.js';
 
 function almost(actual, expected, eps = 1e-3) {
   assert.equal(Math.abs(actual - expected) <= eps, true, `expected ${actual} ~= ${expected}`);
@@ -118,7 +118,7 @@ test('crosswind creates drift sign', async () => {
 
 
 test('weapon registry loads from server tables catalog endpoint', async () => {
-  const { getWeapon } = await import('../apps/launcher-ui/ballistics/weapons/weapon-registry.js');
+  const { getWeapon } = await import('../apps/ballistics-core/weapons/weapon-registry.js');
   const oldFetch = global.fetch;
   const urls = [];
   global.fetch = async (url) => {
