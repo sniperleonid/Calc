@@ -1462,16 +1462,24 @@ function getProfileForGun(batteryId, gunId) {
   };
 }
 
-function buildSectorPolygonPoints({ x, y, heading, traverseDeg, radius }) {
+function buildSectorPolygonPoints({ x, y, heading, traverseDeg, radius, innerRadius = 0 }) {
   const half = Math.max(0.5, Number(traverseDeg) / 2);
   const segments = 20;
-  const points = [{ x, y }];
+  const points = [];
   for (let idx = 0; idx <= segments; idx += 1) {
     const angle = normalizeAzimuth(heading - half + (idx / segments) * (half * 2));
     const rad = (angle * Math.PI) / 180;
     points.push({ x: x + Math.sin(rad) * radius, y: y + Math.cos(rad) * radius });
   }
-  points.push({ x, y });
+  if (innerRadius > 0) {
+    for (let idx = segments; idx >= 0; idx -= 1) {
+      const angle = normalizeAzimuth(heading - half + (idx / segments) * (half * 2));
+      const rad = (angle * Math.PI) / 180;
+      points.push({ x: x + Math.sin(rad) * innerRadius, y: y + Math.cos(rad) * innerRadius });
+    }
+  } else {
+    points.push({ x, y });
+  }
   return points;
 }
 
@@ -2397,8 +2405,7 @@ function refreshMapOverlay() {
       const minCircle = window.L.circle(gamePointToLatLng(gunX, gunY), {
         radius: minRange,
         color: '#ff4d4d',
-        fillColor: '#ff4d4d',
-        fillOpacity: 0.08,
+        fillOpacity: 0,
         weight: 1,
         dashArray: '4 6',
       }).addTo(leafletMap);
@@ -2406,7 +2413,14 @@ function refreshMapOverlay() {
     }
 
     if (traverseDeg < 360 && maxRange > 0) {
-      const sector = buildSectorPolygonPoints({ x: gunX, y: gunY, heading: renderedHeading, traverseDeg, radius: maxRange });
+      const sector = buildSectorPolygonPoints({
+        x: gunX,
+        y: gunY,
+        heading: renderedHeading,
+        traverseDeg,
+        radius: maxRange,
+        innerRadius: minRange,
+      });
       const sectorPolygon = window.L.polygon(sector.map((point) => gamePointToLatLng(point.x, point.y)), {
         color: '#ffe066',
         fillColor: '#ffe066',
