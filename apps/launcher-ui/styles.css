@@ -80,26 +80,18 @@ h1 {
   color: var(--text);
   background: color-mix(in srgb, var(--panel), transparent 10%);
   border-radius: 10px;
-  padding: 10px;
+  padding: 10px 12px;
   cursor: pointer;
   text-transform: uppercase;
   font-weight: 700;
   font-size: 0.9rem;
-  line-height: 1.2;
+  line-height: 1.25;
   overflow-wrap: anywhere;
-  min-height: 74px;
-  display: grid;
-  place-items: center;
-  gap: 6px;
-}
-
-.tab-icon {
-  font-size: 1.2rem;
-  line-height: 1;
-}
-
-.tab-label {
-  display: block;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .tab.active,
@@ -261,7 +253,19 @@ select,
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
-  align-items: end;
+  align-items: stretch;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  align-items: stretch;
+}
+
+.field label {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 
@@ -282,6 +286,11 @@ select,
   border: 1px dashed color-mix(in srgb, var(--border), transparent 45%);
   border-radius: 8px;
   padding: 8px;
+}
+
+.observer-row > label {
+  margin: 0 0 8px;
+  text-align: center;
 }
 
 .output {
@@ -310,6 +319,11 @@ select,
 
 .compact {
   margin-top: 8px;
+}
+
+
+.pair-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .pair-4 {
@@ -400,6 +414,13 @@ select,
   display: none;
 }
 
+@media (max-width: 1300px) {
+  .pair-5,
+  .pair-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1100px) {
   .panel-grid-3,
   .section-layout,
@@ -410,6 +431,13 @@ select,
 
   .tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pair,
+  .pair-5,
+  .pair-4,
+  .pair-3 {
+    grid-template-columns: 1fr;
   }
 }
 

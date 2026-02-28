@@ -18,13 +18,13 @@
       </header>
 
       <nav class="tabs" aria-label="Sections">
-        <button class="tab active" data-tab="home" data-tab-icon="🏠" data-i18n="tabHome" data-i18n-title="tipTabHome">Главная</button>
-        <button class="tab" data-tab="global" data-tab-icon="🧭" data-i18n="tabGlobal" data-i18n-title="tipTabGlobal">Глобальные настройки</button>
-        <button class="tab" data-tab="fire" data-tab-icon="🎯" data-i18n="tabFire" data-i18n-title="tipTabFire">Огневые задачи</button>
-        <button class="tab" data-tab="counter-battery" data-tab-icon="🛰️" data-i18n="tabCounterBattery">Контрбатарейная борьба</button>
-        <button class="tab" data-tab="map" data-tab-icon="🗺️" data-i18n="tabMap" data-i18n-title="tipTabMap">Карта</button>
-        <button class="tab" data-tab="safety" data-tab-icon="🛡️" data-i18n="tabSafety" data-i18n-title="tipTabSafety">Безопасность и данные</button>
-        <button class="tab" data-tab="settings" data-tab-icon="⚙️" data-i18n="tabSettings" data-i18n-title="tipTabSettings">Настройки</button>
+        <button class="tab active" data-tab="home" data-i18n="tabHome" data-i18n-title="tipTabHome">Главная</button>
+        <button class="tab" data-tab="global" data-i18n="tabGlobal" data-i18n-title="tipTabGlobal">Глобальные настройки</button>
+        <button class="tab" data-tab="fire" data-i18n="tabFire" data-i18n-title="tipTabFire">Огневые задачи</button>
+        <button class="tab" data-tab="counter-battery" data-i18n="tabCounterBattery">Контрбатарейная борьба</button>
+        <button class="tab" data-tab="map" data-i18n="tabMap" data-i18n-title="tipTabMap">Карта</button>
+        <button class="tab" data-tab="safety" data-i18n="tabSafety" data-i18n-title="tipTabSafety">Безопасность и данные</button>
+        <button class="tab" data-tab="settings" data-i18n="tabSettings" data-i18n-title="tipTabSettings">Настройки</button>
       </nav>
 
       <section class="tab-panel active" data-panel="home">
@@ -68,12 +68,10 @@
             <h2 data-i18n="batterySectionTitle">Батареи</h2>
             <label for="battery-count" data-i18n="batteryCount">Количество батарей</label>
             <input id="battery-count" type="number" min="1" max="5" value="2" />
-            <p class="hint" data-i18n="batteryHeightHint">Высота задаётся отдельно для каждой батареи и применяется ко всем орудиям этой батареи.</p>
             <div id="battery-config" class="stack"></div>
           </article>
           <article class="card">
             <h2 data-i18n="gunsSectionTitle">Орудия</h2>
-            <p class="hint" data-i18n="gunsHint">Для каждого орудия укажите координаты карты.</p>
             <div id="guns-coordinates" class="stack"></div>
           </article>
           <article class="card">
