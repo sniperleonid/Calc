@@ -2502,17 +2502,12 @@ function refreshMapOverlay() {
     const azimuthGuideColor = '#00ff57';
     if (maxRange > 0) {
       if (traverseDeg >= 360) {
-        const ringPolygon = buildCircularRingPolygonPoints({
-          x: gunX,
-          y: gunY,
+        const fullTraverseRing = window.L.circle(gamePointToLatLng(gunX, gunY), {
           radius: maxRange,
-          innerRadius: minRange,
-        }).map((ring) => ring.map((point) => gamePointToLatLng(point.x, point.y)));
-        const fullTraverseRing = window.L.polygon(ringPolygon, {
           color: impactZoneStroke,
           weight: 1.5,
           fillColor: impactZoneFill,
-          fillOpacity: 0.25,
+          fillOpacity: 0.2,
           dashArray: '8 8',
           interactive: false,
         }).addTo(leafletMap);
@@ -2524,7 +2519,7 @@ function refreshMapOverlay() {
             color: deadZoneFill,
             weight: 1.5,
             fillColor: deadZoneFill,
-            fillOpacity: 0.25,
+            fillOpacity: 0.2,
             dashArray: '8 8',
             interactive: false,
           }).addTo(leafletMap);
