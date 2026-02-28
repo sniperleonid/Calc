@@ -7,6 +7,7 @@ import {
   getCurrentPhase,
   getPhaseAssignments,
   advancePlanCursor,
+  isPlanComplete,
 } from '../apps/fire-control/src/fire-mission.js';
 import { createAdjustmentState, adjustRange, adjustDirection, decomposeWind } from '../apps/fire-control/src/adjustment.js';
 
@@ -91,9 +92,9 @@ test('MRSI delays are ordered and impacts are simultaneous with min separation',
   assert.equal(getCurrentPhase(plan).phaseIndex, 0);
 });
 
-test('ADJUSTMENT control keeps phase cursor and applies target offset without rebuilding plan', async () => {
+test('correction adjustment offset is applied without rebuilding plan', async () => {
   const plan = buildAimPlan({
-    targetType: 'POINT', sheafType: 'CONVERGED', control: 'ADJUSTMENT', guns: ['1'], roundsPerGun: 1,
+    targetType: 'POINT', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: ['1'], roundsPerGun: 1,
     point: { x: 100, y: 100 },
   }, guns);
   const origin = { x: 0, y: 0 };
@@ -113,7 +114,27 @@ test('ADJUSTMENT control keeps phase cursor and applies target offset without re
   assert.notEqual(solved.aimPoint.x, plan.aimPoints[0].x);
   assert.notEqual(solved.wind.crosswindMps, 0);
   const advanced = advancePlanCursor(runtimePlan);
-  assert.equal(advanced.cursor.phaseIndex, 0);
+  assert.equal(advanced.cursor.phaseIndex, 1);
+});
+
+test('next calculation completes plan phase by phase', async () => {
+  let plan = buildAimPlan({
+    targetType: 'LINE', sheafType: 'CONVERGED', control: 'SEQUENCE', guns: ['1'], roundsPerGun: 1,
+    start: { x: 0, y: 0 }, end: { x: 0, y: 50 }, spacingM: 25,
+  }, guns);
+  const env = {
+    gunPositions: { '1': { x: 0, y: 0, z: 0 } },
+    weaponByGunId: { '1': 'w1' },
+    computeFireSolution: async () => ({ azimuthDeg: 0, elevMil: 100, tofSec: 10 }),
+    computeFireSolutionsMulti: async () => [],
+  };
+  assert.equal(isPlanComplete(plan), false);
+  for (let i = 0; i < plan.phases.length; i += 1) {
+    const pkg = await getNextFirePackage(plan, env);
+    assert.equal(pkg.phase.phaseIndex, i);
+    plan = advancePlanCursor(plan);
+  }
+  assert.equal(isPlanComplete(plan), true);
 });
 
 test('wind decomposition returns headwind/crosswind from meteorological direction', () => {

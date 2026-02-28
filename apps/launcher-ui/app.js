@@ -186,6 +186,7 @@ const fmLengthInput = document.querySelector('#fm-length');
 const fmWidthInput = document.querySelector('#fm-width');
 const fmRadiusInput = document.querySelector('#fm-radius');
 const fmAimPointCountInput = document.querySelector('#fm-aimpoint-count');
+const fmConditionalFields = Array.from(document.querySelectorAll('[data-fm-field]'));
 let activeAimPlan = null;
 let adjustmentSession = null;
 const cbMethodSelect = document.querySelector('#cb-method');
@@ -1316,9 +1317,6 @@ function applyAdjustmentStep(kind) {
     activeAimPlan = { ...activeAimPlan, runtime: { ...(activeAimPlan.runtime ?? {}), adjustment: adjustmentSession } };
   }
   updateAdjustmentHud();
-  if (activeAimPlan?.config?.control === 'ADJUSTMENT') {
-    showNextFirePackage();
-  }
 }
 
 function applyCorrectionToTarget(target, anchor, correction) {
@@ -1454,10 +1452,21 @@ function syncFireModeSettingsVisibility() {
 
 function syncFdcSettingsVisibility() {
   const targetType = fmTargetTypeSelect?.value ?? 'POINT';
+  const sheafType = fmSheafTypeSelect?.value ?? 'CONVERGED';
+  const controlType = fmControlTypeSelect?.value ?? 'SIMULTANEOUS';
   if (fmLengthInput) fmLengthInput.disabled = !(targetType === 'LINE' || targetType === 'RECTANGLE');
   if (fmWidthInput) fmWidthInput.disabled = targetType !== 'RECTANGLE';
   if (fmRadiusInput) fmRadiusInput.disabled = targetType !== 'CIRCLE';
   if (fmAimPointCountInput) fmAimPointCountInput.disabled = targetType !== 'CIRCLE';
+  document.querySelector('#fm-sheaf-width')?.toggleAttribute('disabled', sheafType === 'CONVERGED');
+  document.querySelector('#fm-open-factor')?.toggleAttribute('disabled', sheafType !== 'OPEN');
+  document.querySelector('#fm-step-m')?.toggleAttribute('disabled', controlType !== 'CREEPING');
+  document.querySelector('#fm-steps-count')?.toggleAttribute('disabled', controlType !== 'CREEPING');
+  document.querySelector('#fm-step-interval')?.toggleAttribute('disabled', controlType !== 'CREEPING');
+  document.querySelector('#fm-tot-time')?.toggleAttribute('disabled', controlType !== 'TOT');
+  document.querySelector('#fm-mrsi-rounds')?.toggleAttribute('disabled', controlType !== 'MRSI');
+  document.querySelector('#fm-mrsi-min-sep')?.toggleAttribute('disabled', controlType !== 'MRSI');
+  syncFireMissionFieldVisibility();
 }
 
 function toFiniteNumber(value, fallback = 0) {
@@ -1681,7 +1690,11 @@ async function saveMission() {
 
 
 function getFireMissionConfigFromUI() {
-  const point = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
+  const defaultPoint = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
+  const point = readXYFromInputs(document.querySelector('#fm-point-x'), document.querySelector('#fm-point-y')) ?? defaultPoint;
+  const center = readXYFromInputs(document.querySelector('#fm-center-x'), document.querySelector('#fm-center-y')) ?? point;
+  const lineStart = readXYFromInputs(document.querySelector('#fm-line-start-x'), document.querySelector('#fm-line-start-y'));
+  const lineEnd = readXYFromInputs(document.querySelector('#fm-line-end-x'), document.querySelector('#fm-line-end-y'));
   const targetHeight = parseHeightValue(document.querySelector('#target-height')?.value);
   const battery = Number(missionBatterySelect.value || 1);
   const selectedGun = missionGunSelect.value;
@@ -1699,7 +1712,9 @@ function getFireMissionConfigFromUI() {
     guns: selectedGun === 'all' ? 'ALL' : gunIds,
     roundsPerGun: 1,
     point: point ? { ...point, z: targetHeight } : undefined,
-    center: point ? { ...point, z: targetHeight } : undefined,
+    start: lineStart ? { ...lineStart, z: targetHeight } : undefined,
+    end: lineEnd ? { ...lineEnd, z: targetHeight } : undefined,
+    center: center ? { ...center, z: targetHeight } : undefined,
     spacingM: toNum('#fm-spacing', 40),
     bearingDeg: toNum('#fm-bearing', 0),
     lengthM: toNum('#fm-length', 200),
@@ -1717,6 +1732,14 @@ function getFireMissionConfigFromUI() {
     mrsiMinSeparationSec: toNum('#fm-mrsi-min-sep', 2),
     mrsiAllowedArcs: ['LOW', 'HIGH'],
   };
+}
+
+function syncFireMissionFieldVisibility() {
+  const targetType = fmTargetTypeSelect?.value || 'POINT';
+  fmConditionalFields.forEach((el) => {
+    const supported = String(el.dataset.fmField || '').split(/\s+/).filter(Boolean);
+    el.classList.toggle('hidden', supported.length > 0 && !supported.includes(targetType));
+  });
 }
 
 function getGunsForMissionEnv() {
@@ -1743,9 +1766,6 @@ function getGunsForMissionEnv() {
 function buildFireMissionPlan() {
   const config = getFireMissionConfigFromUI();
   const guns = getGunsForMissionEnv();
-  if (config.control === 'ADJUSTMENT' && config.point) {
-    adjustmentSession = createAdjustmentState(config.point, 200);
-  }
   activeAimPlan = buildAimPlan(config, guns);
   if (adjustmentSession) {
     const correction = getMissionCorrection();
@@ -1766,7 +1786,7 @@ async function showNextFirePackage() {
     fireOutput.textContent = 'Сначала нажмите «Сформировать миссию».';
     return;
   }
-  if (activeAimPlan.config.control !== 'ADJUSTMENT' && isPlanComplete(activeAimPlan)) {
+  if (isPlanComplete(activeAimPlan)) {
     fireOutput.textContent = 'Миссия завершена.';
     return;
   }
@@ -1793,6 +1813,8 @@ async function showNextFirePackage() {
       return `${base} | MRSI ${command.mrsiShotPlan.map((shot) => `#${shot.shotIndex} d=${shot.fireDelaySec.toFixed(1)}s ch=${shot.chargeId}`).join(', ')}`;
     }
     if (Number.isFinite(command.fireDelaySec)) {
+      const phaseStart = Number(command.phaseStartDelaySec || 0);
+      if (phaseStart > 0) return `${base} | Delay=${command.fireDelaySec.toFixed(2)}s (fire at +${(phaseStart + command.fireDelaySec).toFixed(2)}s)`;
       return `${base} | Delay=${command.fireDelaySec.toFixed(2)}s`;
     }
     return base;
@@ -3404,6 +3426,14 @@ fireModeSelect?.addEventListener('change', () => {
   refreshMapOverlay();
 });
 fmTargetTypeSelect?.addEventListener('change', () => {
+  syncFdcSettingsVisibility();
+  persistLauncherSettings();
+});
+fmSheafTypeSelect?.addEventListener('change', () => {
+  syncFdcSettingsVisibility();
+  persistLauncherSettings();
+});
+fmControlTypeSelect?.addEventListener('change', () => {
   syncFdcSettingsVisibility();
   persistLauncherSettings();
 });

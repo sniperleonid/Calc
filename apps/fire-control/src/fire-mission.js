@@ -3,7 +3,7 @@ import { getAdjustmentOffset, windForShot } from './adjustment.js';
 
 export const TARGET_TYPES = ['POINT', 'LINE', 'RECTANGLE', 'CIRCLE'];
 export const SHEAF_TYPES = ['CONVERGED', 'PARALLEL', 'OPEN'];
-export const CONTROL_TYPES = ['SIMULTANEOUS', 'SEQUENCE', 'CREEPING', 'TOT', 'MRSI', 'ADJUSTMENT'];
+export const CONTROL_TYPES = ['SIMULTANEOUS', 'SEQUENCE', 'CREEPING', 'TOT', 'MRSI'];
 
 function toFinite(value, fallback = 0) {
   const n = Number(value);
@@ -131,6 +131,11 @@ function sheafWidth(config) {
   return base;
 }
 
+function spreadOffsets(count, width) {
+  if (count <= 1) return [0];
+  return Array.from({ length: count }, (_, i) => -width / 2 + (width * i) / (count - 1));
+}
+
 function buildPhases(config, baseAimPoints) {
   if (config.control === 'SEQUENCE') {
     return { aimPoints: baseAimPoints, phases: baseAimPoints.map((_, i) => ({ phaseIndex: i, label: `#${i + 1}`, aimPointIndices: [i] })) };
@@ -163,7 +168,7 @@ function buildAssignments(plan, guns) {
     const bearingDeg = resolveBearing(plan.config, guns, phasePoints);
     const { right } = forwardRight(bearingDeg);
     const width = sheafWidth(plan.config);
-    const offsets = guns.length <= 1 ? [0] : guns.map((_, i) => -width / 2 + (width * i) / (guns.length - 1));
+    const offsets = spreadOffsets(guns.length, width);
 
     assignments.forEach((assignment, gunIndex) => {
       if (plan.config.sheafType === 'CONVERGED') {
@@ -269,20 +274,39 @@ export function applyTOT(plan, phaseIndex, perGunSolutions) {
   const assignments = getPhaseAssignments(plan, phaseIndex);
   const all = Object.values(perGunSolutions).flat();
   const maxTOF = Math.max(...all.map((row) => Number(row.solution?.tofSec || 0)), 0);
+  const totMode = plan.config.totMode ?? 'SYNC_NOW';
+  const desiredImpactTimeSec = Math.max(0, toFinite(plan.config.desiredImpactTimeSec, 0));
+  const phaseStartDelaySec = totMode === 'AT_TIME' ? Math.max(0, desiredImpactTimeSec - maxTOF) : 0;
   assignments.forEach((assignment) => {
     assignment.commands.forEach((command) => {
       const row = (perGunSolutions[assignment.gunId] || []).find((item) => item.commandRef === command);
       const tof = Number(row?.solution?.tofSec || 0);
       command.fireDelaySec = Math.max(0, maxTOF - tof);
+      if (phaseStartDelaySec > 0) command.phaseStartDelaySec = phaseStartDelaySec;
     });
   });
   return assignments;
+}
+
+function pickMrsiShots(candidates, desiredRounds, minSep) {
+  const sorted = [...candidates].sort((a, b) => b.tofSec - a.tofSec);
+  for (let count = Math.min(desiredRounds, sorted.length); count >= 1; count -= 1) {
+    const picked = [sorted[0]];
+    for (const candidate of sorted.slice(1)) {
+      if (picked.length >= count) break;
+      const last = picked[picked.length - 1];
+      if (Math.abs(last.tofSec - candidate.tofSec) >= minSep) picked.push(candidate);
+    }
+    if (picked.length >= count) return picked;
+  }
+  return sorted.length ? [sorted[0]] : [];
 }
 
 export async function applyMRSI(plan, phaseIndex, env) {
   const assignments = getPhaseAssignments(plan, phaseIndex);
   const rounds = Math.max(1, Math.round(toFinite(plan.config.mrsiRoundsPerGun, plan.config.roundsPerGun)));
   const minSep = Math.max(0, toFinite(plan.config.mrsiMinSeparationSec, 2));
+  const maxRounds = Math.max(1, Math.round(toFinite(plan.config.mrsiMaxRounds, rounds)));
   for (const assignment of assignments) {
     const command = assignment.commands[0];
     if (!command) continue;
@@ -296,16 +320,14 @@ export async function applyMRSI(plan, phaseIndex, env) {
       allowedArcs: plan.config.mrsiAllowedArcs,
       maxSolutions: Math.max(rounds * 3, toFinite(plan.config.mrsiMaxRounds, rounds * 3)),
     });
-    const sorted = [...solutions].sort((a, b) => a.tofSec - b.tofSec);
-    const picked = [];
-    for (const candidate of sorted) {
-      if (picked.length >= rounds) break;
-      if (!picked.length || Math.abs(candidate.tofSec - picked.at(-1).tofSec) >= minSep) picked.push(candidate);
-    }
+    const desiredRounds = Math.min(rounds, maxRounds);
+    const picked = pickMrsiShots(solutions, desiredRounds, minSep);
     const impactTime = Math.max(...picked.map((item) => item.tofSec), 0);
+    const fireTimes = picked.map((item) => impactTime - item.tofSec);
+    const base = Math.min(...fireTimes, 0);
     command.mrsiShotPlan = picked.map((item, index) => ({
       shotIndex: index + 1,
-      fireDelaySec: impactTime - item.tofSec,
+      fireDelaySec: (impactTime - item.tofSec) - base,
       azimuthDeg: item.azimuthDeg,
       elevationMil: item.elevMil,
       chargeId: item.chargeId,
@@ -332,7 +354,6 @@ export async function getNextFirePackage(plan, env) {
 }
 
 export function advancePlanCursor(plan) {
-  if (plan?.config?.control === 'ADJUSTMENT') return plan;
   return { ...plan, cursor: { phaseIndex: plan.cursor.phaseIndex + 1 } };
 }
 
