@@ -1,5 +1,5 @@
-import { createCounterBatteryModule } from '../counter-battery/module.js';
-import { computeFireSolution } from '../ballistics-core/index.js';
+import { createCounterBatteryModule } from '/apps/counter-battery/module.js';
+import { computeFireSolution } from '/apps/ballistics-core/index.js';
 
 const SETTINGS_KEY = 'calc.launcherSettings';
 const LIMITS = {

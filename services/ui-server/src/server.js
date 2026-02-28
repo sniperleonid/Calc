@@ -9,6 +9,7 @@ const uiRoot = resolve(root, 'apps/launcher-ui');
 const logsRoot = resolve(root, 'logs');
 const uploadsRoot = resolve(root, 'data/uploads/map-images');
 const tablesRoot = resolve(root, 'tables');
+const appsRoot = resolve(root, 'apps');
 const port = Number(process.env.UI_PORT ?? 8080);
 const maxMapImageBytes = 150 * 1024 * 1024;
 
@@ -27,6 +28,23 @@ const imageExtensionByType = {
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
 };
+
+function tryServeStaticFile(res, baseDir, requestedPath) {
+  const normalizedPath = String(requestedPath || '').replace(/^\/+/, '');
+  const filePath = resolve(baseDir, normalizedPath);
+  if (!filePath.startsWith(baseDir) || !existsSync(filePath) || !statSync(filePath).isFile()) {
+    return false;
+  }
+
+  const ext = extname(filePath).toLowerCase();
+  const body = readFileSync(filePath);
+  res.writeHead(200, {
+    'Content-Type': mimeTypes[ext] ?? 'application/octet-stream',
+    'Cache-Control': 'no-store',
+  });
+  res.end(body);
+  return true;
+}
 
 function sendJson(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -414,22 +432,21 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  const urlPath = req.url === '/' ? '/index.html' : req.url;
-  const filePath = resolve(uiRoot, `.${urlPath}`);
-
-  if (!filePath.startsWith(uiRoot) || !existsSync(filePath)) {
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Not found');
+  if (req.url?.startsWith('/apps/')) {
+    const served = tryServeStaticFile(res, appsRoot, req.url.replace('/apps/', '/'));
+    if (!served) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found');
+    }
     return;
   }
 
-  const ext = extname(filePath);
-  const body = readFileSync(filePath);
-  res.writeHead(200, {
-    'Content-Type': mimeTypes[ext] ?? 'application/octet-stream',
-    'Cache-Control': 'no-store',
-  });
-  res.end(body);
+  const urlPath = req.url === '/' ? '/index.html' : req.url;
+  const served = tryServeStaticFile(res, uiRoot, urlPath);
+  if (!served) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Not found');
+  }
 });
 
 server.listen(port, '0.0.0.0', () => {
