@@ -322,12 +322,18 @@ select,
   min-height: 680px;
   border: 1px solid var(--border);
   border-radius: 8px;
+  cursor: crosshair;
   user-select: none;
   -webkit-user-select: none;
   background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--panel), white 5%) 0 24px, color-mix(in srgb, var(--panel), transparent 15%) 24px 48px),
     repeating-linear-gradient(90deg, color-mix(in srgb, var(--panel), white 5%) 0 24px, color-mix(in srgb, var(--panel), transparent 15%) 24px 48px);
 }
 
+
+.leaflet-map .leaflet-interactive,
+.leaflet-map .leaflet-marker-icon {
+  cursor: crosshair !important;
+}
 .calibration-cross {
   color: #ff66ff;
   font-size: 20px;

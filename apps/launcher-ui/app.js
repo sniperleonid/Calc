@@ -1344,6 +1344,7 @@ function initializeMap() {
     rightMousePanState = { x: event.clientX, y: event.clientY };
   });
   container.addEventListener('mousemove', (event) => {
+    updateGunHeadingFromPointer(event);
     if (!rightMousePanState) return;
     const dx = event.clientX - rightMousePanState.x;
     const dy = event.clientY - rightMousePanState.y;
@@ -1645,6 +1646,11 @@ function startGunHeadingDrag(event, { gunKey, gunX, gunY, batteryId, gunId }) {
 function updateGunHeadingDrag(event) {
   if (!gunHeadingDragState || !event?.latlng) return;
   const mapPoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+  applyGunHeadingFromMapPoint(mapPoint);
+}
+
+function applyGunHeadingFromMapPoint(mapPoint) {
+  if (!gunHeadingDragState || !mapPoint) return;
   const mousePoint = imagePointToGamePoint(mapPoint.x, mapPoint.y);
   const azimuthDeg = normalizeAzimuth((Math.atan2(mousePoint.x - gunHeadingDragState.gunX, mousePoint.y - gunHeadingDragState.gunY) * 180) / Math.PI);
   gunHeadingDragState.heading = azimuthDeg;
@@ -1661,6 +1667,15 @@ function finishGunHeadingDrag() {
   }
   pendingGunHeading = null;
   gunHeadingDragState = null;
+}
+
+function updateGunHeadingFromPointer(event) {
+  if (!gunHeadingDragState || !leafletMap || !event) return;
+  if (typeof event.buttons === 'number' && (event.buttons & 1) !== 1) return;
+  const containerPoint = leafletMap.mouseEventToContainerPoint(event);
+  const latlng = leafletMap.containerPointToLatLng(containerPoint);
+  const mapPoint = latLngToMapPoint(latlng.lat, latlng.lng);
+  applyGunHeadingFromMapPoint(mapPoint);
 }
 
 function handleManualMarkerDrag(event) {
@@ -2192,11 +2207,12 @@ function buildManualMarkerDisplayLabel(marker) {
   return markerName || baseLabel;
 }
 
-function addPersistentLabel(marker, labelText) {
+function addPersistentLabel(marker, labelText, options = {}) {
+  const { direction = 'top', offset = [0, -10] } = options;
   marker.bindTooltip(labelText, {
     permanent: true,
-    direction: 'top',
-    offset: [0, -10],
+    direction,
+    offset,
     className: 'map-label-tooltip',
   });
 }
@@ -2372,7 +2388,7 @@ function refreshMapOverlay() {
       dashArray: '8 6',
     }).addTo(leafletMap);
     const batteryName = getBatteryDisplayName(batteryId);
-    addPersistentLabel(batteryBox, batteryName);
+    addPersistentLabel(batteryBox, batteryName, { direction: 'bottom', offset: [0, 10] });
     gunMarkers.push(batteryBox);
     legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.battery}"></span>${batteryName}: X=${center.x.toFixed(1)}, Y=${center.y.toFixed(1)}</p>`);
   }
