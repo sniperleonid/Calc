@@ -1852,7 +1852,15 @@ function updateGunHeadingFromMapClick(latlng) {
 }
 
 function onMapClick(event) {
-  if (gunHeadingDragState) window.L.DomEvent.stop(event);
+  if (gunHeadingDragState) {
+    window.L.DomEvent.stop(event);
+    return;
+  }
+
+  if (selectedMapMarker) {
+    selectedMapMarker = null;
+    refreshMapOverlay();
+  }
 }
 
 function onMapDoubleClick(event) {
