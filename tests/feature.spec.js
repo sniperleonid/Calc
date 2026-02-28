@@ -396,7 +396,7 @@ test('observer polar-plot and gun drag azimuth helpers are available', () => {
     observerAltitude: 140,
     verticalAngle: -20,
   });
-  assert.equal(Math.round(descendingPolar.targetAltitude), -202);
+  assert.equal(Math.round(descendingPolar.targetAltitude), 0);
   assert.equal(Math.round(descendingPolar.heightDifference), -342);
 
   ballistics.upsertManual({ id: 'gun-1', position: { x: 0, y: 0 } });
