@@ -2851,11 +2851,8 @@ document.addEventListener('input', (event) => {
     }
     if (event.target.matches('[data-height]')) sanitizeIntegerInput(event.target, HEIGHT_LIMITS);
     if (event.target.matches('[data-gun-heading]')) {
-      const gunKey = event.target.dataset.gunHeading;
       const heading = parseDecimalInput(event.target.value);
-      if (gunKey && Number.isFinite(heading)) {
-        event.target.value = normalizeAzimuth(heading).toFixed(1);
-      }
+      if (heading !== null) event.target.value = String(event.target.value).replace(',', '.');
       shouldRefreshMap = true;
     }
     if (event.target.matches('[data-battery-title], [data-observer-name]')) {
