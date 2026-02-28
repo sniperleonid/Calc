@@ -374,8 +374,8 @@ function applyCoordinatePairInput(input) {
 
 function applyMarkerCoordinatesToBoundInputs(marker, point) {
   if (!marker || !point) return;
-  const xValue = Number(point.x).toFixed(2);
-  const yValue = Number(point.y).toFixed(2);
+  const xValue = String(Math.round(Number(point.x)));
+  const yValue = String(Math.round(Number(point.y)));
 
   if (marker.type === 'gun' && marker.targetId) {
     const gunXInput = document.querySelector(`[data-gun-x="${marker.targetId}"]`);
@@ -1520,8 +1520,8 @@ function addManualMarker(type, latlng) {
     id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
     type,
     targetId,
-    x: point.x,
-    y: point.y,
+    x: Math.round(point.x),
+    y: Math.round(point.y),
     mapX: imagePoint.x,
     mapY: imagePoint.y,
     azimuth: null,
@@ -1530,7 +1530,7 @@ function addManualMarker(type, latlng) {
   state.settings.mapTools = { ...tools, manualMarkers: [...(tools.manualMarkers ?? []).filter((item) => !(item.type === type && item.targetId === targetId)), marker] };
   persistLauncherSettings();
   refreshMapOverlay();
-  if (mapToolsOutput) mapToolsOutput.textContent = `${t('markerPlaced')}: ${type} (${marker.x.toFixed(1)}, ${marker.y.toFixed(1)})`;
+  if (mapToolsOutput) mapToolsOutput.textContent = `${t('markerPlaced')}: ${type} (${marker.x}, ${marker.y})`;
 }
 
 function updateManualMarker(markerId, updater) {
@@ -1553,7 +1553,7 @@ function updateManualMarker(markerId, updater) {
 function writeMarkerInfo(marker) {
   if (!marker || !mapToolsOutput) return;
   const azimuthText = Number.isFinite(Number(marker.azimuth)) ? `, ${t('markerAzimuthLabel')}: ${normalizeAzimuth(Number(marker.azimuth)).toFixed(1)}°` : '';
-  mapToolsOutput.textContent = `${buildMarkerLabel(marker.type, marker.targetId)} · X=${Number(marker.x).toFixed(1)}, Y=${Number(marker.y).toFixed(1)}${azimuthText}`;
+  mapToolsOutput.textContent = `${buildManualMarkerDisplayLabel(marker)} · X=${Math.round(Number(marker.x))}, Y=${Math.round(Number(marker.y))}${azimuthText}`;
 }
 
 function openManualMarkerEditor(markerId, markerLayer) {
@@ -1566,8 +1566,8 @@ function openManualMarkerEditor(markerId, markerLayer) {
   wrapper.innerHTML = `
     <strong>${t('markerEditorTitle')}</strong>
     <label>${t('markerNameLabel')}<input data-field="name" type="text" value="${String(currentMarker.name ?? '').replace(/"/g, '&quot;')}" /></label>
-    <label>X<input data-field="x" type="number" step="0.1" value="${Number(currentMarker.x).toFixed(1)}" /></label>
-    <label>Y<input data-field="y" type="number" step="0.1" value="${Number(currentMarker.y).toFixed(1)}" /></label>
+    <label>X<input data-field="x" type="number" step="1" value="${Math.round(Number(currentMarker.x))}" /></label>
+    <label>Y<input data-field="y" type="number" step="1" value="${Math.round(Number(currentMarker.y))}" /></label>
     <label>${t('markerAzimuthLabel')}<input data-field="azimuth" type="number" min="0" max="359.9" step="0.1" value="${Number.isFinite(Number(currentMarker.azimuth)) ? Number(currentMarker.azimuth).toFixed(1) : ''}" /></label>
     <div class="row">
       <button class="btn" data-action="save" type="button">OK</button>
@@ -1584,8 +1584,8 @@ function openManualMarkerEditor(markerId, markerLayer) {
 
   wrapper.querySelector('[data-action="save"]')?.addEventListener('click', () => {
     const nextName = String(wrapper.querySelector('[data-field="name"]')?.value || '').trim();
-    const x = Number(wrapper.querySelector('[data-field="x"]')?.value);
-    const y = Number(wrapper.querySelector('[data-field="y"]')?.value);
+    const x = Math.round(Number(wrapper.querySelector('[data-field="x"]')?.value));
+    const y = Math.round(Number(wrapper.querySelector('[data-field="y"]')?.value));
     const azimuthRaw = String(wrapper.querySelector('[data-field="azimuth"]')?.value || '').trim();
     const azimuth = azimuthRaw ? normalizeAzimuth(Number(azimuthRaw)) : null;
     if ((!Number.isFinite(x) || !Number.isFinite(y)) || (azimuthRaw && !Number.isFinite(azimuth))) return;
@@ -1678,8 +1678,8 @@ function finishManualMarkerDrag(event) {
   const updated = (tools.manualMarkers ?? []).map((marker) => (marker.id === markerId
     ? {
       ...marker,
-      x: point.x,
-      y: point.y,
+      x: Math.round(point.x),
+      y: Math.round(point.y),
       mapX: imagePoint.x,
       mapY: imagePoint.y,
     }
@@ -2186,6 +2186,12 @@ function buildMarkerLabel(type, markerId) {
   return getMarkerTypeName(type);
 }
 
+function buildManualMarkerDisplayLabel(marker) {
+  const markerName = String(marker?.name ?? '').trim();
+  const baseLabel = buildMarkerLabel(marker?.type, marker?.targetId);
+  return markerName || baseLabel;
+}
+
 function addPersistentLabel(marker, labelText) {
   marker.bindTooltip(labelText, {
     permanent: true,
@@ -2437,6 +2443,7 @@ function refreshMapOverlay() {
       weight: isSelected ? 4 : 2,
       dashArray: '4 4',
     }).addTo(leafletMap);
+    addPersistentLabel(marker, buildManualMarkerDisplayLabel(item));
     marker.on('click', () => {
       selectedManualMarkerId = item.id;
       writeMarkerInfo(item);
@@ -2480,8 +2487,8 @@ function refreshMapOverlay() {
   if (mapLegend) {
     const markerLegendRows = (getMapToolsSettings().manualMarkers ?? []).map((item) => {
       const color = markerStyle[item.type] ?? '#ffffff';
-      const label = buildMarkerLabel(item.type, item.targetId);
-      return `<p><span class="legend-dot" style="--dot-color:${color}"></span>${label}: X=${Number(item.x).toFixed(1)}, Y=${Number(item.y).toFixed(1)}</p>`;
+      const label = buildManualMarkerDisplayLabel(item);
+      return `<p><span class="legend-dot" style="--dot-color:${color}"></span>${label}: X=${Math.round(Number(item.x))}, Y=${Math.round(Number(item.y))}</p>`;
     });
     const patternRow = tools.activeFirePattern ? `<p><span class="legend-dot" style="--dot-color:${markerStyle.firePattern}"></span>${t('fireMode')}: ${t(`fireMode${tools.activeFirePattern.mode[0].toUpperCase()}${tools.activeFirePattern.mode.slice(1)}`)}</p>` : '';
     mapLegend.innerHTML = [...legendRows, `<p><span class="legend-dot" style="--dot-color:${markerStyle.target}"></span>${t('target')}: X=${targetX}, Y=${targetY}</p>`, patternRow, ...markerLegendRows].filter(Boolean).join('');
