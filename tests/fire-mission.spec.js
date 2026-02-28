@@ -68,6 +68,20 @@ test('migrateOldMissionToFdc keeps nested FDC blocks for CREEPING/MRSI/TOT', () 
   assert.deepEqual(fdc.mrsi.mrsiAllowedArcs, ['LOW']);
 });
 
+
+
+test('migrateOldMissionToFdc normalizes invalid or localized mode values', () => {
+  const fdc = migrateOldMissionToFdc({
+    targetType: '',
+    sheafType: 'Сходящийся',
+    controlType: 'Поочерёдный',
+    fireMode: 'Линейный',
+  });
+
+  assert.equal(fdc.targetType, 'LINE');
+  assert.equal(fdc.sheafType, 'CONVERGED');
+  assert.equal(fdc.controlType, 'SEQUENCE');
+});
 test('SEQUENCE creates one phase per aim point', () => {
   const plan = buildAimPlan({ targetType: 'LINE', sheafType: 'CONVERGED', control: 'SEQUENCE', guns: 'ALL', roundsPerGun: 1, start: { x: 0, y: 0 }, end: { x: 0, y: 100 }, spacingM: 25 }, guns);
   assert.equal(plan.phases.length, plan.aimPoints.length);
