@@ -126,7 +126,34 @@ h1 {
 
 
 .global-layout {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.global-layout > .global-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  height: 100%;
+}
+
+.global-layout > .global-card > h2 {
+  margin-bottom: 0;
+}
+
+.global-control {
+  display: grid;
+  gap: 8px;
+}
+
+.global-control > label {
+  margin: 0;
+}
+
+.global-control > input {
+  max-width: 180px;
 }
 
 .legend-dot {
@@ -255,6 +282,10 @@ select,
   gap: 10px;
 }
 
+.global-layout .stack {
+  gap: 16px;
+}
+
 .pair {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -287,7 +318,6 @@ select,
   border: 1px dashed color-mix(in srgb, var(--battery-color, var(--border)), transparent 35%);
   border-radius: 8px;
   padding: 12px;
-  margin-bottom: 10px;
 }
 
 .battery-group-title {
@@ -300,6 +330,59 @@ select,
   border: 1px dashed color-mix(in srgb, var(--battery-color, var(--border)), transparent 35%);
   border-radius: 8px;
   padding: 12px;
+}
+
+.global-layout .battery-config-row,
+.global-layout .battery-guns-group,
+.global-layout .observer-row {
+  margin: 0;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.global-layout .battery-config-row > h3,
+.global-layout .battery-group-title,
+.global-layout .observer-row > label {
+  margin: 0;
+  text-align: left;
+}
+
+.global-layout .battery-config-row .pair.pair-5 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.global-layout .battery-guns-group > .pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.global-layout .battery-guns-group > .pair.pair-4 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.global-layout .observer-row > .pair {
+  gap: 12px 16px;
+}
+
+.global-layout .observer-row > .pair.pair-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.global-layout .observer-row > .pair.pair-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+}
+
+.global-layout .field {
+  gap: 8px;
+}
+
+.global-layout .field > input,
+.global-layout .field > select {
+  min-width: 0;
 }
 
 .observer-row > label {
