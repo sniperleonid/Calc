@@ -16,5 +16,8 @@
     "M853A1_Illumination_AM"
   ],
   "min_range_m": 80,
-  "max_range_m": 5900
+  "max_range_m": 5900,
+  "mil_system": {
+    "mils_per_circle": 6400
+  }
 }

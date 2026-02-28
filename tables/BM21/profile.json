@@ -9,5 +9,8 @@
     "122MM_HE_Rocket"
   ],
   "min_range_m": 1500,
-  "max_range_m": 20400
+  "max_range_m": 20400,
+  "mil_system": {
+    "mils_per_circle": 6000
+  }
 }

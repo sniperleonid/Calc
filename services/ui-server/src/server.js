@@ -70,7 +70,7 @@ function runPythonScript(script, filePath) {
   const errors = [];
   for (const candidate of candidates) {
     try {
-      return execFileSync(candidate.command, candidate.args, { encoding: 'utf-8' });
+      return execFileSync(candidate.command, candidate.args, { encoding: 'utf-8', maxBuffer: 64 * 1024 * 1024 });
     } catch (error) {
       errors.push(`${candidate.command}: ${error.message}`);
     }
@@ -172,6 +172,30 @@ print(json.dumps({
   return JSON.parse(raw);
 }
 
+function parseTableFile(filePath) {
+  const ext = extname(filePath).toLowerCase();
+  if (ext === '.json') {
+    const parsed = safeReadJson(filePath);
+    if (!parsed) {
+      throw new Error(`Invalid JSON table: ${filePath}`);
+    }
+    return parsed;
+  }
+  return parseNpzTable(filePath);
+}
+
+function inferMilsPerCircle(gunId, gunProfile = {}, primaryTable = null) {
+  const explicit = Number(gunProfile.mil_system?.mils_per_circle ?? gunProfile.milsPerCircle);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+
+  const tableValue = Number(primaryTable?.meta?.milsPerCircle ?? primaryTable?.meta?.mils_per_circle);
+  if (Number.isFinite(tableValue) && tableValue > 0) return tableValue;
+
+  const natoIds = new Set(['M777', 'M252']);
+  if (natoIds.has(gunId)) return 6400;
+  return 6000;
+}
+
 function listArtilleryCatalog() {
   if (!existsSync(tablesRoot)) {
     return { guns: [] };
@@ -194,7 +218,11 @@ function listArtilleryCatalog() {
           const projectileProfilePath = resolve(projectilePath, 'profile.json');
           const projectileProfile = existsSync(projectileProfilePath) ? safeReadJson(projectileProfilePath) : null;
           const ballisticTables = readdirSync(projectilePath, { withFileTypes: true })
-            .filter((fileEntry) => fileEntry.isFile() && extname(fileEntry.name).toLowerCase() === '.npz')
+            .filter((fileEntry) => {
+              if (!fileEntry.isFile()) return false;
+              const ext = extname(fileEntry.name).toLowerCase();
+              return ext === '.npz' || ext === '.json';
+            })
             .map((fileEntry) => fileEntry.name)
             .sort((a, b) => a.localeCompare(b, 'en'));
 
@@ -231,7 +259,11 @@ async function buildWeaponFromCatalog(weaponId) {
   if (!existsSync(projectilePath) || !statSync(projectilePath).isDirectory()) return null;
 
   const tableFiles = readdirSync(projectilePath, { withFileTypes: true })
-    .filter((fileEntry) => fileEntry.isFile() && extname(fileEntry.name).toLowerCase() === '.npz')
+    .filter((fileEntry) => {
+      if (!fileEntry.isFile()) return false;
+      const ext = extname(fileEntry.name).toLowerCase();
+      return ext === '.npz' || ext === '.json';
+    })
     .map((entry) => entry.name)
     .sort((a, b) => a.localeCompare(b, 'en'));
 
@@ -244,14 +276,14 @@ async function buildWeaponFromCatalog(weaponId) {
   const tableUrls = Object.fromEntries(
     Object.entries(tables)
       .filter(([, value]) => Boolean(value))
-      .map(([key, value]) => [key, `/api/ballistics/file?path=${encodeURIComponent(`${gunId}/${projectileId}/${value}`)}`]),
+      .map(([key, value]) => [key, `/api/ballistics/table?path=${encodeURIComponent(`${gunId}/${projectileId}/${value}`)}`]),
   );
 
   const primaryTableFile = tables.low ?? tables.direct ?? tables.high;
   let primaryTable = null;
   if (primaryTableFile) {
     const filePath = resolve(projectilePath, primaryTableFile);
-    primaryTable = parseNpzTable(filePath);
+    primaryTable = parseTableFile(filePath);
   }
 
   return {
@@ -260,7 +292,7 @@ async function buildWeaponFromCatalog(weaponId) {
     maxElevMil: Number(gunProfile.max_elevation_mil ?? 1550),
     tables: tableUrls,
     milSystem: {
-      milsPerCircle: Number(gunProfile.mil_system?.mils_per_circle ?? gunProfile.milsPerCircle ?? 6400),
+      milsPerCircle: inferMilsPerCircle(gunId, gunProfile, primaryTable),
     },
     primaryTable,
   };
@@ -429,13 +461,23 @@ const server = createServer(async (req, res) => {
       sendJson(res, 404, { error: 'Table not found.' });
       return;
     }
-    sendJson(res, 200, parseNpzTable(filePath));
+    try {
+      sendJson(res, 200, parseTableFile(filePath));
+    } catch (error) {
+      sendJson(res, 500, { error: String(error?.message || error || 'Failed to parse table.') });
+    }
     return;
   }
 
   if (req.url?.startsWith('/api/ballistics/weapon') && req.method === 'GET') {
     const parsed = new URL(req.url, 'http://localhost');
-    const weapon = await buildWeaponFromCatalog(parsed.searchParams.get('weaponId'));
+    let weapon = null;
+    try {
+      weapon = await buildWeaponFromCatalog(parsed.searchParams.get('weaponId'));
+    } catch (error) {
+      sendJson(res, 500, { error: String(error?.message || error || 'Failed to load weapon.') });
+      return;
+    }
     if (!weapon) {
       sendJson(res, 404, { error: 'Weapon not found.' });
       return;
