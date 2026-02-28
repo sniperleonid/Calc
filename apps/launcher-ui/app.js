@@ -67,25 +67,9 @@ function loadLauncherSettings() {
 
 const DEFAULT_EXTERNAL_MAP_URL = 'http://localhost:4173';
 
-function normalizeExternalMapUrl(rawValue) {
-  const trimmed = (rawValue || '').trim();
-  if (!trimmed) return DEFAULT_EXTERNAL_MAP_URL;
-
-  try {
-    return new URL(trimmed).toString();
-  } catch {
-    try {
-      return new URL(`http://${trimmed}`).toString();
-    } catch {
-      return DEFAULT_EXTERNAL_MAP_URL;
-    }
-  }
-}
-
 const state = {
   lang: localStorage.getItem('calc.lang') || 'ru',
   theme: localStorage.getItem('calc.theme') || 'terminal',
-  mapUrl: localStorage.getItem('calc.mapUrl') || '',
   settings: loadLauncherSettings(),
 };
 
@@ -179,7 +163,6 @@ const languageSelect = document.querySelector('#language');
 const themeSelect = document.querySelector('#theme');
 const batteryCountInput = document.querySelector('#battery-count');
 const observerCountInput = document.querySelector('#observer-count');
-const mapUrlInput = document.querySelector('#map-url');
 const missionBatterySelect = document.querySelector('#mission-battery');
 const missionGunSelect = document.querySelector('#mission-gun');
 const missionProjectileSelectors = document.querySelector('#mission-projectile-selectors');
@@ -832,7 +815,6 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n-title]').forEach((node) => { node.title = t(node.dataset.i18nTitle); });
   languageSelect.value = state.lang;
   themeSelect.value = state.theme;
-  mapUrlInput.value = state.mapUrl;
   batteryCountInput.value = String(state.settings.batteryCount);
   observerCountInput.value = String(state.settings.observerCount);
   renderGlobalConfig();
@@ -900,11 +882,9 @@ function clearLocalData() {
   if (!window.confirm(t('clearAllDataConfirm'))) return;
 
   localStorage.removeItem(SETTINGS_KEY);
-  localStorage.removeItem('calc.mapUrl');
   localStorage.removeItem('calc.missions');
 
   state.settings = loadLauncherSettings();
-  state.mapUrl = '';
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
   applyI18n();
   enhanceTabTiles();
@@ -922,8 +902,6 @@ async function clearBrowserPageCache() {
       await Promise.all(registrations.map((registration) => registration.unregister()));
     }
   } finally {
-    localStorage.removeItem('calc.mapUrl');
-    state.mapUrl = '';
     alert(t('browserCacheCleared'));
     window.location.reload();
   }
@@ -3038,13 +3016,10 @@ function deleteSelectedMapMarker() {
 
 
 function openMap() {
-  state.mapUrl = normalizeExternalMapUrl(mapUrlInput.value);
-  mapUrlInput.value = state.mapUrl;
-  localStorage.setItem('calc.mapUrl', state.mapUrl);
   switchTab('map');
   initializeMap();
   refreshMapOverlay();
-  window.open(state.mapUrl, '_blank', 'noopener,noreferrer');
+  window.open(DEFAULT_EXTERNAL_MAP_URL, '_blank', 'noopener,noreferrer');
   safetyOutput.textContent = t('openedExternalMap');
 }
 
