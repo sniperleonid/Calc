@@ -306,6 +306,35 @@
           </article>
 
           <article class="card">
+            <h2 data-i18n="mapSettingsTitle">Настройки карты</h2>
+            <p class="hint" data-i18n="mapSettingsHint">Калибровка и загрузка карты вынесены сюда, чтобы не загромождать вкладку с метками.</p>
+            <div class="card-actions">
+              <button class="btn ghost" id="toggle-calibration-mode" data-i18n="calibrationModeToggle">Калибровка: выкл</button>
+            </div>
+            <div id="calibration-controls" class="stack hidden">
+              <p class="hint" data-i18n="calibrationHint">Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.</p>
+              <p class="hint" id="calibration-last-info"></p>
+              <div class="pair pair-2">
+                <input id="cal-p0-x" type="number" placeholder="P0 X" />
+                <input id="cal-p0-y" type="number" placeholder="P0 Y" />
+              </div>
+              <div class="pair pair-1">
+                <input id="cal-scale-meters" type="number" min="0" step="0.1" placeholder="P1-P2 scale (m)" />
+              </div>
+              <div class="card-actions inline-actions">
+                <button class="btn ghost" id="apply-calibration" data-i18n="applyCalibration">Применить калибровку</button>
+                <button class="btn ghost" id="reset-calibration" data-i18n="resetCalibration">Сбросить калибровку</button>
+              </div>
+            </div>
+            <label for="map-image-upload" data-i18n="mapImageUpload">Загрузить свою карту (PNG/JPG)</label>
+            <input id="map-image-upload" type="file" accept="image/png,image/jpeg,image/webp" />
+            <div class="card-actions inline-actions">
+              <button class="btn ghost" id="paste-map-image" data-i18n="pasteMapImage">Вставить карту из буфера</button>
+              <button class="btn ghost" id="clear-map-image" data-i18n="clearMapImage">Убрать карту</button>
+            </div>
+          </article>
+
+          <article class="card">
             <h2 data-i18n="profilesTitle">Профили орудий и боеприпасов</h2>
             <p class="hint" data-i18n="profilesHint">Настройка сектора огня, зон минимальной/максимальной дальности и привязок к снарядам/таблицам.</p>
             <div id="profiles-editor" class="stack"></div>
