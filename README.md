@@ -166,3 +166,24 @@ npm run start
 Если Python не найден, UI и gateway всё равно стартуют, а в консоли появится понятная подсказка по установке.
 
 > Интерфейс launcher настроен на работу одного оператора без онлайн-ролей и комнат.
+
+## Fire Mission (FDC MVP)
+
+В `apps/launcher-ui` добавлен модуль планирования `fire-mission.js`:
+
+- `buildAimPlan(config, guns, context)` — строит план фаз и назначений.
+- `getNextFirePackage(plan, env)` — выдаёт текущий пакет фазы (цели, назначения, решения solver, TOT/MRSI задержки).
+- `advancePlanCursor(plan)` + `isPlanComplete(plan)` — механика кнопки «Следующий расчёт».
+
+### Как добавить миссию
+
+1. На вкладке «Огневые задачи» выберите `TargetType`, `SheafType`, `Control` в блоке **Fire Mission (FDC)**.
+2. Заполните параметры (spacing/bearing/sheaf/TOT/MRSI и т.д.).
+3. Нажмите **Сформировать миссию**.
+
+### Как работает «Следующий расчёт»
+
+1. Нажмите **Следующий расчёт** — UI возьмёт текущую фазу плана.
+2. Для назначений вызовется `computeFireSolution`, при `TOT` применятся задержки по `maxTOF - tof`, при `MRSI` будет построен `mrsiShotPlan` через `computeFireSolutionsMulti`.
+3. После выдачи пакета курсор плана переводится на следующую фазу.
+4. После последней фазы план завершён (`isPlanComplete === true`).
