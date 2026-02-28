@@ -196,6 +196,24 @@ test('next calculation completes plan phase by phase', async () => {
   assert.equal(isPlanComplete(plan), true);
 });
 
+test('invalid aim point index returns a readable error instead of TypeError', async () => {
+  const plan = buildAimPlan({
+    targetType: 'POINT', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: ['1'], roundsPerGun: 1,
+    point: { x: 100, y: 100 },
+  }, guns);
+  const broken = {
+    ...plan,
+    assignments: [{ gunId: '1', commands: [{ phaseIndex: 0, aimPointIndex: 999, rounds: 1 }] }],
+  };
+  const env = {
+    gunPositions: { '1': { x: 0, y: 0, z: 0 } },
+    weaponByGunId: { '1': 'w1' },
+    computeFireSolution: async () => ({ azimuthDeg: 0, elevMil: 100, tofSec: 10 }),
+    computeFireSolutionsMulti: async () => [],
+  };
+  await assert.rejects(() => getNextFirePackage(broken, env), /План огня повреждён/);
+});
+
 test('wind decomposition returns headwind/crosswind from meteorological direction', () => {
   const out = decomposeWind({ speedMps: 10, directionDeg: 0, model: 'CONSTANT' }, 90);
   assert.equal(Math.round(out.headwindMps), 0);

@@ -405,9 +405,15 @@ export function getPhaseAssignments(plan, phaseIndex) {
     .filter((assignment) => assignment.commands.length);
 }
 
+function getAimPointOrThrow(plan, aimPointIndex) {
+  const point = plan.aimPoints[aimPointIndex];
+  if (!point) throw new Error('План огня повреждён: не найдена точка прицеливания');
+  return point;
+}
+
 
 function resolveAdjustedAimPoint(plan, command, gunPos) {
-  const base = plan.aimPoints[command.aimPointIndex];
+  const base = getAimPointOrThrow(plan, command.aimPointIndex);
   const offset = getAdjustmentOffset(plan.runtime?.adjustment);
   const hasOffset = Math.abs(offset.dx) > 0.001 || Math.abs(offset.dy) > 0.001;
   if (!hasOffset) return base;
@@ -481,7 +487,7 @@ export async function applyMRSI(plan, phaseIndex, env) {
   for (const assignment of assignments) {
     const command = assignment.commands[0];
     if (!command) continue;
-    const point = plan.aimPoints[command.aimPointIndex];
+    const point = getAimPointOrThrow(plan, command.aimPointIndex);
     const solutions = await env.computeFireSolutionsMulti({
       gunPos: env.gunPositions?.[assignment.gunId],
       targetPos: { x: point.x, y: point.y, z: Number.isFinite(point.z) ? point.z : 0 },
