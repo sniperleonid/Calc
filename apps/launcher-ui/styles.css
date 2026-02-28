@@ -265,6 +265,13 @@ select,
 }
 
 
+.battery-guns-group {
+  border: 1px dashed color-mix(in srgb, var(--battery-color, var(--border)), transparent 35%);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
 .battery-group-title {
   margin: 8px 0 0;
   font-size: 14px;

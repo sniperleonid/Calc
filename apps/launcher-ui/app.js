@@ -95,7 +95,7 @@ const i18n = {
     safeDataTitle: 'Контроль данных', safeDataDescription: 'Проверка журналов и экспорт служебных данных.', openLogs: 'Открыть логи', exportData: 'Экспорт данных', clearAllData: 'Очистить данные',
     serviceState: 'Состояние сервисов', generalSettings: 'Общие настройки', language: 'Язык', theme: 'Тема', themeTerminal: 'Terminal Green', themeMidnight: 'Midnight Blue',
     ballisticsOk: '✅ Ballistics Core: запущен', ballisticsWarn: '⚠️ Ballistics Core: не отвечает. Проверьте Python и uvicorn.',
-    dataCleared: 'Локальные данные очищены', battery: 'Батарея', batteryShort: 'Б', gun: 'Орудие', gunShort: 'О', observer: 'Наблюдатель', observerShort: 'Н', x: 'X', y: 'Y',
+    dataCleared: 'Локальные данные очищены', clearBrowserCache: 'Очистить кэш браузера страницы', browserCacheCleared: 'Кэш браузера страницы очищен', battery: 'Батарея', batteryShort: 'Б', gun: 'Орудие', gunShort: 'О', observer: 'Наблюдатель', observerShort: 'Н', x: 'X', y: 'Y',
     observerHeight: 'Высота наблюдателя (м)', observerName: 'Имя наблюдателя',
     allGuns: 'Все орудия батареи', gunProfile: 'Профиль орудия', projectileProfile: 'Профиль снаряда', gunDirectionAzimuth: 'Азимут центрального направления (°)',
     calcDone: 'Расчёт выполнен', mtoHeader: 'MTO: расход по выбранным орудиям', missionSaved: 'Миссия сохранена', noMissions: 'Сохранённых миссий нет',
@@ -133,7 +133,7 @@ const i18n = {
     safeDataTitle: 'Data control', safeDataDescription: 'Check logs and export service data.', openLogs: 'Open logs', exportData: 'Export data', clearAllData: 'Clear data',
     serviceState: 'Service status', generalSettings: 'General settings', language: 'Language', theme: 'Theme', themeTerminal: 'Terminal Green', themeMidnight: 'Midnight Blue',
     ballisticsOk: '✅ Ballistics Core: online', ballisticsWarn: '⚠️ Ballistics Core: unavailable. Check Python and uvicorn.',
-    dataCleared: 'Local data has been cleared', battery: 'Battery', batteryShort: 'B', gun: 'Gun', gunShort: 'G', observer: 'Observer', observerShort: 'O', x: 'X', y: 'Y',
+    dataCleared: 'Local data has been cleared', clearBrowserCache: 'Clear this page browser cache', browserCacheCleared: 'Browser cache for this page has been cleared', battery: 'Battery', batteryShort: 'B', gun: 'Gun', gunShort: 'G', observer: 'Observer', observerShort: 'O', x: 'X', y: 'Y',
     observerHeight: 'Observer altitude (m)', observerName: 'Observer name',
     allGuns: 'All guns in battery', gunProfile: 'Gun profile', projectileProfile: 'Projectile profile', gunDirectionAzimuth: 'Central azimuth (°)',
     calcDone: 'Calculation complete', mtoHeader: 'MTO: ammo usage for selected guns', missionSaved: 'Mission saved', noMissions: 'No saved missions',
@@ -154,6 +154,7 @@ const healthBtn = document.querySelector('#health-check');
 const clearDataBtn = document.querySelector('#clear-data');
 const openLogsBtn = document.querySelector('#open-logs');
 const exportDataBtn = document.querySelector('#export-data');
+const clearBrowserCacheBtn = document.querySelector('#clear-browser-cache');
 const languageSelect = document.querySelector('#language');
 const themeSelect = document.querySelector('#theme');
 const batteryCountInput = document.querySelector('#battery-count');
@@ -818,8 +819,26 @@ function clearLocalData() {
   state.settings = loadLauncherSettings();
   state.mapUrl = '';
   applyI18n();
-enhanceTabTiles();
+  enhanceTabTiles();
   alert(t('dataCleared'));
+}
+
+async function clearBrowserPageCache() {
+  try {
+    if ('caches' in window) {
+      const keys = await window.caches.keys();
+      await Promise.all(keys.map((key) => window.caches.delete(key)));
+    }
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+  } finally {
+    localStorage.removeItem('calc.mapUrl');
+    state.mapUrl = '';
+    alert(t('browserCacheCleared'));
+    window.location.reload();
+  }
 }
 
 function renderGlobalConfig() {
@@ -833,7 +852,7 @@ function renderGlobalConfig() {
     const gunProfileOptions = gunProfiles.map((profile) => `<option value="${profile}">${profile}</option>`).join('');
     const saved = state.settings.batteryConfig[String(b)] ?? {};
     row.innerHTML = `
-      <h3>${saved.title ?? `${t('battery')} ${b}`}</h3>
+      <h3>${getBatteryDisplayName(b)}</h3>
       <div class="pair pair-5">
         <input type="text" inputmode="numeric" data-height data-battery-height="${b}" placeholder="${t('batteryHeight')}" value="${saved.height ?? 0}" />
         <input type="number" min="1" max="5" data-battery-guns-count="${b}" placeholder="${t('gunsPerBattery')}" value="${getGunCountForBattery(b)}" />
@@ -852,10 +871,15 @@ function renderGunsGrid() {
   const batteries = Number(batteryCountInput?.value || 1);
   container.innerHTML = '';
   for (let b = 1; b <= batteries; b += 1) {
+    const batteryGroup = document.createElement('div');
+    batteryGroup.className = 'battery-guns-group';
+    batteryGroup.style.setProperty('--battery-color', getBatteryColor(b));
+
     const batteryTitle = document.createElement('h3');
     batteryTitle.className = 'battery-group-title';
     batteryTitle.textContent = getBatteryDisplayName(b);
-    container.append(batteryTitle);
+    batteryGroup.append(batteryTitle);
+
     const gunsPerBattery = getGunCountForBattery(b);
     for (let g = 1; g <= gunsPerBattery; g += 1) {
       const key = `${b}-${g}`;
@@ -871,8 +895,9 @@ function renderGunsGrid() {
         ? `<input data-gun-heading="${key}" type="text" inputmode="decimal" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`
         : '';
       row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" />${headingField}`;
-      container.append(row);
+      batteryGroup.append(row);
     }
+    container.append(batteryGroup);
   }
 }
 
@@ -2157,6 +2182,12 @@ function logMapClickDiagnostics(latlng, imagePoint) {
   });
 }
 
+function getBatteryColor(batteryId) {
+  const palette = ['#00ff57', '#00d4ff', '#ff7a1a', '#ff4df0', '#ffd84d'];
+  const idx = Math.max(0, Number(batteryId) - 1) % palette.length;
+  return palette[idx];
+}
+
 function getBatteryCustomName(batteryId) {
   const fallback = `${t('battery')} ${batteryId}`;
   const fallbackShort = `${t('batteryShort')}-${batteryId}`;
@@ -2181,6 +2212,20 @@ function getObserverDisplayName(observerId) {
     || '',
   ).trim();
   return `${t('observerShort')}-${observerId}${rawName ? ` ${rawName}` : ''}`;
+}
+
+function refreshLiveNameBindings() {
+  document.querySelectorAll('#battery-config .battery-config-row').forEach((row, index) => {
+    const title = row.querySelector('h3');
+    if (title) title.textContent = getBatteryDisplayName(index + 1);
+  });
+  document.querySelectorAll('#guns-coordinates .battery-group-title').forEach((title, index) => {
+    title.textContent = getBatteryDisplayName(index + 1);
+  });
+  document.querySelectorAll('[data-observer-index]').forEach((label) => {
+    const observerId = Number(label.dataset.observerIndex || 0);
+    if (observerId > 0) label.textContent = `${getObserverDisplayName(observerId)}: ${t('observerBinding')}`;
+  });
 }
 
 function getMarkerTypeName(type) {
@@ -2268,9 +2313,7 @@ function refreshMapOverlay() {
 
   const legendRows = [`<p>${t('mapRotationHint')}</p>`];
   const markerStyle = {
-    gun: '#00ff57',
     observer: '#00d4ff',
-    battery: '#ffd84d',
     target: '#ff7a1a',
     firePattern: '#ff4df0',
   };
@@ -2292,8 +2335,8 @@ function refreshMapOverlay() {
     if (maxRange > 0) {
       const maxCircle = window.L.circle(gamePointToLatLng(gunX, gunY), {
         radius: maxRange,
-        color: '#5fd1ff',
-        fillColor: '#5fd1ff',
+        color: getBatteryColor(batteryId),
+        fillColor: getBatteryColor(batteryId),
         fillOpacity: 0.05,
         weight: 1,
       }).addTo(leafletMap);
@@ -2322,10 +2365,11 @@ function refreshMapOverlay() {
       gunMarkers.push(sectorPolygon);
     }
 
+    const gunColor = getBatteryColor(batteryId);
     const marker = window.L.circleMarker(gamePointToLatLng(gunX, gunY), {
       radius: 8,
-      color: markerStyle.gun,
-      fillColor: markerStyle.gun,
+      color: gunColor,
+      fillColor: gunColor,
       fillOpacity: 0.9,
       weight: 2,
     }).addTo(leafletMap);
@@ -2358,7 +2402,7 @@ function refreshMapOverlay() {
     addPersistentLabel(marker, gunLabel);
     gunMarkers.push(marker);
     if (headingLine) gunMarkers.push(headingLine);
-    legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.gun}"></span>${gunLabel}: X=${gunX}, Y=${gunY}, Az=${renderedHeading.toFixed(1)}°, ${profile?.name ?? ''}</p>`);
+    legendRows.push(`<p><span class="legend-dot" style="--dot-color:${gunColor}"></span>${gunLabel}: X=${gunX}, Y=${gunY}, Az=${renderedHeading.toFixed(1)}°, ${profile?.name ?? ''}</p>`);
   });
 
 
@@ -2378,11 +2422,12 @@ function refreshMapOverlay() {
     const minY = Math.min(...batteryGunPoints.map((point) => point.y));
     const maxY = Math.max(...batteryGunPoints.map((point) => point.y));
     const batteryPadding = 20;
+    const batteryColor = getBatteryColor(batteryId);
     const batteryBox = window.L.rectangle([
       gamePointToLatLng(minX - batteryPadding, minY - batteryPadding),
       gamePointToLatLng(maxX + batteryPadding, maxY + batteryPadding),
     ], {
-      color: markerStyle.battery,
+      color: batteryColor,
       fill: false,
       weight: 2,
       dashArray: '8 6',
@@ -2390,7 +2435,7 @@ function refreshMapOverlay() {
     const batteryName = getBatteryDisplayName(batteryId);
     addPersistentLabel(batteryBox, batteryName, { direction: 'bottom', offset: [0, 10] });
     gunMarkers.push(batteryBox);
-    legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.battery}"></span>${batteryName}: X=${center.x.toFixed(1)}, Y=${center.y.toFixed(1)}</p>`);
+    legendRows.push(`<p><span class="legend-dot" style="--dot-color:${batteryColor}"></span>${batteryName}: X=${center.x.toFixed(1)}, Y=${center.y.toFixed(1)}</p>`);
   }
 
   getObserverPoints().forEach(({ observerId, x, y }) => {
@@ -2586,6 +2631,9 @@ tabs.forEach((tab) => tab.addEventListener('click', () => switchTab(tab.dataset.
 document.querySelectorAll('[data-open-tab]').forEach((button) => button.addEventListener('click', () => switchTab(button.dataset.openTab)));
 healthBtn?.addEventListener('click', runHealthCheck);
 clearDataBtn?.addEventListener('click', clearLocalData);
+clearBrowserCacheBtn?.addEventListener('click', () => {
+  clearBrowserPageCache();
+});
 openLogsBtn?.addEventListener('click', openLogs);
 exportDataBtn?.addEventListener('click', exportData);
 document.querySelector('#open-map')?.addEventListener('click', openMap);
@@ -2726,7 +2774,9 @@ document.addEventListener('input', (event) => {
     }
     if (event.target.matches('[data-battery-title], [data-observer-name]')) {
       shouldRefreshMap = true;
+      refreshLiveNameBindings();
       renderMissionSelectors();
+      renderCounterBatterySection();
       syncMarkerTargetOptions();
     }
     if (event.target.matches('#cal-scale-meters')) {
