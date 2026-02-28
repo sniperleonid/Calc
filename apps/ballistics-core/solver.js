@@ -120,9 +120,8 @@ function pickChargeByDistance(table, distance, preferredChargeId) {
     .sort((a, b) => a.maxRange - b.maxRange);
   if (inRange.length) return inRange[0];
 
-  return candidates
-    .sort((a, b) => Math.abs(distance - b.maxRange) - Math.abs(distance - a.maxRange))
-    .at(-1) ?? null;
+  // Strict behavior: do not produce a firing solution outside tabular charge ranges.
+  return null;
 }
 
 function solveFromTable({ table, arcType, weapon, bearingRad, range2D, dz, crossWindMps, headWindMps, preferredChargeId }) {
