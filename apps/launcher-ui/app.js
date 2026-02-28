@@ -233,6 +233,12 @@ let lastOverlayBoundsKey = '';
 let lastCtrlPressAt = 0;
 let mapImageSize = null;
 
+const InvertedYCRS = window.L
+  ? window.L.Util.extend({}, window.L.CRS.Simple, {
+    transformation: new window.L.Transformation(1, 0, 1, 0),
+  })
+  : null;
+
 function parseCoordinateValue(rawValue) {
   const text = String(rawValue ?? '').trim();
   if (!text) return null;
@@ -1198,13 +1204,17 @@ function saveMission() {
 
 function initializeMap() {
   if (leafletMap || !window.L) return;
+  const crs = InvertedYCRS
+    ?? window.L.Util.extend({}, window.L.CRS.Simple, {
+      transformation: new window.L.Transformation(1, 0, 1, 0),
+    });
   leafletMap = window.L.map('leaflet-map', {
     zoomControl: true,
     doubleClickZoom: false,
     zoomSnap: 0.25,
     zoomDelta: 0.25,
     wheelPxPerZoomLevel: 80,
-    crs: window.L.CRS.Simple,
+    crs,
     minZoom: -6,
     maxZoom: 6,
   }).setView([0, 0], 0);
@@ -1577,18 +1587,28 @@ function getFixedProjectionZoom() {
 
 function imagePointToGamePoint(x, y) {
   const { calibration } = getMapToolsSettings();
+  const imageHeight = Number(mapImageSize?.naturalHeight);
+  const yMapFlipped = Number.isFinite(imageHeight) ? imageHeight - Number(y) : Number(y);
+  const yOriginFlipped = Number.isFinite(imageHeight)
+    ? imageHeight - Number(calibration.originMapY)
+    : Number(calibration.originMapY);
   return {
     x: (Number(x) - Number(calibration.originMapX)) * Number(calibration.scale) + Number(calibration.originWorldX),
-    y: (Number(y) - Number(calibration.originMapY)) * Number(calibration.scale) + Number(calibration.originWorldY),
+    y: (yMapFlipped - yOriginFlipped) * Number(calibration.scale) + Number(calibration.originWorldY),
   };
 }
 
 function gamePointToImagePoint(x, y) {
   const { calibration } = getMapToolsSettings();
   const scale = Number(calibration.scale) || 1;
+  const imageHeight = Number(mapImageSize?.naturalHeight);
+  const yOriginFlipped = Number.isFinite(imageHeight)
+    ? imageHeight - Number(calibration.originMapY)
+    : Number(calibration.originMapY);
+  const yFlipped = (Number(y) - Number(calibration.originWorldY)) / scale + yOriginFlipped;
   return {
     x: (Number(x) - Number(calibration.originWorldX)) / scale + Number(calibration.originMapX),
-    y: (Number(y) - Number(calibration.originWorldY)) / scale + Number(calibration.originMapY),
+    y: Number.isFinite(imageHeight) ? imageHeight - yFlipped : yFlipped,
   };
 }
 
