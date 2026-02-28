@@ -271,7 +271,7 @@ let calibrationLine;
 let rulerLine;
 let rulerEndpointMarkers = [];
 let firePatternOverlays = [];
-let selectedManualMarkerId = null;
+let selectedMapMarker = null;
 let manualMarkerDragState = null;
 let gunHeadingDragState = null;
 let pendingGunHeading = null;
@@ -435,6 +435,17 @@ function clearMarkerCoordinatesAndAzimuth(marker) {
   }
 }
 
+function isSelectedMarker(type, id) {
+  return selectedMapMarker?.type === type && selectedMapMarker?.id === id;
+}
+
+function selectMapMarker(marker) {
+  if (!marker) return;
+  selectedMapMarker = { type: marker.type, id: marker.id };
+  writeMarkerInfo(marker);
+  refreshMapOverlay();
+}
+
 function syncManualMarkersFromBoundInputs(markers) {
   return (markers ?? []).map((marker) => {
     if (marker.type === 'gun' && marker.targetId) {
@@ -475,7 +486,7 @@ function syncMapMarkersWithAvailableTargets() {
 
   if (filtered.length === source.length) return;
   const removed = source.filter((marker) => !filtered.some((entry) => entry.id === marker.id));
-  if (selectedManualMarkerId && !filtered.some((marker) => marker.id === selectedManualMarkerId)) selectedManualMarkerId = null;
+  if (selectedMapMarker?.type === 'manual' && !filtered.some((marker) => marker.id === selectedMapMarker.id)) selectedMapMarker = null;
   state.settings.mapTools = { ...tools, manualMarkers: filtered };
   persistLauncherSettings();
 }
@@ -1661,7 +1672,7 @@ function openManualMarkerEditor(markerId, markerLayer) {
 
   const popup = window.L.popup({ closeOnClick: false }).setLatLng(markerLayer.getLatLng()).setContent(wrapper);
   popup.on('remove', () => {
-    if (selectedManualMarkerId === markerId) refreshMapOverlay();
+    if (isSelectedMarker('manual', markerId)) refreshMapOverlay();
   });
   markerLayer.bindPopup(popup).openPopup();
 
@@ -1697,7 +1708,7 @@ function openManualMarkerEditor(markerId, markerLayer) {
       ...tools,
       manualMarkers: (tools.manualMarkers ?? []).filter((marker) => marker.id !== markerId),
     };
-    if (selectedManualMarkerId === markerId) selectedManualMarkerId = null;
+    if (isSelectedMarker('manual', markerId)) selectedMapMarker = null;
     persistLauncherSettings();
     refreshMapOverlay();
     if (mapToolsOutput) mapToolsOutput.textContent = t('markerDeleted');
@@ -2122,7 +2133,7 @@ function applyManualMarkers() {
 }
 
 function clearManualMarkers() {
-  selectedManualMarkerId = null;
+  selectedMapMarker = null;
   state.settings.mapTools = { ...getMapToolsSettings(), manualMarkers: [], calibrationPoints: [], nextCalibrationPointIndex: 0, ruler: { p1: null, p2: null } };
   persistLauncherSettings();
   refreshMapOverlay();
@@ -2429,12 +2440,13 @@ function refreshMapOverlay() {
     // Range circles / sectors created visual clutter and were mistaken for marker artifacts.
 
     const gunColor = getBatteryColor(batteryId);
+    const isGunSelected = isSelectedMarker('gun', gunKey);
     const marker = window.L.circleMarker(gamePointToLatLng(gunX, gunY), {
-      radius: 8,
-      color: gunColor,
-      fillColor: gunColor,
+      radius: isGunSelected ? 10 : 8,
+      color: isGunSelected ? '#ff3b30' : gunColor,
+      fillColor: isGunSelected ? '#ff3b30' : gunColor,
       fillOpacity: 0.9,
-      weight: 2,
+      weight: isGunSelected ? 4 : 2,
     }).addTo(leafletMap);
     let headingLine = null;
     if (renderedHeading < 360) {
@@ -2458,14 +2470,20 @@ function refreshMapOverlay() {
       warnings.push(`${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}: Az ${targetAz.toFixed(1)}°${inSector ? '' : `, rotate to ${targetAz.toFixed(1)}°`}${inRange ? '' : `, D=${targetDistance.toFixed(0)}m`}`);
     }
 
-    marker.on('mousedown', (event) => startGunHeadingDrag(event, { gunKey, gunX, gunY, batteryId, gunId }));
+    marker.on('mousedown', (event) => {
+      if (event.originalEvent?.button !== 0) return;
+      if (!isSelectedMarker('gun', gunKey)) {
+        window.L.DomEvent.stop(event);
+        selectMapMarker({ id: gunKey, type: 'gun', targetId: gunKey, x: gunX, y: gunY, azimuth: renderedHeading });
+        return;
+      }
+      startGunHeadingDrag(event, { gunKey, gunX, gunY, batteryId, gunId });
+    });
 
     const gunLabel = `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}${getObserverSuffixForGun(`${batteryId}-${gunId}`)}`;
-    marker.on('click', () => {
-      const profileName = profile?.name ? `\n${profile.name}` : '';
-      if (mapToolsOutput) {
-        mapToolsOutput.textContent = `${gunLabel}\nX=${gunX}, Y=${gunY}\nAz=${renderedHeading.toFixed(1)}°${profileName}`;
-      }
+    marker.on('click', (event) => {
+      window.L.DomEvent.stop(event);
+      selectMapMarker({ id: gunKey, type: 'gun', targetId: gunKey, x: gunX, y: gunY, azimuth: renderedHeading, name: gunLabel });
     });
     addPersistentLabel(marker, gunLabel);
     gunMarkers.push(marker);
@@ -2508,12 +2526,13 @@ function refreshMapOverlay() {
   getObserverPoints().forEach(({ observerId, x, y }) => {
     const observerBatteryId = getObserverBoundBatteryId(observerId);
     const observerAccentColor = observerBatteryId ? getBatteryColor(observerBatteryId) : null;
+    const isObserverSelected = isSelectedMarker('observer', observerId);
     const observerMarker = window.L.circleMarker(gamePointToLatLng(x, y), {
-      radius: 7,
-      color: observerAccentColor || markerStyle.observer,
-      fillColor: markerStyle.observer,
+      radius: isObserverSelected ? 9 : 7,
+      color: isObserverSelected ? '#ff3b30' : (observerAccentColor || markerStyle.observer),
+      fillColor: isObserverSelected ? '#ff3b30' : markerStyle.observer,
       fillOpacity: 0.85,
-      weight: 2,
+      weight: isObserverSelected ? 4 : 2,
     }).addTo(leafletMap);
     if (observerAccentColor) {
       const observerFrame = window.L.circleMarker(gamePointToLatLng(x, y), {
@@ -2525,28 +2544,37 @@ function refreshMapOverlay() {
       gunMarkers.push(observerFrame);
     }
     const observerLabel = getObserverDisplayName(observerId);
-    observerMarker.on('click', () => {
-      if (mapToolsOutput) mapToolsOutput.textContent = `${observerLabel}\nX=${x}, Y=${y}`;
+    observerMarker.on('click', (event) => {
+      window.L.DomEvent.stop(event);
+      selectMapMarker({ id: observerId, type: 'observer', targetId: observerId, x, y, azimuth: null, name: observerLabel });
     });
     addPersistentLabel(observerMarker, observerLabel);
     gunMarkers.push(observerMarker);
     legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.observer}"></span>${observerLabel}: X=${x}, Y=${y}</p>`);
   });
 
+  const isTargetSelected = isSelectedMarker('target', 'mission-target');
   if (!targetMarker) {
     targetMarker = window.L.circleMarker(gamePointToLatLng(targetX, targetY), {
-      radius: 9,
-      color: markerStyle.target,
-      fillColor: markerStyle.target,
+      radius: isTargetSelected ? 11 : 9,
+      color: isTargetSelected ? '#ff3b30' : markerStyle.target,
+      fillColor: isTargetSelected ? '#ff3b30' : markerStyle.target,
       fillOpacity: 0.8,
-      weight: 3,
+      weight: isTargetSelected ? 4 : 3,
     }).addTo(leafletMap);
   } else {
     targetMarker.setLatLng(gamePointToLatLng(targetX, targetY));
+    targetMarker.setRadius(isTargetSelected ? 11 : 9);
+    targetMarker.setStyle({
+      color: isTargetSelected ? '#ff3b30' : markerStyle.target,
+      fillColor: isTargetSelected ? '#ff3b30' : markerStyle.target,
+      weight: isTargetSelected ? 4 : 3,
+    });
   }
   targetMarker.off('click');
-  targetMarker.on('click', () => {
-    if (mapToolsOutput) mapToolsOutput.textContent = `${t('target')}\nX=${targetX}, Y=${targetY}`;
+  targetMarker.on('click', (event) => {
+    window.L.DomEvent.stop(event);
+    selectMapMarker({ id: 'mission-target', type: 'target', targetId: 'mission-target', x: targetX, y: targetY, azimuth: null, name: t('target') });
   });
   addPersistentLabel(targetMarker, t('target'));
 
@@ -2578,11 +2606,11 @@ function refreshMapOverlay() {
   }
   (tools.manualMarkers ?? []).forEach((item) => {
     const color = markerStyle[item.type] ?? '#ffffff';
-    const isSelected = selectedManualMarkerId === item.id;
+    const isSelected = isSelectedMarker('manual', item.id);
     const marker = window.L.circleMarker(gamePointToLatLng(Number(item.x), Number(item.y)), {
       radius: isSelected ? 10 : 8,
       color: isSelected ? '#ff3b30' : color,
-      fillColor: color,
+      fillColor: isSelected ? '#ff3b30' : color,
       fillOpacity: 0.95,
       weight: isSelected ? 4 : 2,
       dashArray: '4 4',
@@ -2590,24 +2618,20 @@ function refreshMapOverlay() {
     addPersistentLabel(marker, buildManualMarkerDisplayLabel(item));
     marker.on('click', (event) => {
       window.L.DomEvent.stop(event);
-      selectedManualMarkerId = item.id;
-      writeMarkerInfo(item);
-      refreshMapOverlay();
+      selectMapMarker({ ...item, id: item.id, type: 'manual' });
     });
     marker.on('mousedown', (event) => {
       window.L.DomEvent.stop(event);
       if (event.originalEvent?.button !== 0) return;
-      if (selectedManualMarkerId !== item.id) {
-        selectedManualMarkerId = item.id;
-        writeMarkerInfo(item);
-        refreshMapOverlay();
+      if (!isSelectedMarker('manual', item.id)) {
+        selectMapMarker({ ...item, id: item.id, type: 'manual' });
         return;
       }
       startManualMarkerDrag(item.id, marker);
     });
     marker.on('dblclick', (event) => {
       window.L.DomEvent.stop(event);
-      selectedManualMarkerId = item.id;
+      selectedMapMarker = { type: 'manual', id: item.id };
       openManualMarkerEditor(item.id, marker);
     });
     manualMarkers.push(marker);
@@ -2641,16 +2665,20 @@ function refreshMapOverlay() {
   }
 }
 
-function deleteSelectedManualMarker() {
-  if (!selectedManualMarkerId) return;
+function deleteSelectedMapMarker() {
+  if (!selectedMapMarker) return;
   const tools = getMapToolsSettings();
-  const markerToDelete = (tools.manualMarkers ?? []).find((marker) => marker.id === selectedManualMarkerId);
-  if (markerToDelete) clearMarkerCoordinatesAndAzimuth(markerToDelete);
-  state.settings.mapTools = {
-    ...tools,
-    manualMarkers: (tools.manualMarkers ?? []).filter((marker) => marker.id !== selectedManualMarkerId),
-  };
-  selectedManualMarkerId = null;
+  if (selectedMapMarker.type === 'manual') {
+    const markerToDelete = (tools.manualMarkers ?? []).find((marker) => marker.id === selectedMapMarker.id);
+    if (markerToDelete) clearMarkerCoordinatesAndAzimuth(markerToDelete);
+    state.settings.mapTools = {
+      ...tools,
+      manualMarkers: (tools.manualMarkers ?? []).filter((marker) => marker.id !== selectedMapMarker.id),
+    };
+  } else {
+    clearMarkerCoordinatesAndAzimuth({ type: selectedMapMarker.type, targetId: selectedMapMarker.id });
+  }
+  selectedMapMarker = null;
   persistLauncherSettings();
   refreshMapOverlay();
 }
@@ -2837,7 +2865,7 @@ document.addEventListener('keydown', (event) => {
   }
   if (event.key !== 'Delete') return;
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) return;
-  deleteSelectedManualMarker();
+  deleteSelectedMapMarker();
 });
 
 
