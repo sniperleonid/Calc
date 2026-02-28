@@ -78,21 +78,34 @@ h1 {
 .tab {
   border: 1px solid var(--border);
   color: var(--text);
-  background: transparent;
-  border-radius: 8px;
-  padding: 12px 10px;
+  background: color-mix(in srgb, var(--panel), transparent 10%);
+  border-radius: 10px;
+  padding: 10px;
   cursor: pointer;
   text-transform: uppercase;
   font-weight: 700;
-  font-size: 0.95rem;
-  line-height: 1.25;
+  font-size: 0.9rem;
+  line-height: 1.2;
   overflow-wrap: anywhere;
-  min-height: 66px;
+  min-height: 74px;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+}
+
+.tab-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.tab-label {
+  display: block;
 }
 
 .tab.active,
 .tab:hover {
-  background: color-mix(in srgb, var(--panel-soft), transparent 10%);
+  background: color-mix(in srgb, var(--panel-soft), transparent 4%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border), transparent 50%);
 }
 
 .tab-panel {
@@ -353,6 +366,24 @@ select,
 }
 
 .hidden {
+  display: none;
+}
+
+.map-settings-accordion {
+  margin-top: 10px;
+  border: 1px dashed color-mix(in srgb, var(--border), transparent 40%);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.map-settings-accordion summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--muted);
+  list-style: none;
+}
+
+.map-settings-accordion summary::-webkit-details-marker {
   display: none;
 }
 
