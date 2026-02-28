@@ -5,6 +5,30 @@ export const TARGET_TYPES = ['POINT', 'LINE', 'RECTANGLE', 'CIRCLE'];
 export const SHEAF_TYPES = ['CONVERGED', 'PARALLEL', 'OPEN'];
 export const CONTROL_TYPES = ['SIMULTANEOUS', 'SEQUENCE', 'CREEPING', 'TOT', 'MRSI'];
 
+const LEGACY_TARGET_MAP = {
+  POINT: 'POINT',
+  CONVERGED: 'POINT',
+  LINEAR: 'LINE',
+  RECT_AREA: 'RECTANGLE',
+  CIRCULAR_AREA: 'CIRCLE',
+  'Линейный': 'LINE',
+  'Круговой': 'CIRCLE',
+};
+
+const LEGACY_SHEAF_MAP = {
+  PARALLEL_SHEAF: 'PARALLEL',
+  OPEN_SHEAF: 'OPEN',
+  'Параллельный': 'PARALLEL',
+};
+
+const LEGACY_CONTROL_MAP = {
+  SIMULTANEOUS: 'SIMULTANEOUS',
+  SEQUENCE: 'SEQUENCE',
+  CREEPING: 'CREEPING',
+  TOT: 'TOT',
+  MRSI: 'MRSI',
+};
+
 function toFinite(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -136,11 +160,128 @@ function spreadOffsets(count, width) {
   return Array.from({ length: count }, (_, i) => -width / 2 + (width * i) / (count - 1));
 }
 
+export function getFdcUiSchema(missionFdc = {}) {
+  const targetType = TARGET_TYPES.includes(missionFdc.targetType) ? missionFdc.targetType : null;
+  const sheafType = SHEAF_TYPES.includes(missionFdc.sheafType) ? missionFdc.sheafType : null;
+  const controlType = CONTROL_TYPES.includes(missionFdc.controlType) ? missionFdc.controlType : null;
+  const visibleFields = new Set();
+  const requiredFields = new Set(['targetType', 'sheafType', 'controlType']);
+
+  if (targetType === 'LINE') {
+    ['bearingDeg', 'lengthM', 'spacingM'].forEach((name) => visibleFields.add(name));
+    ['bearingDeg', 'lengthM', 'spacingM'].forEach((name) => requiredFields.add(name));
+  }
+  if (targetType === 'RECTANGLE') {
+    ['bearingDeg', 'lengthM', 'widthM', 'spacingM'].forEach((name) => visibleFields.add(name));
+    ['bearingDeg', 'lengthM', 'widthM', 'spacingM'].forEach((name) => requiredFields.add(name));
+  }
+  if (targetType === 'CIRCLE') {
+    ['radiusM', 'aimpointCount'].forEach((name) => visibleFields.add(name));
+    ['radiusM', 'aimpointCount'].forEach((name) => requiredFields.add(name));
+  }
+
+  if (sheafType === 'PARALLEL') {
+    visibleFields.add('sheafWidthM');
+    requiredFields.add('sheafWidthM');
+  }
+  if (sheafType === 'OPEN') {
+    visibleFields.add('sheafWidthM');
+    visibleFields.add('openFactor');
+    requiredFields.add('sheafWidthM');
+  }
+
+  if (controlType === 'SEQUENCE') visibleFields.add('phaseIntervalSec');
+  if (controlType === 'CREEPING') {
+    ['stepM', 'stepsCount', 'stepIntervalSec', 'bearingDeg'].forEach((name) => visibleFields.add(name));
+    ['stepM', 'stepsCount'].forEach((name) => requiredFields.add(name));
+  }
+  if (controlType === 'TOT') visibleFields.add('desiredImpactSec');
+  if (controlType === 'MRSI') {
+    ['mrsiRounds', 'mrsiMinSepSec', 'mrsiAllowedArcs'].forEach((name) => visibleFields.add(name));
+    ['mrsiRounds', 'mrsiMinSepSec'].forEach((name) => requiredFields.add(name));
+  }
+
+  return { visibleFields, requiredFields };
+}
+
+export function migrateOldMissionToFdc(oldMission = {}) {
+  const geometry = oldMission.geometry ?? {};
+  const sheaf = oldMission.sheaf ?? {};
+  const control = oldMission.control ?? {};
+  return {
+    targetType: oldMission.targetType ?? LEGACY_TARGET_MAP[oldMission.fireMode] ?? LEGACY_TARGET_MAP[oldMission.fireType] ?? 'POINT',
+    sheafType: oldMission.sheafType ?? LEGACY_SHEAF_MAP[oldMission.fireMode] ?? LEGACY_SHEAF_MAP[oldMission.oldSheaf] ?? 'CONVERGED',
+    controlType: oldMission.controlType ?? LEGACY_CONTROL_MAP[oldMission.control] ?? LEGACY_CONTROL_MAP[oldMission.oldFireMode] ?? 'SIMULTANEOUS',
+    geometry: {
+      point: oldMission.point,
+      center: oldMission.center,
+      start: oldMission.start,
+      end: oldMission.end,
+      bearingDeg: geometry.bearingDeg ?? oldMission.bearingDeg,
+      lengthM: geometry.lengthM ?? oldMission.lengthM,
+      widthM: geometry.widthM ?? oldMission.widthM,
+      radiusM: geometry.radiusM ?? oldMission.radiusM,
+      spacingM: geometry.spacingM ?? oldMission.spacingM,
+      aimpointCount: geometry.aimpointCount ?? oldMission.aimpointCount,
+    },
+    sheaf: {
+      sheafWidthM: sheaf.sheafWidthM ?? oldMission.sheafWidthM,
+      openFactor: sheaf.openFactor ?? oldMission.openFactor,
+    },
+    sequence: { phaseIntervalSec: oldMission.phaseIntervalSec ?? control.phaseIntervalSec },
+    creeping: {
+      stepM: oldMission.stepM,
+      stepsCount: oldMission.stepsCount,
+      stepIntervalSec: oldMission.stepIntervalSec,
+      bearingDeg: oldMission.bearingDeg,
+    },
+    tot: { desiredImpactSec: oldMission.desiredImpactSec ?? oldMission.desiredImpactTimeSec },
+    mrsi: {
+      mrsiRounds: oldMission.mrsiRounds ?? oldMission.mrsiRoundsPerGun,
+      mrsiMinSepSec: oldMission.mrsiMinSepSec ?? oldMission.mrsiMinSeparationSec,
+      mrsiAllowedArcs: oldMission.mrsiAllowedArcs,
+    },
+    guns: oldMission.guns ?? 'ALL',
+    roundsPerGun: oldMission.roundsPerGun ?? 1,
+    missionName: oldMission.missionName ?? 'Mission',
+  };
+}
+
+function flattenFdcConfig(missionFdc) {
+  return {
+    ...missionFdc,
+    ...missionFdc.geometry,
+    ...missionFdc.sheaf,
+    ...missionFdc.sequence,
+    ...missionFdc.creeping,
+    ...missionFdc.tot,
+    ...missionFdc.mrsi,
+  };
+}
+
+function validateMissionFdc(missionFdc, config) {
+  const { requiredFields } = getFdcUiSchema(missionFdc);
+  for (const field of requiredFields) {
+    if (field.endsWith('Type')) {
+      if (!missionFdc[field]) throw new Error('Выберите режим огня и заполните параметры');
+      continue;
+    }
+    if (field === 'mrsiAllowedArcs') continue;
+    if (missionFdc.targetType === 'LINE' && config.start && config.end && ['bearingDeg', 'lengthM', 'spacingM'].includes(field)) continue;
+    if (!Number.isFinite(Number(config[field])) && field !== 'phaseIntervalSec' && field !== 'desiredImpactSec') {
+      throw new Error('Не заполнены параметры режима огня');
+    }
+  }
+  if (missionFdc.targetType === 'POINT' && !config.point) throw new Error('Выберите режим огня и заполните параметры');
+  if (missionFdc.targetType === 'LINE' && !config.center && (!config.start || !config.end)) throw new Error('Выберите режим огня и заполните параметры');
+  if ((missionFdc.targetType === 'RECTANGLE' || missionFdc.targetType === 'CIRCLE') && !config.center) throw new Error('Выберите режим огня и заполните параметры');
+}
+
 function buildPhases(config, baseAimPoints) {
-  if (config.control === 'SEQUENCE') {
+  if (config.controlType === 'SEQUENCE') {
     return { aimPoints: baseAimPoints, phases: baseAimPoints.map((_, i) => ({ phaseIndex: i, label: `#${i + 1}`, aimPointIndices: [i] })) };
   }
-  if (config.control === 'CREEPING') {
+  if (config.controlType === 'CREEPING') {
     const stepM = Math.max(1, toFinite(config.stepM, 50));
     const stepsCount = Math.max(1, Math.round(toFinite(config.stepsCount, 1)));
     const interval = Math.max(0, toFinite(config.stepIntervalSec, 0));
@@ -203,7 +344,10 @@ function buildAssignments(plan, guns) {
   return assignments;
 }
 
-export function buildAimPlan(config, guns = [], context = {}) {
+export function buildAimPlanFromFdc(rawMissionFdc, guns = [], context = {}) {
+  const missionFdc = migrateOldMissionToFdc(rawMissionFdc?.missionFdc ?? rawMissionFdc ?? {});
+  const config = flattenFdcConfig(missionFdc);
+  validateMissionFdc(missionFdc, config);
   const gunList = (config.guns === 'ALL' ? guns : guns.filter((gun) => config.guns.includes(gun.id))).map((gun) => ({ id: String(gun.id), pos: gun.pos }));
   const baseAimPoints = generateBaseAimPoints(config);
   const phaseData = buildPhases(config, baseAimPoints);
@@ -214,7 +358,7 @@ export function buildAimPlan(config, guns = [], context = {}) {
     assignments: [],
     cursor: { phaseIndex: 0 },
     summary: {
-      patternName: `${config.targetType}/${config.sheafType}/${config.control}`,
+      patternName: `${config.targetType}/${config.sheafType}/${config.controlType}`,
       totalPhases: phaseData.phases.length,
       totalAimPoints: phaseData.aimPoints.length,
     },
@@ -223,6 +367,8 @@ export function buildAimPlan(config, guns = [], context = {}) {
   plan.assignments = buildAssignments(plan, gunList);
   return plan;
 }
+
+export const buildAimPlan = buildAimPlanFromFdc;
 
 export function getCurrentPhase(plan) {
   return plan.phases[plan.cursor.phaseIndex] ?? null;
@@ -274,8 +420,8 @@ export function applyTOT(plan, phaseIndex, perGunSolutions) {
   const assignments = getPhaseAssignments(plan, phaseIndex);
   const all = Object.values(perGunSolutions).flat();
   const maxTOF = Math.max(...all.map((row) => Number(row.solution?.tofSec || 0)), 0);
-  const totMode = plan.config.totMode ?? 'SYNC_NOW';
-  const desiredImpactTimeSec = Math.max(0, toFinite(plan.config.desiredImpactTimeSec, 0));
+  const totMode = plan.config.desiredImpactSec > 0 ? 'AT_TIME' : 'SYNC_NOW';
+  const desiredImpactTimeSec = Math.max(0, toFinite(plan.config.desiredImpactSec, 0));
   const phaseStartDelaySec = totMode === 'AT_TIME' ? Math.max(0, desiredImpactTimeSec - maxTOF) : 0;
   assignments.forEach((assignment) => {
     assignment.commands.forEach((command) => {
@@ -304,8 +450,8 @@ function pickMrsiShots(candidates, desiredRounds, minSep) {
 
 export async function applyMRSI(plan, phaseIndex, env) {
   const assignments = getPhaseAssignments(plan, phaseIndex);
-  const rounds = Math.max(1, Math.round(toFinite(plan.config.mrsiRoundsPerGun, plan.config.roundsPerGun)));
-  const minSep = Math.max(0, toFinite(plan.config.mrsiMinSeparationSec, 2));
+  const rounds = Math.max(1, Math.round(toFinite(plan.config.mrsiRounds, plan.config.roundsPerGun)));
+  const minSep = Math.max(0, toFinite(plan.config.mrsiMinSepSec, 2));
   const maxRounds = Math.max(1, Math.round(toFinite(plan.config.mrsiMaxRounds, rounds)));
   for (const assignment of assignments) {
     const command = assignment.commands[0];
@@ -343,8 +489,8 @@ export async function getNextFirePackage(plan, env) {
   if (!phase) return null;
   let assignments = getPhaseAssignments(plan, phase.phaseIndex);
   const solutions = await computePhaseSolutions(plan, phase.phaseIndex, env);
-  if (plan.config.control === 'TOT') assignments = applyTOT(plan, phase.phaseIndex, solutions.perGunSolutions);
-  if (plan.config.control === 'MRSI') assignments = await applyMRSI(plan, phase.phaseIndex, env);
+  if (plan.config.controlType === 'TOT') assignments = applyTOT(plan, phase.phaseIndex, solutions.perGunSolutions);
+  if (plan.config.controlType === 'MRSI') assignments = await applyMRSI(plan, phase.phaseIndex, env);
   return {
     phase,
     aimPoints: phase.aimPointIndices.map((index) => plan.aimPoints[index]),

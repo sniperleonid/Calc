@@ -1,7 +1,14 @@
 import { createCounterBatteryModule } from '/apps/counter-battery/module.js';
 import { computeFireSolution, computeFireSolutionsMulti } from '/apps/ballistics-core/index.js';
 import { FIRE_MODE_IDS, buildFireModeConfig, generateAimPoints, pickAimPointForGun } from './fire-modes.js';
-import { buildAimPlan, getNextFirePackage, advancePlanCursor, isPlanComplete } from '/apps/fire-control/src/fire-mission.js';
+import {
+  buildAimPlanFromFdc,
+  getNextFirePackage,
+  advancePlanCursor,
+  isPlanComplete,
+  getFdcUiSchema,
+  migrateOldMissionToFdc,
+} from '/apps/fire-control/src/fire-mission.js';
 import { adjustDirection, adjustRange, createAdjustmentState, decomposeWind, getAdjustmentOffset } from '/apps/fire-control/src/adjustment.js';
 
 const SETTINGS_KEY = 'calc.launcherSettings';
@@ -791,6 +798,7 @@ function persistLauncherSettings() {
       angle: document.querySelector('#observer-target-angle')?.value ?? '',
     },
     fireModeSettings,
+    missionFdc: migrateOldMissionToFdc(getFireMissionConfigFromUI()),
   };
 
 
@@ -1210,6 +1218,10 @@ function renderMissionSelectors() {
   if (trajectoryTypeSelect) trajectoryTypeSelect.value = state.settings.mission.trajectoryType ?? 'indirect';
   if (indirectArcSelect) indirectArcSelect.value = state.settings.mission.indirectArc ?? 'low';
   if (fireModeSelect) fireModeSelect.value = state.settings.mission.fireMode ?? FIRE_MODE_IDS.POINT;
+  const missionFdc = migrateOldMissionToFdc(state.settings.mission?.missionFdc ?? state.settings.mission ?? {});
+  if (fmTargetTypeSelect) fmTargetTypeSelect.value = missionFdc.targetType;
+  if (fmSheafTypeSelect) fmSheafTypeSelect.value = missionFdc.sheafType;
+  if (fmControlTypeSelect) fmControlTypeSelect.value = missionFdc.controlType;
   const fireModeSettings = state.settings.mission.fireModeSettings ?? {};
   document.querySelectorAll('[data-fire-setting]').forEach((input) => {
     input.value = fireModeSettings[input.dataset.fireSetting] ?? '';
@@ -1451,22 +1463,19 @@ function syncFireModeSettingsVisibility() {
 }
 
 function syncFdcSettingsVisibility() {
-  const targetType = fmTargetTypeSelect?.value ?? 'POINT';
-  const sheafType = fmSheafTypeSelect?.value ?? 'CONVERGED';
-  const controlType = fmControlTypeSelect?.value ?? 'SIMULTANEOUS';
-  if (fmLengthInput) fmLengthInput.disabled = !(targetType === 'LINE' || targetType === 'RECTANGLE');
-  if (fmWidthInput) fmWidthInput.disabled = targetType !== 'RECTANGLE';
-  if (fmRadiusInput) fmRadiusInput.disabled = targetType !== 'CIRCLE';
-  if (fmAimPointCountInput) fmAimPointCountInput.disabled = targetType !== 'CIRCLE';
-  document.querySelector('#fm-sheaf-width')?.toggleAttribute('disabled', sheafType === 'CONVERGED');
-  document.querySelector('#fm-open-factor')?.toggleAttribute('disabled', sheafType !== 'OPEN');
-  document.querySelector('#fm-step-m')?.toggleAttribute('disabled', controlType !== 'CREEPING');
-  document.querySelector('#fm-steps-count')?.toggleAttribute('disabled', controlType !== 'CREEPING');
-  document.querySelector('#fm-step-interval')?.toggleAttribute('disabled', controlType !== 'CREEPING');
-  document.querySelector('#fm-tot-time')?.toggleAttribute('disabled', controlType !== 'TOT');
-  document.querySelector('#fm-mrsi-rounds')?.toggleAttribute('disabled', controlType !== 'MRSI');
-  document.querySelector('#fm-mrsi-min-sep')?.toggleAttribute('disabled', controlType !== 'MRSI');
-  syncFireMissionFieldVisibility();
+  const schema = getFdcUiSchema({
+    targetType: fmTargetTypeSelect?.value,
+    sheafType: fmSheafTypeSelect?.value,
+    controlType: fmControlTypeSelect?.value,
+  });
+  fmConditionalFields.forEach((row) => {
+    const field = row.dataset.fmField;
+    if (!field) return;
+    const visible = schema.visibleFields.has(field);
+    row.classList.toggle('hidden', !visible);
+    const input = row.querySelector('input, select');
+    if (input) input.toggleAttribute('disabled', !visible);
+  });
 }
 
 function toFiniteNumber(value, fallback = 0) {
@@ -1557,120 +1566,19 @@ function buildActiveFirePattern({ mode, centerPoint, aimPoints }) {
 }
 
 async function calculateFire() {
-  if (!ensureCalibrationOrWarn(fireOutput)) return null;
-  const targetInput = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
-  if (!targetInput) {
-    fireOutput.textContent = t('invalidCoordinates');
-    return;
+  try {
+    buildFireMissionPlan();
+    return await showNextFirePackage();
+  } catch (error) {
+    fireOutput.textContent = error?.message || 'Выберите режим огня и заполните параметры';
+    return null;
   }
-  const rawTargetX = targetInput.x;
-  const rawTargetY = targetInput.y;
-  const targetHeight = parseHeightValue(document.querySelector('#target-height')?.value);
-  if (!Number.isFinite(targetHeight)) {
-    fireOutput.textContent = t('invalidCoordinates');
-    return;
-  }
-  const battery = Number(missionBatterySelect.value || 1);
-  const selectedGun = missionGunSelect.value;
-  const fireMode = fireModeSelect?.value ?? FIRE_MODE_IDS.POINT;
-  const trajectoryType = trajectoryTypeSelect?.value ?? 'indirect';
-  const indirectArc = indirectArcSelect?.value ?? 'low';
-  const gunsPerBattery = getGunCountForBattery(battery);
-  const gunIds = selectedGun === 'all' ? Array.from({ length: gunsPerBattery }, (_, idx) => idx + 1) : [Number(selectedGun)];
-  const batteryHeight = getBatteryHeight(battery);
-  if (!Number.isFinite(batteryHeight)) {
-    fireOutput.textContent = t('invalidCoordinates');
-    return;
-  }
-
-  const correction = getMissionCorrection();
-  const anchorGunForCorrection = selectedGun === 'all' ? 1 : Number(selectedGun);
-  const correctionAnchor = getObserverAnchorForMission(correction.observerId, battery, anchorGunForCorrection);
-  const correctedTarget = correctionAnchor
-    ? applyCorrectionToTarget({ x: rawTargetX, y: rawTargetY }, correctionAnchor, correction)
-    : { x: rawTargetX, y: rawTargetY };
-  const targetX = correctedTarget.x;
-  const targetY = correctedTarget.y;
-
-  const fireModeSettings = state.settings.mission.fireModeSettings ?? {};
-  const modeConfig = buildFireModeConfig({
-    mode: fireMode,
-    settings: {
-      ...buildModeSpecificConfig({ mode: fireMode, settings: fireModeSettings, targetX, targetY, targetHeight }),
-    },
-    centerPoint: { x: targetX, y: targetY, z: targetHeight },
-  });
-  const aimPoints = generateAimPoints(modeConfig, { gunCount: gunIds.length });
-  const distributeMode = modeConfig.distribute ?? (aimPoints.length === 1 ? 'SAME_POINT' : 'PATTERN');
-
-  const resultPromises = gunIds.map(async (gunId, gunIndex) => {
-    const gunPoint = readXYFromInputs(
-      document.querySelector(`[data-gun-x="${battery}-${gunId}"]`),
-      document.querySelector(`[data-gun-y="${battery}-${gunId}"]`),
-    );
-    if (!gunPoint) return null;
-    const { profileId, profile } = getProfileForGun(battery, gunId);
-    const projectile = document.querySelector(`[data-mission-projectile-profile="${profileId}"]`)?.value || parseProjectileOptions(profile)[0];
-    const capability = getTrajectoryCapabilities(profile, projectile);
-    const requestedArc = resolveArcRequest(capability, trajectoryType, indirectArc);
-    const aimPoint = pickAimPointForGun({ aimPoints, gunIndex, distribute: distributeMode }) ?? aimPoints[0];
-    const solution = await computeFireSolution({
-      gunPos: { x: gunPoint.x, y: gunPoint.y, z: batteryHeight },
-      targetPos: { x: aimPoint.x, y: aimPoint.y, z: Number.isFinite(aimPoint.z) ? aimPoint.z : targetHeight },
-      wind: { speedMps: 0, fromDeg: 0 },
-      arc: requestedArc,
-      toleranceMeters: 10,
-      weaponId: `${profileId}/${projectile}`,
-    });
-    const dx = aimPoint.x - gunPoint.x;
-    const dy = aimPoint.y - gunPoint.y;
-    const distance = Math.hypot(dx, dy);
-    const azimuthMils = (Number(solution.azimuthDeg) * 6400) / 360;
-    return {
-      gunId,
-      profileId,
-      projectile,
-      tableRef: profile?.tables ?? 'N/A',
-      distance: distance.toFixed(1),
-      azimuth: Number(solution.azimuthDeg).toFixed(2),
-      azimuthMils: azimuthMils.toFixed(1),
-      elevation: Number(solution.elevMil).toFixed(1),
-      tofSec: Number(solution.tofSec).toFixed(2),
-      driftMeters: Number(solution.driftMeters).toFixed(1),
-      chargeId: solution.chargeId,
-      missDistance: Number(solution.missDistance).toFixed(1),
-      arcType: solution.arcType,
-      requestedArc,
-      aimPoint,
-    };
-  });
-  const results = await Promise.all(resultPromises);
-
-  if (results.some((row) => row === null)) {
-    fireOutput.textContent = t('invalidCoordinates');
-    return;
-  }
-
-  const output = [`${t('calcDone')}: ${document.querySelector('#mission-name')?.value || 'Mission'}`,
-    `${t('fireMode')}: ${t(buildFireModeLabelKey(fireMode))}`,
-    `Target: X=${targetX.toFixed(1)} Y=${targetY.toFixed(1)} H=${targetHeight.toFixed(1)}` ,
-    ...results.map((row) => `${t('gun')} ${row.gunId} (${row.profileId}, ${row.projectile}): Aim X=${row.aimPoint.x.toFixed(1)} Y=${row.aimPoint.y.toFixed(1)} D=${row.distance}m Az=${row.azimuth}°/${row.azimuthMils} mil Elev=${row.elevation} mil TOF=${row.tofSec}s Drift=${row.driftMeters}m Charge=${row.chargeId} Arc=${row.arcType} (Req=${row.requestedArc}) Miss=${row.missDistance}m · Tbl=${row.tableRef}`)].join('\n');
-
-  const observerCorrections = getObserverCorrections(battery, gunIds, batteryHeight);
-  const observerRows = observerCorrections.map((item) => `${getObserverDisplayName(item.observerId)}: ΔH=${item.heightDelta}m`);
-
-  fireOutput.textContent = observerRows.length ? `${output}\n${observerRows.join('\n')}` : output;
-  const tools = getMapToolsSettings();
-  state.settings.mapTools = { ...tools, activeFirePattern: buildActiveFirePattern({ mode: fireMode, centerPoint: { x: targetX, y: targetY, z: targetHeight }, aimPoints }) };
-  persistLauncherSettings();
-  refreshMapOverlay();
-  return { results, battery, selectedGun, targetX, targetY, rawTargetX, rawTargetY, batteryHeight, targetHeight, fireMode, trajectoryType, indirectArc, aimPoints };
 }
 
 async function showMto() {
   const calc = await calculateFire();
   if (!calc) return;
-  const mtoRows = calc.results.map((row) => `${t('gun')} ${row.gunId}: HE x3, Smoke x1`).join('\n');
+  const mtoRows = calc.assignments.map((row) => `${t('gun')} ${row.gunId}: HE x3, Smoke x1`).join('\n');
   fireOutput.textContent = `${fireOutput.textContent}\n\n${t('mtoHeader')}\n${mtoRows}`;
 }
 
@@ -1681,7 +1589,7 @@ async function saveMission() {
   missions.push({
     name: document.querySelector('#mission-name')?.value || `Mission-${missions.length + 1}`,
     createdAt: new Date().toISOString(),
-    ...calc,
+    package: calc,
   });
   localStorage.setItem('calc.missions', JSON.stringify(missions));
   fireOutput.textContent = `${fireOutput.textContent}\n\n${t('missionSaved')} (${missions.length})`;
@@ -1708,38 +1616,43 @@ function getFireMissionConfigFromUI() {
     missionName: document.querySelector('#mission-name')?.value || 'Mission',
     targetType: fmTargetTypeSelect?.value || 'POINT',
     sheafType: fmSheafTypeSelect?.value || 'CONVERGED',
-    control: fmControlTypeSelect?.value || 'SIMULTANEOUS',
+    controlType: fmControlTypeSelect?.value || 'SIMULTANEOUS',
     guns: selectedGun === 'all' ? 'ALL' : gunIds,
     roundsPerGun: 1,
-    point: point ? { ...point, z: targetHeight } : undefined,
-    start: lineStart ? { ...lineStart, z: targetHeight } : undefined,
-    end: lineEnd ? { ...lineEnd, z: targetHeight } : undefined,
-    center: center ? { ...center, z: targetHeight } : undefined,
-    spacingM: toNum('#fm-spacing', 40),
-    bearingDeg: toNum('#fm-bearing', 0),
-    lengthM: toNum('#fm-length', 200),
-    widthM: toNum('#fm-width', 200),
-    radiusM: toNum('#fm-radius', 100),
-    aimpointCount: Math.max(3, Math.round(toNum('#fm-aimpoint-count', 8))),
-    sheafWidthM: toNum('#fm-sheaf-width', 180),
-    openFactor: toNum('#fm-open-factor', 2),
-    stepM: toNum('#fm-step-m', 50),
-    stepsCount: toNum('#fm-steps-count', 3),
-    stepIntervalSec: toNum('#fm-step-interval', 10),
-    desiredImpactTimeSec: toNum('#fm-tot-time', 0),
-    totMode: toNum('#fm-tot-time', 0) > 0 ? 'AT_TIME' : 'SYNC_NOW',
-    mrsiRoundsPerGun: toNum('#fm-mrsi-rounds', 3),
-    mrsiMinSeparationSec: toNum('#fm-mrsi-min-sep', 2),
-    mrsiAllowedArcs: ['LOW', 'HIGH'],
+    geometry: {
+      point: point ? { ...point, z: targetHeight } : undefined,
+      start: lineStart ? { ...lineStart, z: targetHeight } : undefined,
+      end: lineEnd ? { ...lineEnd, z: targetHeight } : undefined,
+      center: center ? { ...center, z: targetHeight } : undefined,
+      spacingM: toNum('#fm-spacing', 40),
+      bearingDeg: toNum('#fm-bearing', 0),
+      lengthM: toNum('#fm-length', 200),
+      widthM: toNum('#fm-width', 200),
+      radiusM: toNum('#fm-radius', 100),
+      aimpointCount: Math.max(3, Math.round(toNum('#fm-aimpoint-count', 8))),
+    },
+    sheaf: {
+      sheafWidthM: toNum('#fm-sheaf-width', 180),
+      openFactor: toNum('#fm-open-factor', 2),
+    },
+    sequence: { phaseIntervalSec: toNum('#fm-phase-interval', 0) },
+    creeping: {
+      stepM: toNum('#fm-step-m', 50),
+      stepsCount: toNum('#fm-steps-count', 3),
+      stepIntervalSec: toNum('#fm-step-interval', 10),
+      bearingDeg: toNum('#fm-bearing', 0),
+    },
+    tot: { desiredImpactSec: toNum('#fm-tot-time', 0) },
+    mrsi: {
+      mrsiRounds: toNum('#fm-mrsi-rounds', 3),
+      mrsiMinSepSec: toNum('#fm-mrsi-min-sep', 2),
+      mrsiAllowedArcs: Array.from(document.querySelectorAll('[data-fm-mrsi-arc]:checked')).map((input) => input.value),
+    },
   };
 }
 
 function syncFireMissionFieldVisibility() {
-  const targetType = fmTargetTypeSelect?.value || 'POINT';
-  fmConditionalFields.forEach((el) => {
-    const supported = String(el.dataset.fmField || '').split(/\s+/).filter(Boolean);
-    el.classList.toggle('hidden', supported.length > 0 && !supported.includes(targetType));
-  });
+  syncFdcSettingsVisibility();
 }
 
 function getGunsForMissionEnv() {
@@ -1764,9 +1677,9 @@ function getGunsForMissionEnv() {
 }
 
 function buildFireMissionPlan() {
-  const config = getFireMissionConfigFromUI();
+  const config = migrateOldMissionToFdc(getFireMissionConfigFromUI());
   const guns = getGunsForMissionEnv();
-  activeAimPlan = buildAimPlan(config, guns);
+  activeAimPlan = buildAimPlanFromFdc(config, guns);
   if (adjustmentSession) {
     const correction = getMissionCorrection();
     const anchorGun = Number(missionGunSelect?.value === 'all' ? 1 : missionGunSelect?.value || 1);
@@ -1825,6 +1738,7 @@ async function showNextFirePackage() {
   updateAdjustmentHud();
   fireOutput.textContent = `Фаза ${pkg.phase.phaseIndex + 1}/${activeAimPlan.phases.length} (${pkg.phase.label})\n${rows.join('\n')}`;
   activeAimPlan = advancePlanCursor(activeAimPlan);
+  return pkg;
 }
 
 function resetFireMissionPlan() {

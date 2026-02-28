@@ -128,48 +128,53 @@
                 <input id="fire-rect-spacing" type="number" min="5" step="5" data-fire-setting="rectSpacing" placeholder="Spacing (m)" />
               </div>
             </div>
-            <h3>Fire Mission (FDC)</h3>
+            <h3>Огневая задача (FDC)</h3>
             <div class="pair pair-2">
-              <select id="fm-target-type">
-                <option value="POINT">POINT</option>
-                <option value="LINE">LINE</option>
-                <option value="RECTANGLE">RECTANGLE</option>
-                <option value="CIRCLE">CIRCLE</option>
-              </select>
-              <select id="fm-sheaf-type">
-                <option value="CONVERGED">CONVERGED</option>
-                <option value="PARALLEL">PARALLEL</option>
-                <option value="OPEN">OPEN</option>
-              </select>
-              <select id="fm-control-type">
-                <option value="SIMULTANEOUS">SIMULTANEOUS</option>
-                <option value="SEQUENCE">SEQUENCE</option>
-                <option value="CREEPING">CREEPING</option>
-                <option value="TOT">TOT</option>
-                <option value="MRSI">MRSI</option>
-              </select>
-              <input id="fm-point-x" type="number" step="1" placeholder="Point X" data-fm-field="POINT" />
-              <input id="fm-point-y" type="number" step="1" placeholder="Point Y" data-fm-field="POINT" />
-              <input id="fm-line-start-x" type="number" step="1" placeholder="Line start X" data-fm-field="LINE" />
-              <input id="fm-line-start-y" type="number" step="1" placeholder="Line start Y" data-fm-field="LINE" />
-              <input id="fm-line-end-x" type="number" step="1" placeholder="Line end X" data-fm-field="LINE" />
-              <input id="fm-line-end-y" type="number" step="1" placeholder="Line end Y" data-fm-field="LINE" />
-              <input id="fm-center-x" type="number" step="1" placeholder="Center X" data-fm-field="RECTANGLE CIRCLE" />
-              <input id="fm-center-y" type="number" step="1" placeholder="Center Y" data-fm-field="RECTANGLE CIRCLE" />
-              <input id="fm-spacing" type="number" step="1" placeholder="Spacing m" value="40" />
-              <input id="fm-bearing" type="number" step="1" placeholder="Bearing°" value="0" />
-              <input id="fm-length" type="number" step="1" placeholder="Length m" value="200" />
-              <input id="fm-width" type="number" step="1" placeholder="Width m" value="200" />
-              <input id="fm-radius" type="number" step="1" placeholder="Radius m" value="100" />
-              <input id="fm-aimpoint-count" type="number" step="1" placeholder="Aim points" value="8" />
-              <input id="fm-sheaf-width" type="number" step="1" placeholder="Sheaf width m" value="180" />
-              <input id="fm-open-factor" type="number" step="0.1" placeholder="Open factor" value="2" />
-              <input id="fm-step-m" type="number" step="1" placeholder="Creeping step m" value="50" />
-              <input id="fm-steps-count" type="number" step="1" placeholder="Creeping steps" value="3" />
-              <input id="fm-step-interval" type="number" step="0.5" placeholder="Step interval s" value="10" />
-              <input id="fm-tot-time" type="number" step="1" placeholder="TOT desired impact sec" value="0" />
-              <input id="fm-mrsi-rounds" type="number" step="1" placeholder="MRSI rounds" value="3" />
-              <input id="fm-mrsi-min-sep" type="number" step="0.5" placeholder="MRSI min sep s" value="2" />
+              <label>Тип цели
+                <select id="fm-target-type">
+                  <option value="POINT">Точечная цель</option>
+                  <option value="LINE">Линия</option>
+                  <option value="RECTANGLE">Прямоугольник</option>
+                  <option value="CIRCLE">Круг</option>
+                </select>
+              </label>
+              <label>Схема распределения
+                <select id="fm-sheaf-type">
+                  <option value="CONVERGED">Сходящийся</option>
+                  <option value="PARALLEL">Параллельный</option>
+                  <option value="OPEN">Открытый</option>
+                </select>
+              </label>
+              <label>Режим выполнения
+                <select id="fm-control-type">
+                  <option value="SIMULTANEOUS">Одновременный</option>
+                  <option value="SEQUENCE">Поочерёдный</option>
+                  <option value="CREEPING">Ползущий огонь</option>
+                  <option value="TOT">Время поражения (TOT)</option>
+                  <option value="MRSI">MRSI</option>
+                </select>
+              </label>
+              <label data-fm-field="bearingDeg">Азимут, °<input id="fm-bearing" type="number" step="1" value="0" /></label>
+              <label data-fm-field="lengthM">Длина, м<input id="fm-length" type="number" step="1" value="200" /></label>
+              <label data-fm-field="widthM">Ширина, м<input id="fm-width" type="number" step="1" value="200" /></label>
+              <label data-fm-field="radiusM">Радиус, м<input id="fm-radius" type="number" step="1" value="100" /></label>
+              <label data-fm-field="spacingM">Шаг точек, м<input id="fm-spacing" type="number" step="1" value="40" /></label>
+              <label data-fm-field="aimpointCount">Количество точек<input id="fm-aimpoint-count" type="number" step="1" value="8" /></label>
+              <label data-fm-field="sheafWidthM">Ширина веера, м<input id="fm-sheaf-width" type="number" step="1" value="180" /></label>
+              <label data-fm-field="openFactor">Коэффициент раскрытия<input id="fm-open-factor" type="number" step="0.1" value="2" /></label>
+              <label data-fm-field="phaseIntervalSec">Интервал между фазами, с<input id="fm-phase-interval" type="number" step="0.5" value="0" /></label>
+              <label data-fm-field="stepM">Шаг ползущего огня, м<input id="fm-step-m" type="number" step="1" value="50" /></label>
+              <label data-fm-field="stepsCount">Количество шагов<input id="fm-steps-count" type="number" step="1" value="3" /></label>
+              <label data-fm-field="stepIntervalSec">Интервал между шагами, с<input id="fm-step-interval" type="number" step="0.5" value="10" /></label>
+              <label data-fm-field="desiredImpactSec">Желаемое время удара, с<input id="fm-tot-time" type="number" step="1" value="0" /></label>
+              <label data-fm-field="mrsiRounds">Количество выстрелов<input id="fm-mrsi-rounds" type="number" step="1" value="3" /></label>
+              <label data-fm-field="mrsiMinSepSec">Минимальный интервал, с<input id="fm-mrsi-min-sep" type="number" step="0.5" value="2" /></label>
+              <fieldset data-fm-field="mrsiAllowedArcs">
+                <legend>Разрешённые дуги</legend>
+                <label><input type="checkbox" data-fm-mrsi-arc value="LOW" checked /> Низкая</label>
+                <label><input type="checkbox" data-fm-mrsi-arc value="HIGH" checked /> Высокая</label>
+                <label><input type="checkbox" data-fm-mrsi-arc value="DIRECT" /> Прямая</label>
+              </fieldset>
             </div>
           </article>
           <article class="card">
