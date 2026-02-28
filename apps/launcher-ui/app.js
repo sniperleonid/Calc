@@ -1475,22 +1475,25 @@ function buildFireModeLabelKey(mode) {
 }
 
 function buildActiveFirePattern({ mode, centerPoint, aimPoints }) {
-  if (!aimPoints?.length) return null;
-  if (mode === FIRE_MODE_IDS.LINEAR && aimPoints.length > 1) {
-    return { mode, geometry: { type: 'line', start: aimPoints[0], end: aimPoints[aimPoints.length - 1], points: aimPoints } };
+  const points = (aimPoints ?? []).filter((point) => point && Number.isFinite(point.x) && Number.isFinite(point.y));
+  if (!points.length) return null;
+  if (mode === FIRE_MODE_IDS.LINEAR && points.length > 1) {
+    return { mode, geometry: { type: 'line', start: points[0], end: points[points.length - 1], points } };
   }
   if (mode === FIRE_MODE_IDS.CIRCULAR_AREA) {
-    const ringPoints = aimPoints.slice(1);
-    const radius = ringPoints[0] ? Math.hypot(ringPoints[0].x - centerPoint.x, ringPoints[0].y - centerPoint.y) : 0;
-    return { mode, geometry: { type: 'ring', center: centerPoint, radius, points: ringPoints } };
+    const safeCenter = (centerPoint && Number.isFinite(centerPoint.x) && Number.isFinite(centerPoint.y)) ? centerPoint : points[0];
+    const ringPoints = points.slice(1);
+    const firstRingPoint = ringPoints[0] ?? points[0];
+    const radius = firstRingPoint ? Math.hypot(firstRingPoint.x - safeCenter.x, firstRingPoint.y - safeCenter.y) : 0;
+    return { mode, geometry: { type: 'ring', center: safeCenter, radius, points: ringPoints } };
   }
   if (mode === FIRE_MODE_IDS.RECT_AREA) {
-    return { mode, geometry: { type: 'point-cloud', points: aimPoints } };
+    return { mode, geometry: { type: 'point-cloud', points } };
   }
   if (mode === FIRE_MODE_IDS.PARALLEL_SHEAF || mode === FIRE_MODE_IDS.OPEN_SHEAF) {
-    return { mode, geometry: { type: 'point-cloud', points: aimPoints } };
+    return { mode, geometry: { type: 'point-cloud', points } };
   }
-  return { mode, geometry: { type: 'point-cloud', points: aimPoints } };
+  return { mode, geometry: { type: 'point-cloud', points } };
 }
 
 function deriveFireModeFromFdcConfig(config = {}) {
