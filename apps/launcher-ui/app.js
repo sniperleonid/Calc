@@ -6,6 +6,7 @@ const LIMITS = {
 };
 const COORD_LIMITS = { min: 0, max: 999999 };
 const HEIGHT_LIMITS = { min: 0, max: 10000 };
+const MAP_IMAGE_UPLOAD_MAX_BYTES = 150 * 1024 * 1024;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -100,7 +101,7 @@ const i18n = {
     logsError: 'Не удалось загрузить логи', exportReady: 'Экспорт данных подготовлен', noLogsYet: 'Логи пока не найдены',
     target: 'Цель', openedExternalMap: 'Открыта внешняя карта',
     invalidCoordinates: 'Ошибка координат: разрешены только цифры и допустимые пределы',
-    mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту', mapImageTooLarge: 'Изображение карты слишком большое для хранилища браузера. Сожмите или уменьшите файл и попробуйте снова.',
+    mapToolsTitle: 'Инструменты карты и калибровки', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', pasteMapImage: 'Вставить карту из буфера', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту', mapImageTooLarge: 'Файл карты больше 150 МБ. Уменьшите файл и попробуйте снова.', mapImageUploadFailed: 'Не удалось загрузить изображение карты на сервер.', mapImageClipboardUnsupported: 'Буфер обмена не поддерживается браузером или недоступен без HTTPS/localhost.', mapImageClipboardEmpty: 'В буфере обмена не найдено изображение.',
     calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки',
     markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolBattery: 'Активная батарея', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки',
     rulerPointSet: 'Точка линейки установлена', rulerMeasurement: 'Линейка', rulerCleared: 'Линейка удалена', coordsCaptured: 'Координаты точки',
@@ -138,7 +139,7 @@ const i18n = {
     logsError: 'Failed to load logs', exportReady: 'Data export ready', noLogsYet: 'No logs found yet',
     target: 'Target', openedExternalMap: 'Opened external map',
     invalidCoordinates: 'Coordinate error: only digits and allowed limits are accepted',
-    mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image', mapImageTooLarge: 'Map image is too large for browser storage. Compress or resize the file and try again.',
+    mapToolsTitle: 'Map upload & calibration tools', mapImageUpload: 'Upload your map (PNG/JPG)', pasteMapImage: 'Paste map from clipboard', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image', mapImageTooLarge: 'Map image is larger than 150 MB. Reduce file size and try again.', mapImageUploadFailed: 'Failed to upload map image to server.', mapImageClipboardUnsupported: 'Clipboard image read is not available in this browser or without HTTPS/localhost.', mapImageClipboardEmpty: 'No image found in clipboard.',
     calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points',
     markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolBattery: 'Active battery', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target',
     rulerPointSet: 'Ruler point set', rulerMeasurement: 'Ruler', rulerCleared: 'Ruler removed', coordsCaptured: 'Picked coordinates',
@@ -171,6 +172,7 @@ const safetyOutput = document.querySelector('#safety-output');
 const mapLegend = document.querySelector('#map-legend');
 const mapToolsOutput = document.querySelector('#map-tools-output');
 const mapImageUploadInput = document.querySelector('#map-image-upload');
+const pasteMapImageButton = document.querySelector('#paste-map-image');
 const markerToolSelect = document.querySelector('#marker-tool');
 const markerTargetSelect = document.querySelector('#marker-target');
 const calibrationModeButton = document.querySelector('#toggle-calibration-mode');
@@ -205,6 +207,7 @@ function getMapToolsSettings() {
   const defaults = {
     calibration: { scale: 1, originMapX: 0, originMapY: 0, originWorldX: 0, originWorldY: 0 },
     imageBounds: { minX: 0, minY: 0, maxX: 4000, maxY: 4000 },
+    imageUrl: '',
     imageDataUrl: '',
     manualMarkers: [],
     ruler: { p1: null, p2: null },
@@ -490,8 +493,8 @@ function persistLauncherSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
   } catch (error) {
     const tools = getMapToolsSettings();
-    if (!tools.imageDataUrl) throw error;
-    state.settings.mapTools = { ...tools, imageDataUrl: '' };
+    if (!tools.imageDataUrl && !tools.imageUrl) throw error;
+    state.settings.mapTools = { ...tools, imageDataUrl: '', imageUrl: '' };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
     if (mapImageUploadInput) mapImageUploadInput.value = '';
     if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageTooLarge');
@@ -1467,9 +1470,12 @@ function hydrateMapToolsForm() {
 function upsertMapOverlay() {
   if (!leafletMap) return;
   const tools = getMapToolsSettings();
-  const overlayKey = tools.imageDataUrl ? `${tools.imageDataUrl.length}:${tools.imageDataUrl.slice(0, 64)}` : '';
+  const imageSource = String(tools.imageUrl || tools.imageDataUrl || '');
+  const overlayKey = imageSource.startsWith('data:')
+    ? `${imageSource.length}:${imageSource.slice(0, 64)}`
+    : imageSource;
 
-  if (!tools.imageDataUrl) {
+  if (!imageSource) {
     if (mapImageOverlay) {
       mapImageOverlay.remove();
       mapImageOverlay = null;
@@ -1497,7 +1503,7 @@ function upsertMapOverlay() {
     mapImageSize = { naturalWidth, naturalHeight };
 
     const bounds = window.L.latLngBounds([[0, 0], [naturalHeight, naturalWidth]]);
-    mapImageOverlay = window.L.imageOverlay(tools.imageDataUrl, bounds, { opacity: 0.85 }).addTo(leafletMap);
+    mapImageOverlay = window.L.imageOverlay(imageSource, bounds, { opacity: 0.85 }).addTo(leafletMap);
 
     state.settings.mapTools = {
       ...tools,
@@ -1509,7 +1515,7 @@ function upsertMapOverlay() {
     leafletMap.setMaxBounds(bounds);
     lastOverlayBoundsKey = overlayKey;
   };
-  image.src = tools.imageDataUrl;
+  image.src = imageSource;
 }
 
 function applyCalibration() {
@@ -1575,8 +1581,74 @@ function applyMapImage() {
   if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageApplied');
 }
 
+
+async function uploadMapImageFile(file) {
+  if (!(file instanceof File)) return false;
+  if (file.size > MAP_IMAGE_UPLOAD_MAX_BYTES) {
+    if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageTooLarge');
+    return false;
+  }
+
+  try {
+    const response = await fetch('/api/map-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'X-File-Name': encodeURIComponent(file.name || 'map-image'),
+      },
+      body: file,
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.url) {
+      if (response.status === 413 && mapToolsOutput) {
+        mapToolsOutput.textContent = t('mapImageTooLarge');
+      } else if (mapToolsOutput) {
+        mapToolsOutput.textContent = payload?.error || t('mapImageUploadFailed');
+      }
+      return false;
+    }
+
+    state.settings.mapTools = {
+      ...getMapToolsSettings(),
+      imageUrl: String(payload.url),
+      imageDataUrl: '',
+    };
+    persistLauncherSettings();
+    refreshMapOverlay();
+    if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageApplied');
+    return true;
+  } catch {
+    if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageUploadFailed');
+    return false;
+  }
+}
+
+async function pasteMapImageFromClipboard() {
+  if (!navigator.clipboard?.read) {
+    if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageClipboardUnsupported');
+    return;
+  }
+
+  try {
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      const imageType = item.types.find((type) => type.startsWith('image/'));
+      if (!imageType) continue;
+      const blob = await item.getType(imageType);
+      const ext = imageType.split('/')[1] || 'png';
+      const file = new File([blob], `clipboard-map.${ext}`, { type: imageType });
+      await uploadMapImageFile(file);
+      return;
+    }
+    if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageClipboardEmpty');
+  } catch {
+    if (mapToolsOutput) mapToolsOutput.textContent = t('mapImageClipboardUnsupported');
+  }
+}
+
 function clearMapImage() {
-  state.settings.mapTools = { ...getMapToolsSettings(), imageDataUrl: '' };
+  state.settings.mapTools = { ...getMapToolsSettings(), imageDataUrl: '', imageUrl: '' };
   if (mapImageUploadInput) mapImageUploadInput.value = '';
   persistLauncherSettings();
   refreshMapOverlay();
@@ -2291,15 +2363,11 @@ markerToolSelect?.addEventListener('change', () => {
 mapImageUploadInput?.addEventListener('change', async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const dataUrl = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('file-read-failed'));
-    reader.readAsDataURL(file);
-  });
-  state.settings.mapTools = { ...getMapToolsSettings(), imageDataUrl: String(dataUrl) };
-  persistLauncherSettings();
-  refreshMapOverlay();
+  await uploadMapImageFile(file);
+});
+
+pasteMapImageButton?.addEventListener('click', async () => {
+  await pasteMapImageFromClipboard();
 });
 
 document.body.dataset.theme = state.theme;
