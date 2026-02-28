@@ -222,8 +222,12 @@ function getMissionTargetLabel(targetId) {
   return getMissionTargetNameByIndex(index >= 0 ? index : 0);
 }
 
-const gunProfiles = ['mortar-120-standard', 'm777-howitzer', 'd30-standard'];
+let gunProfiles = ['mortar-120-standard', 'm777-howitzer', 'd30-standard'];
+let serverArtilleryProfiles = null;
 function getDefaultArtilleryProfiles() {
+  if (serverArtilleryProfiles && Object.keys(serverArtilleryProfiles).length) {
+    return { ...serverArtilleryProfiles };
+  }
   return {
     'mortar-120-standard': { name: 'Mortar 120', traverseDeg: 360, minRange: 450, maxRange: 7100, projectiles: 'HE/Smoke', tables: 'STD' },
     'm777-howitzer': { name: 'M777', traverseDeg: 30, minRange: 3500, maxRange: 24500, projectiles: 'M107 HE', tables: 'M777/M107' },
@@ -233,6 +237,41 @@ function getDefaultArtilleryProfiles() {
 
 function getArtilleryProfiles() {
   return { ...getDefaultArtilleryProfiles(), ...(state.settings.artilleryProfiles ?? {}) };
+}
+
+function buildProfilesFromCatalog(catalog) {
+  const guns = Array.isArray(catalog?.guns) ? catalog.guns : [];
+  const profiles = {};
+  const ids = [];
+  for (const gun of guns) {
+    if (!gun?.id) continue;
+    ids.push(gun.id);
+    const projectileNames = (gun.projectiles ?? []).map((projectile) => projectile.id).filter(Boolean);
+    const profile = gun.profile ?? {};
+    profiles[gun.id] = {
+      name: profile.name ?? gun.id,
+      traverseDeg: Number(profile.traverse_sector_deg ?? profile.traverseDeg ?? 360),
+      minRange: Number(profile.min_range_m ?? profile.minRange ?? 0),
+      maxRange: Number(profile.max_range_m ?? profile.maxRange ?? 0),
+      projectiles: projectileNames.join('/'),
+      tables: projectileNames.map((projectileId) => `${gun.id}/${projectileId}`).join(', '),
+    };
+  }
+  return { profiles, ids };
+}
+
+async function loadArtilleryCatalog() {
+  try {
+    const response = await fetch('/api/artillery-catalog', { cache: 'no-store' });
+    if (!response.ok) return;
+    const catalog = await response.json();
+    const { profiles, ids } = buildProfilesFromCatalog(catalog);
+    if (!ids.length) return;
+    serverArtilleryProfiles = profiles;
+    gunProfiles = ids;
+  } catch {
+    // keep local defaults when catalog cannot be loaded
+  }
 }
 
 const counterBatteryModule = createCounterBatteryModule({
@@ -621,7 +660,7 @@ function persistLauncherSettings() {
     const batteryId = input.dataset.batteryHeight;
     state.settings.batteryConfig[batteryId] = {
       height: input.value,
-      gunProfile: document.querySelector(`[data-battery-gun-profile="${batteryId}"]`)?.value ?? gunProfiles[0],
+      gunProfile: document.querySelector(`[data-battery-gun-profile="${batteryId}"]`)?.value ?? gunProfiles[0] ?? 'default',
       title: document.querySelector(`[data-battery-title="${batteryId}"]`)?.value ?? `${t('battery')} ${batteryId}`,
     };
     state.settings.batteryGunCounts[batteryId] = getGunCountForBattery(batteryId);
@@ -899,7 +938,7 @@ function renderGlobalConfig() {
         <div class="field"><select data-battery-gun-profile="${b}">${gunProfileOptions}</select><label>${t('gunProfile')}</label></div>
       </div>`;
     container.append(row);
-    row.querySelector(`[data-battery-gun-profile="${b}"]`).value = saved.gunProfile ?? gunProfiles[0];
+    row.querySelector(`[data-battery-gun-profile="${b}"]`).value = saved.gunProfile ?? gunProfiles[0] ?? '';
   }
 }
 
@@ -1539,8 +1578,8 @@ function getProfileForGun(batteryId, gunId) {
   const gunKey = `${batteryId}-${gunId}`;
   const profiles = getArtilleryProfiles();
   const gunSetting = getGunSetting(gunKey);
-  const batteryDefault = state.settings.batteryConfig?.[String(batteryId)]?.gunProfile ?? gunProfiles[0];
-  const activeProfile = profiles[batteryDefault] ?? profiles[gunProfiles[0]];
+  const batteryDefault = state.settings.batteryConfig?.[String(batteryId)]?.gunProfile ?? gunProfiles[0] ?? 'default';
+  const activeProfile = profiles[batteryDefault] ?? profiles[gunProfiles[0]] ?? Object.values(profiles)[0];
   return {
     profileId: batteryDefault,
     profile: activeProfile,
@@ -3099,10 +3138,15 @@ pasteMapImageButton?.addEventListener('click', async () => {
   await pasteMapImageFromClipboard();
 });
 
-document.body.dataset.theme = state.theme;
-applyI18n();
-enhanceTabTiles();
-updateCalibrationSummary();
-persistLauncherSettings();
-hydrateMapImageFromServer();
-runHealthCheck();
+async function initializeLauncher() {
+  document.body.dataset.theme = state.theme;
+  await loadArtilleryCatalog();
+  applyI18n();
+  enhanceTabTiles();
+  updateCalibrationSummary();
+  persistLauncherSettings();
+  hydrateMapImageFromServer();
+  runHealthCheck();
+}
+
+initializeLauncher();

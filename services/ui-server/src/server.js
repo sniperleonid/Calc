@@ -8,6 +8,7 @@ const root = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 const uiRoot = resolve(root, 'apps/launcher-ui');
 const logsRoot = resolve(root, 'logs');
 const uploadsRoot = resolve(root, 'data/uploads/map-images');
+const tablesRoot = resolve(root, 'tables');
 const port = Number(process.env.UI_PORT ?? 8080);
 const maxMapImageBytes = 150 * 1024 * 1024;
 
@@ -30,6 +31,58 @@ const imageExtensionByType = {
 function sendJson(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(payload));
+}
+
+function safeReadJson(path) {
+  try {
+    return JSON.parse(readFileSync(path, 'utf-8'));
+  } catch {
+    return null;
+  }
+}
+
+function listArtilleryCatalog() {
+  if (!existsSync(tablesRoot)) {
+    return { guns: [] };
+  }
+
+  const guns = readdirSync(tablesRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b, 'en'))
+    .map((gunId) => {
+      const gunPath = resolve(tablesRoot, gunId);
+      const profilePath = resolve(gunPath, 'profile.json');
+      const profile = existsSync(profilePath) ? safeReadJson(profilePath) : null;
+
+      const projectiles = readdirSync(gunPath, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => {
+          const projectileId = entry.name;
+          const projectilePath = resolve(gunPath, projectileId);
+          const projectileProfilePath = resolve(projectilePath, 'profile.json');
+          const projectileProfile = existsSync(projectileProfilePath) ? safeReadJson(projectileProfilePath) : null;
+          const ballisticTables = readdirSync(projectilePath, { withFileTypes: true })
+            .filter((fileEntry) => fileEntry.isFile() && extname(fileEntry.name).toLowerCase() === '.npz')
+            .map((fileEntry) => fileEntry.name)
+            .sort((a, b) => a.localeCompare(b, 'en'));
+
+          return {
+            id: projectileId,
+            profile: projectileProfile,
+            ballisticTables,
+          };
+        })
+        .sort((a, b) => a.id.localeCompare(b.id, 'en'));
+
+      return {
+        id: gunId,
+        profile,
+        projectiles,
+      };
+    });
+
+  return { guns };
 }
 
 function listLogs() {
@@ -163,6 +216,11 @@ const server = createServer((req, res) => {
   if (req.url === '/api/map-image/latest' && req.method === 'GET') {
     const url = getLatestMapImageUrl();
     sendJson(res, 200, { url });
+    return;
+  }
+
+  if (req.url === '/api/artillery-catalog' && req.method === 'GET') {
+    sendJson(res, 200, listArtilleryCatalog());
     return;
   }
 
