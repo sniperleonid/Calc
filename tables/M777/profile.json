@@ -5,8 +5,8 @@
   "heading_center_deg": 0,
   "min_elevation_mil": -58,
   "max_elevation_mil": 1250,
-  "min_range_m": 3500,
-  "max_range_m": 24500,
+  "min_range_m": 2,
+  "max_range_m": 5500,
   "ammo_types": [
     "M107_155MM_HE"
   ],
