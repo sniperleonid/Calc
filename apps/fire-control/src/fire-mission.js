@@ -355,6 +355,9 @@ function buildAssignments(plan, guns) {
 
       for (const aimPointIndex of phase.aimPointIndices) {
         const point = plan.aimPoints[aimPointIndex];
+        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+          throw new Error('Не заполнены координаты цели');
+        }
         const shifted = clonePoint(offsetPoint(point, right, offsets[gunIndex]), {
           ...point.meta,
           offsetRightM: offsets[gunIndex],
