@@ -2463,7 +2463,12 @@ function refreshMapOverlay() {
     marker.on('mousedown', (event) => startGunHeadingDrag(event, { gunKey, gunX, gunY, batteryId, gunId }));
 
     const gunLabel = `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}${getObserverSuffixForGun(`${batteryId}-${gunId}`)}`;
-    marker.bindPopup(`${gunLabel}<br>X: ${gunX}, Y: ${gunY}<br>Az: ${renderedHeading.toFixed(1)}°<br>${profile?.name ?? ''}`);
+    marker.on('click', () => {
+      const profileName = profile?.name ? `\n${profile.name}` : '';
+      if (mapToolsOutput) {
+        mapToolsOutput.textContent = `${gunLabel}\nX=${gunX}, Y=${gunY}\nAz=${renderedHeading.toFixed(1)}°${profileName}`;
+      }
+    });
     addPersistentLabel(marker, gunLabel);
     gunMarkers.push(marker);
     if (headingLine) gunMarkers.push(headingLine);
@@ -2522,7 +2527,9 @@ function refreshMapOverlay() {
       gunMarkers.push(observerFrame);
     }
     const observerLabel = getObserverDisplayName(observerId);
-    observerMarker.bindPopup(`${observerLabel}<br>X: ${x}, Y: ${y}`);
+    observerMarker.on('click', () => {
+      if (mapToolsOutput) mapToolsOutput.textContent = `${observerLabel}\nX=${x}, Y=${y}`;
+    });
     addPersistentLabel(observerMarker, observerLabel);
     gunMarkers.push(observerMarker);
     legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.observer}"></span>${observerLabel}: X=${x}, Y=${y}</p>`);
@@ -2539,7 +2546,10 @@ function refreshMapOverlay() {
   } else {
     targetMarker.setLatLng(gamePointToLatLng(targetX, targetY));
   }
-  targetMarker.bindPopup(`${t('target')}: X=${targetX}, Y=${targetY}`);
+  targetMarker.off('click');
+  targetMarker.on('click', () => {
+    if (mapToolsOutput) mapToolsOutput.textContent = `${t('target')}\nX=${targetX}, Y=${targetY}`;
+  });
   addPersistentLabel(targetMarker, t('target'));
 
   const tools = getMapToolsSettings();

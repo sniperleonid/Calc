@@ -439,7 +439,23 @@ select,
 }
 
 .map-card {
+  position: relative;
   min-height: 680px;
+}
+
+.map-info-overlay {
+  position: absolute;
+  top: 62px;
+  right: 28px;
+  z-index: 500;
+  width: min(420px, calc(100% - 56px));
+  min-height: 100px;
+  max-height: 45vh;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  background: color-mix(in srgb, var(--panel), transparent 7%);
+  backdrop-filter: blur(2px);
 }
 
 .leaflet-map {
@@ -472,6 +488,13 @@ select,
   .inline-actions,
   .map-layout {
     grid-template-columns: 1fr;
+  }
+
+  .map-info-overlay {
+    position: static;
+    width: 100%;
+    max-height: none;
+    margin-bottom: 12px;
   }
 }
 
