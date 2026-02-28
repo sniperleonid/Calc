@@ -431,6 +431,60 @@ test('observer polar-plot and gun drag azimuth helpers are available', () => {
   assert.equal(Math.round(horizontalVerticalInput.targetAltitude), 200);
   assert.equal(Math.round(horizontalVerticalInput.distance), 306);
 
+  const pduNorthFlat = observers.solvePolarPlotMission({
+    observer: { x: 0, y: 0 },
+    azimuth: 0,
+    horizontalRange: 1000,
+    verticalDelta: 0,
+    observerAltitude: 100,
+  });
+  assert.equal(Math.round(pduNorthFlat.target.x), 0);
+  assert.equal(Math.round(pduNorthFlat.target.y), 1000);
+  assert.equal(Math.round(pduNorthFlat.targetAltitude), 100);
+
+  const pduEastFlat = observers.solvePolarPlotMission({
+    observer: { x: 0, y: 0 },
+    azimuth: 90,
+    horizontalRange: 1000,
+    verticalDelta: 0,
+    observerAltitude: 100,
+  });
+  assert.equal(Math.round(pduEastFlat.target.x), 1000);
+  assert.equal(Math.round(pduEastFlat.target.y), 0);
+  assert.equal(Math.round(pduEastFlat.targetAltitude), 100);
+
+  const pduVerticalUp = observers.solvePolarPlotMission({
+    observer: { x: 0, y: 0 },
+    azimuth: 0,
+    horizontalRange: 1000,
+    verticalDelta: 50,
+    observerAltitude: 100,
+  });
+  assert.equal(Math.round(pduVerticalUp.targetAltitude), 150);
+
+  const pduFromSlantAndInclination = observers.solvePolarPlotMission({
+    observer: { x: 0, y: 0 },
+    azimuth: 0,
+    slantRange: 1000,
+    inclinationDeg: 30,
+    observerAltitude: 100,
+  });
+  assert.equal(Math.round(pduFromSlantAndInclination.horizontalRange), 866);
+  assert.equal(Math.round(pduFromSlantAndInclination.verticalDelta), 500);
+  assert.equal(Math.round(pduFromSlantAndInclination.target.y), 866);
+  assert.equal(Math.round(pduFromSlantAndInclination.targetAltitude), 600);
+
+  const unsignedVerticalByInclination = observers.solvePolarPlotMission({
+    observer: { x: 0, y: 0 },
+    azimuth: 0,
+    horizontalRange: 1000,
+    verticalDelta: 120,
+    observerAltitude: 100,
+    inclinationDeg: -10,
+  });
+  assert.equal(Math.round(unsignedVerticalByInclination.verticalDelta), -120);
+  assert.equal(Math.round(unsignedVerticalByInclination.targetAltitude), -20);
+
   ballistics.upsertManual({ id: 'gun-1', position: { x: 0, y: 0 } });
   const drag = ballistics.rotateGunByDrag({ gunId: 'gun-1', marker: { x: 0, y: 0 }, mousePoint: { x: 100, y: 0 } });
   assert.equal(Math.round(drag.azimuthDeg), 90);
