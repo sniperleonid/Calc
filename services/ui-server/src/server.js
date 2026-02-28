@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, readdirSync, statSync, mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
+import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
@@ -45,6 +46,33 @@ function listLogs() {
       updatedAt: statSync(entry.path).mtime.toISOString(),
     }))
     .sort((a, b) => (a.name > b.name ? 1 : -1));
+}
+
+function getLogsDirectoryPath() {
+  return logsRoot;
+}
+
+function openLogsDirectory() {
+  return new Promise((resolvePromise, reject) => {
+    if (!existsSync(logsRoot)) {
+      mkdirSync(logsRoot, { recursive: true });
+    }
+
+    const platform = process.platform;
+    const command = platform === 'win32'
+      ? { file: 'explorer', args: [logsRoot] }
+      : platform === 'darwin'
+        ? { file: 'open', args: [logsRoot] }
+        : { file: 'xdg-open', args: [logsRoot] };
+
+    execFile(command.file, command.args, (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolvePromise();
+    });
+  });
 }
 
 
@@ -113,7 +141,18 @@ function saveMapImage(req, res) {
 
 const server = createServer((req, res) => {
   if (req.url === '/api/logs') {
-    sendJson(res, 200, { files: listLogs() });
+    sendJson(res, 200, { files: listLogs(), logsDirectory: getLogsDirectoryPath() });
+    return;
+  }
+
+  if (req.url === '/api/logs/open' && req.method === 'POST') {
+    openLogsDirectory()
+      .then(() => {
+        sendJson(res, 200, { ok: true, logsDirectory: getLogsDirectoryPath() });
+      })
+      .catch(() => {
+        sendJson(res, 500, { error: 'Failed to open logs directory.' });
+      });
     return;
   }
 
