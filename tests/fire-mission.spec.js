@@ -143,8 +143,8 @@ test('next calculation completes plan phase by phase', async () => {
 
 test('fdc visibility matrix hides irrelevant fields', () => {
   const fields = getVisibleFields('RECTANGLE', 'OPEN', 'SIMULTANEOUS');
-  assert.equal(fields.has('centerX'), true);
-  assert.equal(fields.has('centerY'), true);
+  assert.equal(fields.has('centerX'), false);
+  assert.equal(fields.has('centerY'), false);
   assert.equal(fields.has('bearingDeg'), true);
   assert.equal(fields.has('lengthM'), true);
   assert.equal(fields.has('widthM'), true);
@@ -156,12 +156,12 @@ test('fdc visibility matrix hides irrelevant fields', () => {
   assert.equal(fields.has('mrsiRounds'), false);
 });
 
-test('fdc required matrix respects point active target switch', () => {
-  const auto = getRequiredFields('POINT', 'CONVERGED', 'SIMULTANEOUS', { useActiveTargetCenter: true });
-  assert.equal(auto.has('pointX'), false);
-  const manual = getRequiredFields('POINT', 'CONVERGED', 'SIMULTANEOUS', { useActiveTargetCenter: false });
-  assert.equal(manual.has('pointX'), true);
-  assert.equal(manual.has('pointY'), true);
+test('fdc required matrix uses active mission target coordinates', () => {
+  const fields = getRequiredFields('POINT', 'CONVERGED', 'SIMULTANEOUS');
+  assert.equal(fields.has('pointX'), false);
+  assert.equal(fields.has('pointY'), false);
+  assert.equal(fields.has('centerX'), false);
+  assert.equal(fields.has('centerY'), false);
 });
 test('wind decomposition returns headwind/crosswind from meteorological direction', () => {
   const out = decomposeWind({ speedMps: 10, directionDeg: 0, model: 'CONSTANT' }, 90);

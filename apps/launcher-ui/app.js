@@ -194,7 +194,6 @@ const fmRadiusInput = document.querySelector('#fm-radius');
 const fmAimPointCountInput = document.querySelector('#fm-aimpoint-count');
 const fmConditionalFields = Array.from(document.querySelectorAll('[data-fm-field]'));
 const fmSections = Array.from(document.querySelectorAll('[data-fm-section]'));
-const fmUseActiveTargetCenterInput = document.querySelector('#fm-use-active-target-center');
 let activeAimPlan = null;
 let adjustmentSession = null;
 const cbMethodSelect = document.querySelector('#cb-method');
@@ -1214,7 +1213,6 @@ function renderMissionSelectors() {
   if (fmTargetTypeSelect) fmTargetTypeSelect.value = missionFdc.targetType;
   if (fmSheafTypeSelect) fmSheafTypeSelect.value = missionFdc.sheafType;
   if (fmControlTypeSelect) fmControlTypeSelect.value = missionFdc.controlType;
-  if (fmUseActiveTargetCenterInput) fmUseActiveTargetCenterInput.checked = missionFdc.useActiveTargetCenter !== false;
   const center = missionFdc.geometry?.center ?? missionFdc.geometry?.point;
   if (center?.x != null) document.querySelector('#fm-center-x').value = center.x;
   if (center?.y != null) document.querySelector('#fm-center-y').value = center.y;
@@ -1449,12 +1447,10 @@ function getObserverCorrections(batteryId, gunIds, batteryHeight) {
 }
 
 function syncFdcSettingsVisibility() {
-  const useActiveTargetCenter = fmUseActiveTargetCenterInput?.checked !== false;
   const schema = getFdcUiSchema({
     targetType: fmTargetTypeSelect?.value,
     sheafType: fmSheafTypeSelect?.value,
     controlType: fmControlTypeSelect?.value,
-    useActiveTargetCenter,
   });
   fmConditionalFields.forEach((row) => {
     const field = row.dataset.fmField;
@@ -1472,10 +1468,6 @@ function syncFdcSettingsVisibility() {
     section.classList.toggle('hidden', !visibleSections.has(key));
   });
 
-  const centerXLabel = document.querySelector('[data-fm-field="centerX"]');
-  const centerYLabel = document.querySelector('[data-fm-field="centerY"]');
-  if (centerXLabel && centerXLabel.firstChild) centerXLabel.firstChild.textContent = fmTargetTypeSelect?.value === 'POINT' ? 'Координата цели X' : 'Центр X';
-  if (centerYLabel && centerYLabel.firstChild) centerYLabel.firstChild.textContent = fmTargetTypeSelect?.value === 'POINT' ? 'Координата цели Y' : 'Центр Y';
 }
 
 
@@ -1599,9 +1591,7 @@ async function saveMission() {
 
 
 function getFireMissionConfigFromUI() {
-  const defaultPoint = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
-  const pointInput = readXYFromInputs(document.querySelector('#fm-point-x'), document.querySelector('#fm-point-y'));
-  const centerInput = readXYFromInputs(document.querySelector('#fm-center-x'), document.querySelector('#fm-center-y'));
+  const activeTargetPoint = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
   const targetHeight = parseHeightValue(document.querySelector('#target-height')?.value);
   const battery = Number(missionBatterySelect.value || 1);
   const selectedGun = missionGunSelect.value;
@@ -1611,15 +1601,13 @@ function getFireMissionConfigFromUI() {
     const value = Number(document.querySelector(selector)?.value);
     return Number.isFinite(value) ? value : fallback;
   };
-  const useActiveTargetCenter = fmUseActiveTargetCenterInput?.checked !== false;
-  const point = pointInput ?? centerInput ?? defaultPoint;
-  const center = centerInput ?? point;
+  const point = activeTargetPoint;
+  const center = activeTargetPoint;
   return {
     missionName: document.querySelector('#mission-name')?.value || 'Mission',
     targetType: fmTargetTypeSelect?.value || 'POINT',
     sheafType: fmSheafTypeSelect?.value || 'CONVERGED',
     controlType: fmControlTypeSelect?.value || 'SIMULTANEOUS',
-    useActiveTargetCenter,
     guns: selectedGun === 'all' ? 'ALL' : gunIds,
     roundsPerGun: 1,
     geometry: {
@@ -3344,10 +3332,6 @@ fmSheafTypeSelect?.addEventListener('change', () => {
   persistLauncherSettings();
 });
 fmControlTypeSelect?.addEventListener('change', () => {
-  syncFdcSettingsVisibility();
-  persistLauncherSettings();
-});
-fmUseActiveTargetCenterInput?.addEventListener('change', () => {
   syncFdcSettingsVisibility();
   persistLauncherSettings();
 });

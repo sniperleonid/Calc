@@ -33,7 +33,6 @@ const FDC_FIELD_LABELS_RU = {
   targetType: 'Тип цели',
   sheafType: 'Схема распределения',
   controlType: 'Режим выполнения',
-  useActiveTargetCenter: 'Брать центр из активной цели',
   centerX: 'Центр X',
   centerY: 'Центр Y',
   pointX: 'Координата цели X',
@@ -224,9 +223,8 @@ export function getFdcUiSchema(missionFdc = {}) {
   const targetType = TARGET_TYPES.includes(missionFdc.targetType) ? missionFdc.targetType : null;
   const sheafType = SHEAF_TYPES.includes(missionFdc.sheafType) ? missionFdc.sheafType : null;
   const controlType = CONTROL_TYPES.includes(missionFdc.controlType) ? missionFdc.controlType : null;
-  const useActiveTargetCenter = missionFdc.useActiveTargetCenter !== false;
-  const visibleFields = getVisibleFields(targetType, sheafType, controlType, { useActiveTargetCenter });
-  const requiredFields = getRequiredFields(targetType, sheafType, controlType, { useActiveTargetCenter });
+  const visibleFields = getVisibleFields(targetType, sheafType, controlType);
+  const requiredFields = getRequiredFields(targetType, sheafType, controlType);
 
   return {
     visibleFields,
@@ -235,25 +233,20 @@ export function getFdcUiSchema(missionFdc = {}) {
       targetType: ['targetType'],
       distribution: ['sheafType', 'sheafWidthM', 'openFactor'],
       execution: ['controlType', 'phaseIntervalSec', 'creepingStepM', 'creepingSteps', 'stepIntervalSec', 'totDesiredImpactSec', 'mrsiRounds', 'mrsiMinSepSec'],
-      geometry: ['centerX', 'centerY', 'bearingDeg', 'lengthM', 'widthM', 'radiusM', 'spacingM', 'aimpointCount', 'useActiveTargetCenter'],
-      point: ['pointX', 'pointY'],
+      geometry: ['bearingDeg', 'lengthM', 'widthM', 'radiusM', 'spacingM', 'aimpointCount'],
+      point: [],
     },
     labels: FDC_FIELD_LABELS_RU,
     placeholders: FDC_FIELD_PLACEHOLDERS_RU,
   };
 }
 
-export function getVisibleFields(targetType, sheafType, controlType, options = {}) {
+export function getVisibleFields(targetType, sheafType, controlType) {
   const visibleFields = new Set(['targetType', 'sheafType', 'controlType']);
-  const useActiveTargetCenter = options.useActiveTargetCenter !== false;
 
-  if (targetType === 'POINT') {
-    visibleFields.add('useActiveTargetCenter');
-    if (!useActiveTargetCenter) ['pointX', 'pointY'].forEach((name) => visibleFields.add(name));
-  }
-  if (targetType === 'LINE') ['centerX', 'centerY', 'bearingDeg', 'lengthM', 'spacingM'].forEach((name) => visibleFields.add(name));
-  if (targetType === 'RECTANGLE') ['centerX', 'centerY', 'bearingDeg', 'lengthM', 'widthM', 'spacingM'].forEach((name) => visibleFields.add(name));
-  if (targetType === 'CIRCLE') ['centerX', 'centerY', 'radiusM', 'aimpointCount'].forEach((name) => visibleFields.add(name));
+  if (targetType === 'LINE') ['bearingDeg', 'lengthM', 'spacingM'].forEach((name) => visibleFields.add(name));
+  if (targetType === 'RECTANGLE') ['bearingDeg', 'lengthM', 'widthM', 'spacingM'].forEach((name) => visibleFields.add(name));
+  if (targetType === 'CIRCLE') ['radiusM', 'aimpointCount'].forEach((name) => visibleFields.add(name));
 
   if (sheafType === 'PARALLEL') visibleFields.add('sheafWidthM');
   if (sheafType === 'OPEN') ['sheafWidthM', 'openFactor'].forEach((name) => visibleFields.add(name));
@@ -265,14 +258,12 @@ export function getVisibleFields(targetType, sheafType, controlType, options = {
   return visibleFields;
 }
 
-export function getRequiredFields(targetType, sheafType, controlType, options = {}) {
+export function getRequiredFields(targetType, sheafType, controlType) {
   const requiredFields = new Set(['targetType', 'sheafType', 'controlType']);
-  const useActiveTargetCenter = options.useActiveTargetCenter !== false;
 
-  if (targetType === 'POINT' && !useActiveTargetCenter) ['pointX', 'pointY'].forEach((name) => requiredFields.add(name));
-  if (targetType === 'LINE') ['centerX', 'centerY', 'bearingDeg', 'lengthM', 'spacingM'].forEach((name) => requiredFields.add(name));
-  if (targetType === 'RECTANGLE') ['centerX', 'centerY', 'bearingDeg', 'lengthM', 'widthM', 'spacingM'].forEach((name) => requiredFields.add(name));
-  if (targetType === 'CIRCLE') ['centerX', 'centerY', 'radiusM', 'aimpointCount'].forEach((name) => requiredFields.add(name));
+  if (targetType === 'LINE') ['bearingDeg', 'lengthM', 'spacingM'].forEach((name) => requiredFields.add(name));
+  if (targetType === 'RECTANGLE') ['bearingDeg', 'lengthM', 'widthM', 'spacingM'].forEach((name) => requiredFields.add(name));
+  if (targetType === 'CIRCLE') ['radiusM', 'aimpointCount'].forEach((name) => requiredFields.add(name));
 
   if (sheafType === 'PARALLEL' || sheafType === 'OPEN') requiredFields.add('sheafWidthM');
   if (controlType === 'CREEPING') ['creepingStepM', 'creepingSteps'].forEach((name) => requiredFields.add(name));
@@ -288,7 +279,6 @@ export function migrateOldMissionToFdc(oldMission = {}) {
     targetType: oldMission.targetType ?? LEGACY_TARGET_MAP[oldMission.fireMode] ?? 'POINT',
     sheafType: oldMission.sheafType ?? LEGACY_SHEAF_MAP[oldMission.fireMode] ?? LEGACY_SHEAF_MAP[oldMission.oldSheaf] ?? 'CONVERGED',
     controlType: oldMission.controlType ?? LEGACY_CONTROL_MAP[oldMission.control] ?? 'SIMULTANEOUS',
-    useActiveTargetCenter: oldMission.useActiveTargetCenter ?? true,
     geometry: {
       point: oldMission.point,
       center: oldMission.center,
@@ -356,9 +346,7 @@ function validateMissionFdc(missionFdc, config) {
   if (missingLabels.length) {
     throw new Error(`Заполните параметры режима: ${missingLabels.join(', ')}`);
   }
-  if (missionFdc.targetType === 'POINT' && !missionFdc.useActiveTargetCenter && !config.point) throw new Error('Заполните параметры режима: Координата цели X, Координата цели Y');
-  if (missionFdc.targetType === 'LINE' && !config.center) throw new Error('Заполните параметры режима: Центр X, Центр Y');
-  if ((missionFdc.targetType === 'RECTANGLE' || missionFdc.targetType === 'CIRCLE') && !config.center) throw new Error('Заполните параметры режима: Центр X, Центр Y');
+  if (!config.point && !config.center) throw new Error('Заполните координаты активной цели: X, Y');
 }
 
 function buildPhases(config, baseAimPoints) {
