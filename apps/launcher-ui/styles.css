@@ -13,7 +13,7 @@ body {
   padding: 16px;
   background: var(--bg);
   color: var(--text);
-  font-size: 18px;
+  font-size: 16px;
 }
 
 body[data-theme='terminal'] {
@@ -161,6 +161,12 @@ h1 {
   background: color-mix(in srgb, var(--panel-soft), transparent 15%);
 }
 
+.card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.25;
+}
+
 .card h2 {
   margin: 0 0 10px;
   text-transform: uppercase;
@@ -252,27 +258,35 @@ select,
 .pair {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  align-items: stretch;
+  gap: 10px;
+  align-items: start;
 }
 
 .field {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 6px;
   align-items: stretch;
 }
 
 .field label {
-  margin: 2px 0 0;
-  font-size: 0.85rem;
-  text-align: center;
+  margin: 0;
+  font-size: 0.78rem;
+  text-align: left;
+  line-height: 1.25;
+  color: color-mix(in srgb, var(--muted), white 15%);
+}
+
+.field > input,
+.field > select {
+  min-height: 46px;
 }
 
 
 .battery-guns-group {
   border: 1px dashed color-mix(in srgb, var(--battery-color, var(--border)), transparent 35%);
   border-radius: 8px;
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 10px;
 }
 
@@ -285,7 +299,7 @@ select,
 .observer-row {
   border: 1px dashed color-mix(in srgb, var(--battery-color, var(--border)), transparent 35%);
   border-radius: 8px;
-  padding: 8px;
+  padding: 12px;
 }
 
 .observer-row > label {
@@ -310,7 +324,7 @@ select,
 .battery-config-row {
   border: 1px dashed color-mix(in srgb, var(--battery-color, var(--border)), transparent 35%);
   border-radius: 8px;
-  padding: 10px;
+  padding: 12px;
 }
 
 .battery-config-row h3 {
