@@ -61,6 +61,53 @@ function normalizeTrajectoryVariant(value) {
   return 'standard';
 }
 
+function targetFromObserverPolar({
+  observer,
+  azimuth,
+  observerAltitude = 0,
+  horizontalDistance,
+  verticalDistance,
+  slantRange,
+  inclinationDeg,
+}) {
+  const azimuthRad = (clampAngle(azimuth) * Math.PI) / 180;
+  let horizontal = horizontalDistance;
+  let vertical = verticalDistance;
+
+  if (!Number.isFinite(horizontal) && Number.isFinite(slantRange) && Number.isFinite(inclinationDeg)) {
+    const inclinationRad = (inclinationDeg * Math.PI) / 180;
+    horizontal = slantRange * Math.cos(inclinationRad);
+    vertical = slantRange * Math.sin(inclinationRad);
+  }
+
+  if (!Number.isFinite(horizontal) || !Number.isFinite(vertical)) {
+    throw new Error('Missing range data for observer polar plot');
+  }
+
+  const deltaX = horizontal * Math.sin(azimuthRad);
+  const deltaY = horizontal * Math.cos(azimuthRad);
+  const deltaZ = vertical;
+
+  return {
+    observer,
+    target: {
+      x: observer.x + deltaX,
+      y: observer.y + deltaY,
+    },
+    azimuth: clampAngle(azimuth),
+    distance: Math.hypot(horizontal, vertical),
+    observerAltitude,
+    targetAltitude: observerAltitude + deltaZ,
+    heightDifference: deltaZ,
+    horizontalRange: horizontal,
+    verticalDelta: deltaZ,
+    deltaX,
+    deltaY,
+    deltaZ,
+    mode: 'polar-plot',
+  };
+}
+
 function buildSectorEnvelope({ gun, charge, bearing }) {
   const minRange = charge.minRange ?? 0;
   const maxRange = charge.maxRange ?? 0;
@@ -844,40 +891,34 @@ class ObserverModule extends UnitModule {
     verticalAngle = 0,
     horizontalRange,
     verticalDelta,
+    slantRange,
+    inclinationDeg,
   }) {
-    const azimuthRad = (clampAngle(azimuth) * Math.PI) / 180;
-    const elevationRad = (verticalAngle * Math.PI) / 180;
-    const hasHorizontalVertical = Number.isFinite(horizontalRange) || Number.isFinite(verticalDelta);
+    const inclination = Number.isFinite(inclinationDeg) ? inclinationDeg : verticalAngle;
 
-    const groundDistance = hasHorizontalVertical
-      ? Math.max(0, Number.isFinite(horizontalRange) ? horizontalRange : 0)
-      : Math.max(0, (Number.isFinite(distance) ? distance : 0) * Math.cos(elevationRad));
+    const hasHorizontal = Number.isFinite(horizontalRange);
+    const hasVertical = Number.isFinite(verticalDelta);
+    const hasSlant = Number.isFinite(slantRange) || Number.isFinite(distance);
 
-    const heightDifference = hasHorizontalVertical
-      ? (Number.isFinite(verticalDelta) ? verticalDelta : 0)
-      : (Number.isFinite(distance) ? distance : 0) * Math.sin(elevationRad);
+    const unsignedVertical = hasVertical && Number.isFinite(inclination) && verticalDelta >= 0;
+    const signedVertical = unsignedVertical
+      ? Math.abs(verticalDelta) * (inclination < 0 ? -1 : 1)
+      : verticalDelta;
 
-    const targetAltitude = observerAltitude + heightDifference;
-    const slantDistance = hasHorizontalVertical
-      ? Math.hypot(groundDistance, heightDifference)
-      : (Number.isFinite(distance) ? distance : 0);
+    const solution = targetFromObserverPolar({
+      observer,
+      azimuth,
+      observerAltitude,
+      horizontalDistance: hasHorizontal ? horizontalRange : undefined,
+      verticalDistance: hasVertical ? signedVertical : undefined,
+      slantRange: hasSlant ? (Number.isFinite(slantRange) ? slantRange : distance) : undefined,
+      inclinationDeg: inclination,
+    });
 
     return {
-      observer,
-      target: {
-        x: observer.x + Math.sin(azimuthRad) * groundDistance,
-        y: observer.y + Math.cos(azimuthRad) * groundDistance,
-      },
-      azimuth: clampAngle(azimuth),
-      distance: slantDistance,
+      ...solution,
       droneAltitude,
-      observerAltitude,
-      targetAltitude,
-      heightDifference,
-      horizontalRange: groundDistance,
-      verticalDelta: heightDifference,
       verticalAngle,
-      mode: 'polar-plot',
     };
   }
 }
