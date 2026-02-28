@@ -8,6 +8,7 @@ const COORD_LIMITS = { min: 0, max: 999999 };
 const HEIGHT_LIMITS = { min: 0, max: 10000 };
 const MAP_IMAGE_UPLOAD_MAX_BYTES = 150 * 1024 * 1024;
 const MAP_IMAGE_UPLOAD_MAX_DIMENSION = 4096;
+const MISSION_TARGET_IDS = ['mission-target-1', 'mission-target-2', 'mission-target-3'];
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -87,7 +88,7 @@ const i18n = {
     correctionAnchorObserver: 'Привязан к наблюдателю', correctionAnchorGun: 'Корректировка от орудия (наблюдатель не привязан)',
     observerTargetingTitle: 'Наведение наблюдателем', observerTargetingHint: 'Если координаты цели неизвестны, задайте дальность, азимут и угол.', applyObserverTargeting: 'Рассчитать цель от наблюдателя',
     correctionApplied: 'Поправка сохранена', correctionResetDone: 'Поправка сброшена', observerTargetingApplied: 'Координаты цели обновлены от наблюдателя', observerTargetingUnavailable: 'Нет координат наблюдателя для наведения',
-    missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', missionProjectileSelectionTitle: 'Выбор снарядов по типам орудий', missionProjectileSelectionHint: 'Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.', targetX: 'Координата цели X', targetY: 'Координата цели Y',
+    missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', missionProjectileSelectionTitle: 'Выбор снарядов по типам орудий', missionProjectileSelectionHint: 'Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.', activeTargetLabel: 'Активная цель', targetX: 'Координата цели X', targetY: 'Координата цели Y',
     fireMode: 'Тип огня', fireModeLinear: 'Линейный сноп', fireModeParallel: 'Параллельный', fireModeConverging: 'Сходящийся', fireModeOpen: 'Открытый', fireModeCircular: 'Круговой',
     counterBatteryTitle: 'Контрбатарейное обнаружение', counterBatteryHint: 'Реальные методы: звукопеленгация, анализ воронок с обратным азимутом, триангуляция по азимутам и гипербола TDOA.', counterBatteryMethod: 'Метод определения', cbMethodSound: 'Звукопеленгация (sound ranging)', cbMethodCrater: 'Анализ воронок и обратный азимут', cbMethodTriangulation: 'Триангуляция по азимутам наблюдателей', cbMethodHyperbola: 'Гипербола по разности времени прихода (TDOA)', cbBearing: 'Азимут на источник (°)', cbEstimatedDistance: 'Оценочная дальность (м)', cbTdoaDelta: 'Разница времени прихода (мс)', cbImpactBearing: 'Обратный азимут от воронки (°)', counterBatteryObservers: 'Данные наблюдателей', counterBatteryObserversHint: 'Чем больше точек наблюдения, тем точнее координаты вражеского орудия.', cbAddPoint: 'Добавить точку', cbClearPoints: 'Очистить точки', cbLocateTarget: 'Найти вражеское орудие', cbCalculateResponse: 'Рассчитать ответный огонь', cbObserverPoint: 'Точка', cbObserver: 'Наблюдатель', cbObservationAzimuth: 'Азимут наблюдения (°)', cbObservationDelay: 'Задержка звука (с)', cbNeedTwoPoints: 'Нужно минимум две валидные точки наблюдения.', cbTargetLocated: 'Цель определена', cbTargetNotFound: 'Не удалось определить координаты цели по выбранному методу.', cbResponseHeader: 'Ответный огонь (доступные орудия в зоне досягаемости)', cbNoReachableGuns: 'Нет доступных орудий в зоне досягаемости.', cbMethodUsed: 'Метод', cbRecommendedGun: 'Рекомендуем:', cbGunFacing: 'направление ', cbNeedsReposition: '(понадобится разворот вне сектора)',
     mapPanelTitle: 'Тактическая карта (Leaflet)', mapLegendTitle: 'Легенда', mapLegendHint: 'Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».',
@@ -125,7 +126,7 @@ const i18n = {
     correctionAnchorObserver: 'Anchored to observer', correctionAnchorGun: 'Correction from gun (observer not linked)',
     observerTargetingTitle: 'Observer targeting', observerTargetingHint: 'If target coordinates are unknown, enter distance, azimuth and slope angle.', applyObserverTargeting: 'Compute target from observer',
     correctionApplied: 'Correction saved', correctionResetDone: 'Correction reset', observerTargetingApplied: 'Target coordinates updated from observer', observerTargetingUnavailable: 'Observer coordinates are unavailable',
-    missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', missionProjectileSelectionTitle: 'Projectile selection by gun type', missionProjectileSelectionHint: 'Pick a projectile separately for each gun type involved in the mission.', targetX: 'Target X coordinate', targetY: 'Target Y coordinate',
+    missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', missionProjectileSelectionTitle: 'Projectile selection by gun type', missionProjectileSelectionHint: 'Pick a projectile separately for each gun type involved in the mission.', activeTargetLabel: 'Active target', targetX: 'Target X coordinate', targetY: 'Target Y coordinate',
     fireMode: 'Fire mode', fireModeLinear: 'Linear sheaf', fireModeParallel: 'Parallel', fireModeConverging: 'Converging', fireModeOpen: 'Open', fireModeCircular: 'Circular',
     counterBatteryTitle: 'Counter-battery detection', counterBatteryHint: 'Real techniques: sound ranging, crater analysis with reverse azimuth, observer azimuth triangulation, and TDOA hyperbola.', counterBatteryMethod: 'Detection method', cbMethodSound: 'Sound ranging', cbMethodCrater: 'Crater analysis + reverse azimuth', cbMethodTriangulation: 'Observer azimuth triangulation', cbMethodHyperbola: 'TDOA hyperbola', cbBearing: 'Bearing to source (°)', cbEstimatedDistance: 'Estimated range (m)', cbTdoaDelta: 'Arrival time difference (ms)', cbImpactBearing: 'Reverse azimuth from crater (°)', counterBatteryObservers: 'Observer data', counterBatteryObserversHint: 'More observation points produce better enemy gun localization.', cbAddPoint: 'Add point', cbClearPoints: 'Clear points', cbLocateTarget: 'Locate enemy gun', cbCalculateResponse: 'Calculate counter-fire', cbObserverPoint: 'Point', cbObserver: 'Observer', cbObservationAzimuth: 'Observation azimuth (°)', cbObservationDelay: 'Sound delay (s)', cbNeedTwoPoints: 'At least two valid observation points are required.', cbTargetLocated: 'Target localized', cbTargetNotFound: 'Unable to compute target coordinates with selected method.', cbResponseHeader: 'Counter-fire (reachable friendly guns)', cbNoReachableGuns: 'No reachable guns in range.', cbMethodUsed: 'Method', cbRecommendedGun: 'Recommended:', cbGunFacing: 'facing ', cbNeedsReposition: '(requires reposition outside traverse)',
     mapPanelTitle: 'Tactical map (Leaflet)', mapLegendTitle: 'Legend', mapLegendHint: 'The map shows guns in selected battery and the current target from Fire Missions tab.',
@@ -163,6 +164,8 @@ const mapUrlInput = document.querySelector('#map-url');
 const missionBatterySelect = document.querySelector('#mission-battery');
 const missionGunSelect = document.querySelector('#mission-gun');
 const missionProjectileSelectors = document.querySelector('#mission-projectile-selectors');
+const activeTargetSelect = document.querySelector('#active-target');
+const missionTargetActiveCheckboxes = MISSION_TARGET_IDS.map((_, index) => document.querySelector(`#target-active-${index + 1}`));
 const fireModeSelect = document.querySelector('#fire-mode');
 const correctionObserverSelect = document.querySelector('#correction-observer');
 const correctionAnchorInfo = document.querySelector('#correction-anchor-info');
@@ -183,6 +186,39 @@ const calibrationLastInfo = document.querySelector('#calibration-last-info');
 const profilesEditor = document.querySelector('#profiles-editor');
 
 const t = (key) => i18n[state.lang][key] ?? key;
+
+function getMissionTargetNameByIndex(index) {
+  return `Ц-${index + 1}`;
+}
+
+function normalizeMissionTargets(mission = {}) {
+  const legacyX = mission.targetX ?? '';
+  const legacyY = mission.targetY ?? '';
+  const source = Array.isArray(mission.targets) ? mission.targets : [];
+  const normalized = MISSION_TARGET_IDS.map((id, index) => {
+    const fromId = source.find((item) => item?.id === id);
+    const fromIndex = source[index];
+    const item = fromId ?? fromIndex ?? {};
+    return {
+      id,
+      name: getMissionTargetNameByIndex(index),
+      active: Boolean(item.active ?? (index === 0)),
+      x: String(item.x ?? (index === 0 ? legacyX : '') ?? ''),
+      y: String(item.y ?? (index === 0 ? legacyY : '') ?? ''),
+    };
+  });
+  if (!normalized.some((item) => item.active)) normalized[0].active = true;
+  return normalized;
+}
+
+function getMissionTargets() {
+  return normalizeMissionTargets(state.settings.mission ?? {});
+}
+
+function getMissionTargetLabel(targetId) {
+  const index = MISSION_TARGET_IDS.indexOf(targetId);
+  return getMissionTargetNameByIndex(index >= 0 ? index : 0);
+}
 
 const gunProfiles = ['mortar-120-standard', 'm777-howitzer', 'd30-standard'];
 function getDefaultArtilleryProfiles() {
@@ -262,7 +298,6 @@ function updateCalibrationSummary() {
 }
 
 let leafletMap;
-let targetMarker;
 let mapImageOverlay;
 const gunMarkers = [];
 const manualMarkers = [];
@@ -272,6 +307,7 @@ let rulerLine;
 let rulerEndpointMarkers = [];
 let firePatternOverlays = [];
 let selectedMapMarker = null;
+let lastMissionTargetId = MISSION_TARGET_IDS[0];
 let manualMarkerDragState = null;
 let gunHeadingDragState = null;
 let pendingGunHeading = null;
@@ -373,6 +409,49 @@ function applyCoordinatePairInput(input) {
   return true;
 }
 
+function getSelectedMissionTargetId() {
+  const mission = state.settings.mission ?? {};
+  const fallback = mission.activeTargetId;
+  const selected = activeTargetSelect?.value || fallback;
+  return MISSION_TARGET_IDS.includes(selected) ? selected : MISSION_TARGET_IDS[0];
+}
+
+function updateMissionTargetInputsFromState() {
+  const selectedTargetId = getSelectedMissionTargetId();
+  const selectedTarget = getMissionTargets().find((item) => item.id === selectedTargetId) ?? getMissionTargets()[0];
+  const targetXInput = document.querySelector('#target-x');
+  const targetYInput = document.querySelector('#target-y');
+  if (targetXInput) targetXInput.value = selectedTarget?.x ?? '';
+  if (targetYInput) targetYInput.value = selectedTarget?.y ?? '';
+}
+
+
+function storeCurrentMissionTargetInputs(targetId = lastMissionTargetId) {
+  if (!MISSION_TARGET_IDS.includes(targetId)) return;
+  const mission = state.settings.mission ?? {};
+  const targetXInput = document.querySelector('#target-x');
+  const targetYInput = document.querySelector('#target-y');
+  const targets = getMissionTargets().map((item) => (item.id === targetId
+    ? { ...item, x: targetXInput?.value ?? '', y: targetYInput?.value ?? '' }
+    : item));
+  state.settings.mission = { ...mission, targets };
+}
+
+function syncMissionTargetControls() {
+  const targets = getMissionTargets();
+  if (activeTargetSelect) {
+    const previousValue = activeTargetSelect.value;
+    activeTargetSelect.innerHTML = targets.map((target) => `<option value="${target.id}">${target.name}</option>`).join('');
+    activeTargetSelect.value = targets.some((item) => item.id === previousValue) ? previousValue : getSelectedMissionTargetId();
+    lastMissionTargetId = activeTargetSelect.value;
+  }
+  missionTargetActiveCheckboxes.forEach((checkbox, index) => {
+    if (!checkbox) return;
+    checkbox.checked = Boolean(targets[index]?.active);
+  });
+  updateMissionTargetInputsFromState();
+}
+
 function applyMarkerCoordinatesToBoundInputs(marker, point) {
   if (!marker || !point) return;
   const xValue = String(Math.round(Number(point.x)));
@@ -395,10 +474,11 @@ function applyMarkerCoordinatesToBoundInputs(marker, point) {
   }
 
   if (marker.type === 'target') {
-    const targetXInput = document.querySelector('#target-x');
-    const targetYInput = document.querySelector('#target-y');
-    if (targetXInput) targetXInput.value = xValue;
-    if (targetYInput) targetYInput.value = yValue;
+    const targetId = marker.targetId || getSelectedMissionTargetId();
+    const mission = state.settings.mission ?? {};
+    const targets = getMissionTargets().map((item) => (item.id === targetId ? { ...item, x: xValue, y: yValue } : item));
+    state.settings.mission = { ...mission, targets, activeTargetId: targetId };
+    syncMissionTargetControls();
   }
 }
 
@@ -428,10 +508,11 @@ function clearMarkerCoordinatesAndAzimuth(marker) {
   }
 
   if (marker.type === 'target') {
-    const targetXInput = document.querySelector('#target-x');
-    const targetYInput = document.querySelector('#target-y');
-    if (targetXInput) targetXInput.value = '';
-    if (targetYInput) targetYInput.value = '';
+    const targetId = marker.targetId || getSelectedMissionTargetId();
+    const mission = state.settings.mission ?? {};
+    const targets = getMissionTargets().map((item) => (item.id === targetId ? { ...item, x: '', y: '' } : item));
+    state.settings.mission = { ...mission, targets };
+    syncMissionTargetControls();
   }
 }
 
@@ -463,7 +544,10 @@ function syncManualMarkersFromBoundInputs(markers) {
       return point ? { ...marker, x: point.x, y: point.y } : marker;
     }
     if (marker.type === 'target') {
-      const point = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
+      const target = getMissionTargets().find((item) => item.id === (marker.targetId || ''));
+      const point = target
+        ? readXYFromInputs({ value: target.x }, { value: target.y })
+        : readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
       return point ? { ...marker, x: point.x, y: point.y } : marker;
     }
     return marker;
@@ -478,7 +562,7 @@ function syncMapMarkersWithAvailableTargets() {
   const source = tools.manualMarkers ?? [];
   const filtered = source.filter((marker) => {
     if (marker.type === 'gun') return validGunTargets.has(marker.targetId);
-    if (marker.type === 'target') return validTargetTargets.has(marker.targetId || 'mission-target');
+    if (marker.type === 'target') return validTargetTargets.has(marker.targetId || getSelectedMissionTargetId());
     if (marker.type === 'observer') return validObserverTargets.has(marker.targetId);
     if (marker.type === 'battery') return false;
     return true;
@@ -583,10 +667,22 @@ function persistLauncherSettings() {
     fireModeSettings[input.dataset.fireSetting] = input.value ?? '';
   });
 
+  const selectedTargetId = getSelectedMissionTargetId();
+  const targetXValue = document.querySelector('#target-x')?.value ?? '';
+  const targetYValue = document.querySelector('#target-y')?.value ?? '';
+  const missionTargets = getMissionTargets().map((target, index) => ({
+    ...target,
+    active: Boolean(missionTargetActiveCheckboxes[index]?.checked),
+    x: target.id === selectedTargetId ? targetXValue : target.x,
+    y: target.id === selectedTargetId ? targetYValue : target.y,
+  }));
+
   state.settings.mission = {
     name: document.querySelector('#mission-name')?.value ?? '',
-    targetX: document.querySelector('#target-x')?.value ?? '',
-    targetY: document.querySelector('#target-y')?.value ?? '',
+    targetX: targetXValue,
+    targetY: targetYValue,
+    targets: missionTargets,
+    activeTargetId: selectedTargetId,
     battery: missionBatterySelect?.value ?? '1',
     gun: missionGunSelect?.value ?? 'all',
     fireMode: fireModeSelect?.value ?? 'linear',
@@ -1064,8 +1160,12 @@ function renderMissionSelectors() {
   renderMissionProjectileSelectors();
 
   document.querySelector('#mission-name').value = state.settings.mission.name ?? '';
-  document.querySelector('#target-x').value = state.settings.mission.targetX ?? '';
-  document.querySelector('#target-y').value = state.settings.mission.targetY ?? '';
+  const missionTargets = getMissionTargets();
+  const selectedTargetId = MISSION_TARGET_IDS.includes(state.settings.mission.activeTargetId)
+    ? state.settings.mission.activeTargetId
+    : missionTargets.find((item) => item.active)?.id ?? MISSION_TARGET_IDS[0];
+  state.settings.mission = { ...(state.settings.mission ?? {}), targets: missionTargets, activeTargetId: selectedTargetId };
+  syncMissionTargetControls();
 
   syncCorrectionObserverOptions();
   const correction = state.settings.mission.correction ?? {};
@@ -1447,7 +1547,7 @@ function initializeMap() {
 
 function getActiveMarkerTargets(type) {
   if (type === 'ruler' || type === 'coords') return [];
-  if (type === 'target') return [{ id: 'mission-target', label: t('target') }];
+  if (type === 'target') return getMissionTargets().filter((target) => target.active).map((target) => ({ id: target.id, label: target.name }));
   if (type === 'observer') {
     const observers = Number(observerCountInput?.value || 1);
     return Array.from({ length: observers }, (_, idx) => {
@@ -1658,7 +1758,7 @@ function setCalibrationMode(isEnabled) {
 function addManualMarker(type, latlng) {
   const imagePoint = latLngToMapPoint(latlng.lat, latlng.lng);
   const point = imagePointToGamePoint(imagePoint.x, imagePoint.y);
-  const targetId = markerToolSelect?.value === 'target' ? 'mission-target' : (markerTargetSelect?.value || '');
+  const targetId = markerToolSelect?.value === 'target' ? (markerTargetSelect?.value || getSelectedMissionTargetId()) : (markerTargetSelect?.value || '');
 
   const tools = getMapToolsSettings();
   const marker = {
@@ -2406,6 +2506,7 @@ function buildMarkerLabel(type, markerId) {
     return `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}${getObserverSuffixForGun(`${batteryId}-${gunId}`)}`;
   }
   if (type === 'observer' && markerId) return getObserverDisplayName(markerId);
+  if (type === 'target' && markerId) return getMissionTargetLabel(markerId);
   return getMarkerTypeName(type);
 }
 
@@ -2503,6 +2604,7 @@ function refreshMapOverlay() {
       weight: 1.5,
       fillColor: impactZoneFill,
       fillOpacity: 0.1,
+      opacity: 0.1,
       dashArray: '8 8',
       interactive: false,
     };
@@ -2648,30 +2750,29 @@ function refreshMapOverlay() {
     legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.observer}"></span>${observerLabel}: X=${x}, Y=${y}</p>`);
   });
 
-  const isTargetSelected = isSelectedMarker('target', 'mission-target');
-  if (!targetMarker) {
-    targetMarker = window.L.circleMarker(gamePointToLatLng(targetX, targetY), {
-      radius: isTargetSelected ? 11 : 9,
-      color: isTargetSelected ? '#ff3b30' : markerStyle.target,
-      fillColor: isTargetSelected ? '#ff3b30' : markerStyle.target,
-      fillOpacity: 0.8,
-      weight: isTargetSelected ? 4 : 3,
-    }).addTo(leafletMap);
-  } else {
-    targetMarker.setLatLng(gamePointToLatLng(targetX, targetY));
-    targetMarker.setRadius(isTargetSelected ? 11 : 9);
-    targetMarker.setStyle({
-      color: isTargetSelected ? '#ff3b30' : markerStyle.target,
-      fillColor: isTargetSelected ? '#ff3b30' : markerStyle.target,
-      weight: isTargetSelected ? 4 : 3,
-    });
-  }
-  targetMarker.off('click');
-  targetMarker.on('click', (event) => {
-    window.L.DomEvent.stop(event);
-    selectMapMarker({ id: 'mission-target', type: 'target', targetId: 'mission-target', x: targetX, y: targetY, azimuth: null, name: t('target') });
+  const missionTargets = getMissionTargets();
+  const activeTargets = missionTargets.filter((target) => target.active);
+  const createTargetIcon = (selected) => window.L.divIcon({
+    className: `target-cross-icon${selected ? ' selected' : ''}`,
+    html: '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22" class="outline"/><line x1="2" y1="12" x2="22" y2="12" class="outline"/><line x1="12" y1="2" x2="12" y2="22" class="main"/><line x1="2" y1="12" x2="22" y2="12" class="main"/></svg>',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
-  addPersistentLabel(targetMarker, t('target'));
+  activeTargets.forEach((target) => {
+    const point = readXYFromInputs({ value: target.x }, { value: target.y });
+    if (!point) return;
+    const isTargetSelected = isSelectedMarker('target', target.id);
+    const marker = window.L.marker(gamePointToLatLng(point.x, point.y), {
+      icon: createTargetIcon(isTargetSelected),
+    }).addTo(leafletMap);
+    marker.on('click', (event) => {
+      window.L.DomEvent.stop(event);
+      selectMapMarker({ id: target.id, type: 'target', targetId: target.id, x: point.x, y: point.y, azimuth: null, name: target.name });
+    });
+    addPersistentLabel(marker, target.name);
+    gunMarkers.push(marker);
+    legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.target}"></span>${target.name}: X=${point.x}, Y=${point.y}</p>`);
+  });
 
   const tools = getMapToolsSettings();
   firePatternOverlays = drawFirePatternOverlay(tools.activeFirePattern, markerStyle);
@@ -2756,7 +2857,7 @@ function refreshMapOverlay() {
       return `<p><span class="legend-dot" style="--dot-color:${color}"></span>${label}: X=${Math.round(Number(item.x))}, Y=${Math.round(Number(item.y))}</p>`;
     });
     const patternRow = tools.activeFirePattern ? `<p><span class="legend-dot" style="--dot-color:${markerStyle.firePattern}"></span>${t('fireMode')}: ${t(`fireMode${tools.activeFirePattern.mode[0].toUpperCase()}${tools.activeFirePattern.mode.slice(1)}`)}</p>` : '';
-    mapLegend.innerHTML = [...legendRows, `<p><span class="legend-dot" style="--dot-color:${markerStyle.target}"></span>${t('target')}: X=${targetX}, Y=${targetY}</p>`, patternRow, ...markerLegendRows].filter(Boolean).join('');
+    mapLegend.innerHTML = [...legendRows, patternRow, ...markerLegendRows].filter(Boolean).join('');
   }
 }
 
@@ -2931,6 +3032,26 @@ missionGunSelect?.addEventListener('change', () => {
   syncMarkerTargetOptions();
   persistLauncherSettings();
   refreshMapOverlay();
+});
+
+activeTargetSelect?.addEventListener('change', () => {
+  const previousTargetId = lastMissionTargetId;
+  storeCurrentMissionTargetInputs(previousTargetId);
+  state.settings.mission = { ...(state.settings.mission ?? {}), activeTargetId: getSelectedMissionTargetId() };
+  lastMissionTargetId = getSelectedMissionTargetId();
+  updateMissionTargetInputsFromState();
+  syncMarkerTargetOptions();
+  persistLauncherSettings();
+  refreshMapOverlay();
+});
+
+missionTargetActiveCheckboxes.forEach((checkbox) => {
+  checkbox?.addEventListener('change', () => {
+    persistLauncherSettings();
+    syncMarkerTargetOptions();
+    syncMapMarkersWithAvailableTargets();
+    refreshMapOverlay();
+  });
 });
 
 correctionObserverSelect?.addEventListener('change', () => {
