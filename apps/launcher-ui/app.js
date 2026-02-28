@@ -886,20 +886,14 @@ function renderGunsGrid() {
       const gunObserverSuffix = getObserverSuffixForGun(key);
       const saved = state.settings.gunCoords[key] ?? {};
       const gunState = getGunSetting(key);
-      const { profile } = getProfileForGun(b, g);
-      const traverseDeg = clamp(Number(profile?.traverseDeg) || 360, 1, 360);
-      const hasLimitedTraverse = traverseDeg < 360;
       const row = document.createElement('div');
       const gunIndexLabel = document.createElement('div');
       gunIndexLabel.className = 'gun-index-label';
       gunIndexLabel.textContent = `${t('batteryShort')}${b}-${t('gunShort')}${g}${gunObserverSuffix}`;
       batteryGroup.append(gunIndexLabel);
-      row.className = `gun-row pair ${hasLimitedTraverse ? 'pair-4' : 'pair-3'}`;
+      row.className = 'gun-row pair pair-3';
       const headingValue = Number.isFinite(gunState.heading) ? normalizeAzimuth(gunState.heading).toFixed(1) : '';
-      const headingField = hasLimitedTraverse
-        ? `<div class="field"><input data-gun-heading="${key}" type="text" inputmode="decimal" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" /><label>${t('gunDirectionAzimuth')}</label></div>`
-        : '';
-      row.innerHTML = `<div class="field"><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><label>${t('x')}</label></div><div class="field"><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><label>${t('y')}</label></div>${headingField}`;
+      row.innerHTML = `<div class="field"><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><label>${t('x')}</label></div><div class="field"><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><label>${t('y')}</label></div><div class="field"><input data-gun-heading="${key}" type="text" inputmode="decimal" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" /><label>${t('gunDirectionAzimuth')}</label></div>`;
       batteryGroup.append(row);
     }
     container.append(batteryGroup);
@@ -1462,7 +1456,7 @@ function getProfileForGun(batteryId, gunId) {
   return {
     profileId: batteryDefault,
     profile: activeProfile,
-    heading: clamp(Number(activeProfile?.traverseDeg) || 360, 1, 360) < 360 && Number.isFinite(gunSetting.heading)
+    heading: Number.isFinite(gunSetting.heading)
       ? normalizeAzimuth(gunSetting.heading)
       : 0,
   };
