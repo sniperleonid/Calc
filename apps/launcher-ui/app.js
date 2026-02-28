@@ -79,8 +79,8 @@ const i18n = {
     openMissionPlanner: 'Открыть вкладку задач', checkServices: 'Проверить сервисы', openMap: 'Открыть карту', mapUrl: 'URL внешней карты (необязательно)',
     sectionConfigTitle: 'Параметры батарей и орудий', batterySectionTitle: 'Батареи', gunsSectionTitle: 'Орудия', observerSectionTitle: 'Наблюдатели',
     batteryCount: 'Количество батарей', batteryHeightHint: 'Высота задаётся отдельно для каждой батареи и применяется ко всем орудиям этой батареи.',
-    batteryHeight: 'Высота батареи (м)', gunsPerBattery: 'Орудий в батарее', batteryName: 'Название батареи', coordinatesTitle: 'Координаты и наблюдатели', gunsHint: 'Для каждого орудия укажите координаты карты.',
-    observerTitle: 'Наблюдатели и привязки', observerCount: 'Количество наблюдателей (до 5)', observerBinding: 'Привязка наблюдателя',
+    batteryHeight: 'Высота (м)', gunsPerBattery: 'Кол-во орудий', batteryName: 'Название', coordinatesTitle: 'Координаты и наблюдатели', gunsHint: 'Для каждого орудия укажите координаты карты.',
+    observerTitle: 'Наблюдатели и привязки', observerCount: 'Количество наблюдателей (до 5)', observerBinding: 'Привязка наблюдателя', observerMode: 'Режим',
     bindToGun: 'К орудию', bindToBattery: 'К батарее', gunnerHint: 'Все расчёты выполняются на основе глобальных настроек.',
     actionsTitle: 'Действия', calculate: 'Рассчитать', showMto: 'Показать MTO', logMission: 'Сохранить миссию',
     correctionTitle: 'Корректировка', correctionObserver: 'Наблюдатель корректировки', saveCorrection: 'Сохранить поправку', resetCorrection: 'Сбросить поправку',
@@ -96,7 +96,7 @@ const i18n = {
     serviceState: 'Состояние сервисов', generalSettings: 'Общие настройки', language: 'Язык', theme: 'Тема', themeTerminal: 'Terminal Green', themeMidnight: 'Midnight Blue',
     ballisticsOk: '✅ Ballistics Core: запущен', ballisticsWarn: '⚠️ Ballistics Core: не отвечает. Проверьте Python и uvicorn.',
     dataCleared: 'Локальные данные очищены', clearBrowserCache: 'Очистить кэш браузера страницы', browserCacheCleared: 'Кэш браузера страницы очищен', battery: 'Батарея', batteryShort: 'Б', gun: 'Орудие', gunShort: 'О', observer: 'Наблюдатель', observerShort: 'Н', x: 'X', y: 'Y',
-    observerHeight: 'Высота наблюдателя (м)', observerName: 'Имя наблюдателя',
+    observerHeight: 'Высота (м)', observerName: 'Имя наблюдателя',
     allGuns: 'Все орудия батареи', gunProfile: 'Профиль орудия', projectileProfile: 'Профиль снаряда', gunDirectionAzimuth: 'Азимут центрального направления (°)',
     calcDone: 'Расчёт выполнен', mtoHeader: 'MTO: расход по выбранным орудиям', missionSaved: 'Миссия сохранена', noMissions: 'Сохранённых миссий нет',
     logsError: 'Не удалось загрузить логи', exportReady: 'Экспорт данных подготовлен', noLogsYet: 'Логи пока не найдены',
@@ -117,8 +117,8 @@ const i18n = {
     openMissionPlanner: 'Open missions tab', checkServices: 'Check services', openMap: 'Open map', mapUrl: 'External map URL (optional)',
     sectionConfigTitle: 'Battery and gun parameters', batterySectionTitle: 'Batteries', gunsSectionTitle: 'Guns', observerSectionTitle: 'Observers',
     batteryCount: 'Battery count', batteryHeightHint: 'Each battery has an independent altitude applied to every gun in that battery.',
-    batteryHeight: 'Battery altitude (m)', gunsPerBattery: 'Guns per battery', batteryName: 'Battery name', coordinatesTitle: 'Coordinates and observers', gunsHint: 'Set map coordinates for each gun.',
-    observerTitle: 'Observers and bindings', observerCount: 'Observers count (up to 5)', observerBinding: 'Observer binding',
+    batteryHeight: 'Height (m)', gunsPerBattery: 'Guns count', batteryName: 'Name', coordinatesTitle: 'Coordinates and observers', gunsHint: 'Set map coordinates for each gun.',
+    observerTitle: 'Observers and bindings', observerCount: 'Observers count (up to 5)', observerBinding: 'Observer binding', observerMode: 'Mode',
     bindToGun: 'To gun', bindToBattery: 'To battery', gunnerHint: 'All calculations use data from global settings.',
     actionsTitle: 'Actions', calculate: 'Calculate', showMto: 'Show MTO', logMission: 'Save mission',
     correctionTitle: 'Correction', correctionObserver: 'Correction observer', saveCorrection: 'Save correction', resetCorrection: 'Reset correction',
@@ -134,7 +134,7 @@ const i18n = {
     serviceState: 'Service status', generalSettings: 'General settings', language: 'Language', theme: 'Theme', themeTerminal: 'Terminal Green', themeMidnight: 'Midnight Blue',
     ballisticsOk: '✅ Ballistics Core: online', ballisticsWarn: '⚠️ Ballistics Core: unavailable. Check Python and uvicorn.',
     dataCleared: 'Local data has been cleared', clearBrowserCache: 'Clear this page browser cache', browserCacheCleared: 'Browser cache for this page has been cleared', battery: 'Battery', batteryShort: 'B', gun: 'Gun', gunShort: 'G', observer: 'Observer', observerShort: 'O', x: 'X', y: 'Y',
-    observerHeight: 'Observer altitude (m)', observerName: 'Observer name',
+    observerHeight: 'Height (m)', observerName: 'Observer name',
     allGuns: 'All guns in battery', gunProfile: 'Gun profile', projectileProfile: 'Projectile profile', gunDirectionAzimuth: 'Central azimuth (°)',
     calcDone: 'Calculation complete', mtoHeader: 'MTO: ammo usage for selected guns', missionSaved: 'Mission saved', noMissions: 'No saved missions',
     logsError: 'Failed to load logs', exportReady: 'Data export ready', noLogsYet: 'No logs found yet',
@@ -854,12 +854,11 @@ function renderGlobalConfig() {
     row.innerHTML = `
       <h3>${getBatteryDisplayName(b)}</h3>
       <div class="pair pair-5">
-        <input type="text" inputmode="numeric" data-height data-battery-height="${b}" placeholder="${t('batteryHeight')}" value="${saved.height ?? 0}" />
-        <input type="number" min="1" max="5" data-battery-guns-count="${b}" placeholder="${t('gunsPerBattery')}" value="${getGunCountForBattery(b)}" />
-        <select data-battery-gun-profile="${b}">${gunProfileOptions}</select>
-        <input data-battery-title="${b}" placeholder="${t('batteryName')}" value="${saved.title ?? `${t('battery')} ${b}`}" />
-      </div>
-      <p class="hint compact">${t('batteryName')} · ${t('batteryHeight')} · ${t('gunsPerBattery')} · ${t('gunProfile')}</p>`;
+        <div class="field"><input data-battery-title="${b}" placeholder="${t('batteryName')}" value="${saved.title ?? `${t('battery')} ${b}`}" /><label>${t('batteryName')}</label></div>
+        <div class="field"><input type="text" inputmode="numeric" data-height data-battery-height="${b}" placeholder="${t('batteryHeight')}" value="${saved.height ?? 0}" /><label>${t('batteryHeight')}</label></div>
+        <div class="field"><input type="number" min="1" max="5" data-battery-guns-count="${b}" placeholder="${t('gunsPerBattery')}" value="${getGunCountForBattery(b)}" /><label>${t('gunsPerBattery')}</label></div>
+        <div class="field"><select data-battery-gun-profile="${b}">${gunProfileOptions}</select><label>${t('gunProfile')}</label></div>
+      </div>`;
     container.append(row);
     row.querySelector(`[data-battery-gun-profile="${b}"]`).value = saved.gunProfile ?? gunProfiles[0];
   }
@@ -889,12 +888,12 @@ function renderGunsGrid() {
       const traverseDeg = clamp(Number(profile?.traverseDeg) || 360, 1, 360);
       const hasLimitedTraverse = traverseDeg < 360;
       const row = document.createElement('div');
-      row.className = 'pair';
+      row.className = `pair ${hasLimitedTraverse ? 'pair-4' : 'pair-3'}`;
       const headingValue = Number.isFinite(gunState.heading) ? normalizeAzimuth(gunState.heading).toFixed(1) : '';
       const headingField = hasLimitedTraverse
-        ? `<input data-gun-heading="${key}" type="text" inputmode="decimal" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" />`
+        ? `<div class="field"><input data-gun-heading="${key}" type="text" inputmode="decimal" placeholder="${t('gunDirectionAzimuth')}" value="${headingValue}" /><label>${t('gunDirectionAzimuth')}</label></div>`
         : '';
-      row.innerHTML = `<label>${t('batteryShort')}${b}-${t('gunShort')}${g}</label><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" />${headingField}`;
+      row.innerHTML = `<div class="field"><input data-gun-x="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${saved.x ?? 1000 + b * 100 + g * 10}" /><label>${t('x')}</label></div><div class="field"><input data-gun-y="${key}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${saved.y ?? 1000 + b * 120 + g * 10}" /><label>${t('y')}</label></div>${headingField}`;
       batteryGroup.append(row);
     }
     container.append(batteryGroup);
@@ -946,7 +945,7 @@ function renderObservers() {
       return `<option value="${id}">${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}</option>`;
     }).join('');
     row.className = 'observer-row';
-    row.innerHTML = `<label data-observer-index="${i}">${getObserverDisplayName(i)}: ${t('observerBinding')}</label><div class="pair"><input data-observer-name="${i}" placeholder="${t('observerName')}" value="${state.settings.observerNames?.[String(i)] ?? ''}" /><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><select data-observer-gun="${i}">${gunOptionMarkup}</select><select data-observer-battery="${i}">${batteryOptions}</select></div><div class="pair"><input data-observer-x="${i}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${savedCoords.x ?? ''}" /><input data-observer-y="${i}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${savedCoords.y ?? ''}" /><input data-observer-height="${i}" type="text" inputmode="numeric" data-height placeholder="${t('observerHeight')}" value="${savedCoords.height ?? 0}" /></div>`;
+    row.innerHTML = `<label data-observer-index="${i}">${getObserverDisplayName(i)}</label><div class="pair pair-4"><div class="field"><input data-observer-name="${i}" placeholder="${t('observerName')}" value="${state.settings.observerNames?.[String(i)] ?? ''}" /><label>${t('observerName')}</label></div><div class="field"><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><label>${t('observerMode')}</label></div><div class="field"><select data-observer-gun="${i}">${gunOptionMarkup}</select><label>${t('bindToGun')}</label></div><div class="field"><select data-observer-battery="${i}">${batteryOptions}</select><label>${t('bindToBattery')}</label></div></div><div class="pair pair-3"><div class="field"><input data-observer-x="${i}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${savedCoords.x ?? ''}" /><label>${t('x')}</label></div><div class="field"><input data-observer-y="${i}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${savedCoords.y ?? ''}" /><label>${t('y')}</label></div><div class="field"><input data-observer-height="${i}" type="text" inputmode="numeric" data-height placeholder="${t('observerHeight')}" value="${savedCoords.height ?? 0}" /><label>${t('observerHeight')}</label></div></div>`;
     container.append(row);
     row.querySelector(`[data-observer-mode="${i}"]`).value = saved.mode ?? 'gun';
     row.querySelector(`[data-observer-gun="${i}"]`).value = saved.gunId ?? gunOptions[0];
@@ -2810,9 +2809,7 @@ themeSelect?.addEventListener('change', (event) => {
 
 function enhanceTabTiles() {
   tabs.forEach((tab) => {
-    const icon = tab.dataset.tabIcon || '•';
-    const text = tab.textContent;
-    tab.innerHTML = `<span class="tab-icon">${icon}</span><span class="tab-label">${text}</span>`;
+    tab.textContent = tab.textContent?.trim() ?? '';
   });
 }
 
