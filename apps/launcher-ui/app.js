@@ -2751,26 +2751,34 @@ function drawFirePatternOverlay(pattern, markerStyle) {
   if (!leafletMap || !pattern?.geometry) return [];
   const overlays = [];
   const color = markerStyle.firePattern;
-  const toLatLng = (point) => gamePointToLatLng(point.x, point.y);
+  const hasPoint = (point) => point && Number.isFinite(point.x) && Number.isFinite(point.y);
+  const toLatLng = (point) => (hasPoint(point) ? gamePointToLatLng(point.x, point.y) : null);
   const geometry = pattern.geometry;
 
   if (geometry.type === 'line') {
-    overlays.push(window.L.polyline([toLatLng(geometry.start), toLatLng(geometry.end)], { color, weight: 3 }).addTo(leafletMap));
+    const start = toLatLng(geometry.start);
+    const end = toLatLng(geometry.end);
+    if (start && end) overlays.push(window.L.polyline([start, end], { color, weight: 3 }).addTo(leafletMap));
   }
   if (geometry.type === 'parallel-lines' || geometry.type === 'converging-lines') {
     (geometry.lines ?? []).forEach((line) => {
-      overlays.push(window.L.polyline([toLatLng(line.start), toLatLng(line.end)], { color, weight: 2, dashArray: '6 6' }).addTo(leafletMap));
+      const start = toLatLng(line?.start);
+      const end = toLatLng(line?.end);
+      if (start && end) overlays.push(window.L.polyline([start, end], { color, weight: 2, dashArray: '6 6' }).addTo(leafletMap));
     });
   }
   if (geometry.type === 'rectangle') {
-    overlays.push(window.L.polygon((geometry.vertices ?? []).map(toLatLng), { color, weight: 2, fillOpacity: 0.08 }).addTo(leafletMap));
+    const vertices = (geometry.vertices ?? []).map(toLatLng).filter(Boolean);
+    if (vertices.length >= 3) overlays.push(window.L.polygon(vertices, { color, weight: 2, fillOpacity: 0.08 }).addTo(leafletMap));
   }
   if (geometry.type === 'ring') {
-    overlays.push(window.L.circle(toLatLng(geometry.center), { color, radius: geometry.radius, weight: 2, fillOpacity: 0.05 }).addTo(leafletMap));
+    const center = toLatLng(geometry.center);
+    if (center) overlays.push(window.L.circle(center, { color, radius: geometry.radius, weight: 2, fillOpacity: 0.05 }).addTo(leafletMap));
   }
   if (geometry.type === 'point-cloud') {
     (geometry.points ?? []).forEach((point) => {
-      overlays.push(window.L.circleMarker(toLatLng(point), { color, radius: 4, weight: 1, fillOpacity: 0.7 }).addTo(leafletMap));
+      const latLng = toLatLng(point);
+      if (latLng) overlays.push(window.L.circleMarker(latLng, { color, radius: 4, weight: 1, fillOpacity: 0.7 }).addTo(leafletMap));
     });
   }
 
