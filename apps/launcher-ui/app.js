@@ -849,6 +849,7 @@ function renderGlobalConfig() {
   for (let b = 1; b <= batteries; b += 1) {
     const row = document.createElement('div');
     row.className = 'battery-config-row';
+    row.style.setProperty('--battery-color', getBatteryColor(b));
     const gunProfileOptions = gunProfiles.map((profile) => `<option value="${profile}">${profile}</option>`).join('');
     const saved = state.settings.batteryConfig[String(b)] ?? {};
     row.innerHTML = `
@@ -922,6 +923,7 @@ function syncObserverBindingVisibility(scope) {
     if (gunSelect) gunSelect.classList.toggle('hidden', !isGunMode);
     if (batterySelect) batterySelect.classList.toggle('hidden', isGunMode);
   });
+  applyObserverRowAccent(root);
 }
 
 function renderObservers() {
@@ -945,13 +947,14 @@ function renderObservers() {
       return `<option value="${id}">${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}</option>`;
     }).join('');
     row.className = 'observer-row';
-    row.innerHTML = `<label data-observer-index="${i}">${getObserverDisplayName(i)}</label><div class="pair pair-4"><div class="field"><input data-observer-name="${i}" placeholder="${t('observerName')}" value="${state.settings.observerNames?.[String(i)] ?? ''}" /><label>${t('observerName')}</label></div><div class="field"><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><label>${t('observerMode')}</label></div><div class="field"><select data-observer-gun="${i}">${gunOptionMarkup}</select><label>${t('bindToGun')}</label></div><div class="field"><select data-observer-battery="${i}">${batteryOptions}</select><label>${t('bindToBattery')}</label></div></div><div class="pair pair-3"><div class="field"><input data-observer-x="${i}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${savedCoords.x ?? ''}" /><label>${t('x')}</label></div><div class="field"><input data-observer-y="${i}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${savedCoords.y ?? ''}" /><label>${t('y')}</label></div><div class="field"><input data-observer-height="${i}" type="text" inputmode="numeric" data-height placeholder="${t('observerHeight')}" value="${savedCoords.height ?? 0}" /><label>${t('observerHeight')}</label></div></div>`;
+    row.innerHTML = `<label data-observer-index="${i}">${getObserverDisplayName(i)}</label><div class="pair pair-4"><div class="field"><input data-observer-name="${i}" placeholder="${t('observerName')}" value="${state.settings.observerNames?.[String(i)] ?? ''}" /><label>${t('observerName')}</label></div><div class="field"><select data-observer-mode="${i}"><option value="gun">${t('bindToGun')}</option><option value="battery">${t('bindToBattery')}</option></select><label>${t('observerMode')}</label></div><div class="field"><select data-observer-gun="${i}" aria-label="${t('bindToGun')}">${gunOptionMarkup}</select></div><div class="field"><select data-observer-battery="${i}" aria-label="${t('bindToBattery')}">${batteryOptions}</select></div></div><div class="pair pair-3"><div class="field"><input data-observer-x="${i}" type="text" inputmode="numeric" data-coordinate placeholder="${t('x')}" value="${savedCoords.x ?? ''}" /><label>${t('x')}</label></div><div class="field"><input data-observer-y="${i}" type="text" inputmode="numeric" data-coordinate placeholder="${t('y')}" value="${savedCoords.y ?? ''}" /><label>${t('y')}</label></div><div class="field"><input data-observer-height="${i}" type="text" inputmode="numeric" data-height placeholder="${t('observerHeight')}" value="${savedCoords.height ?? 0}" /><label>${t('observerHeight')}</label></div></div>`;
     container.append(row);
     row.querySelector(`[data-observer-mode="${i}"]`).value = saved.mode ?? 'gun';
     row.querySelector(`[data-observer-gun="${i}"]`).value = saved.gunId ?? gunOptions[0];
     row.querySelector(`[data-observer-battery="${i}"]`).value = saved.batteryId ?? 'battery-1';
     syncObserverBindingVisibility(row);
   }
+  applyObserverRowAccent(container);
 }
 
 
@@ -2223,7 +2226,42 @@ function refreshLiveNameBindings() {
   });
   document.querySelectorAll('[data-observer-index]').forEach((label) => {
     const observerId = Number(label.dataset.observerIndex || 0);
-    if (observerId > 0) label.textContent = `${getObserverDisplayName(observerId)}: ${t('observerBinding')}`;
+    if (observerId > 0) label.textContent = getObserverDisplayName(observerId);
+  });
+}
+
+function getObserverBindingState(observerId, root = document) {
+  const mode = root.querySelector(`[data-observer-mode="${observerId}"]`)?.value ?? 'gun';
+  const gunLink = root.querySelector(`[data-observer-gun="${observerId}"]`)?.value ?? '';
+  const batteryLink = root.querySelector(`[data-observer-battery="${observerId}"]`)?.value ?? '';
+  return { mode, gunLink, batteryLink };
+}
+
+function getObserverBoundBatteryId(observerId, root = document) {
+  const { mode, gunLink, batteryLink } = getObserverBindingState(observerId, root);
+  if (mode === 'battery') {
+    const parsed = Number(String(batteryLink).replace('battery-', ''));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  if (mode === 'gun') {
+    const [, batteryId] = String(gunLink).split('-');
+    const parsed = Number(batteryId);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function applyObserverRowAccent(root = document) {
+  root.querySelectorAll('.observer-row').forEach((row) => {
+    const modeSelect = row.querySelector('[data-observer-mode]');
+    if (!modeSelect) return;
+    const observerId = modeSelect.dataset.observerMode;
+    const batteryId = getObserverBoundBatteryId(observerId, row);
+    if (!batteryId) {
+      row.style.removeProperty('--battery-color');
+      return;
+    }
+    row.style.setProperty('--battery-color', getBatteryColor(batteryId));
   });
 }
 
@@ -2429,7 +2467,6 @@ function refreshMapOverlay() {
       color: batteryColor,
       fill: false,
       weight: 2,
-      dashArray: '8 6',
     }).addTo(leafletMap);
     const batteryName = getBatteryDisplayName(batteryId);
     addPersistentLabel(batteryBox, batteryName, { direction: 'bottom', offset: [0, 10] });
@@ -2438,13 +2475,24 @@ function refreshMapOverlay() {
   }
 
   getObserverPoints().forEach(({ observerId, x, y }) => {
+    const observerBatteryId = getObserverBoundBatteryId(observerId);
+    const observerAccentColor = observerBatteryId ? getBatteryColor(observerBatteryId) : null;
     const observerMarker = window.L.circleMarker(gamePointToLatLng(x, y), {
       radius: 7,
-      color: markerStyle.observer,
+      color: observerAccentColor || markerStyle.observer,
       fillColor: markerStyle.observer,
       fillOpacity: 0.85,
       weight: 2,
     }).addTo(leafletMap);
+    if (observerAccentColor) {
+      const observerFrame = window.L.circleMarker(gamePointToLatLng(x, y), {
+        radius: 11,
+        color: observerAccentColor,
+        fill: false,
+        weight: 2,
+      }).addTo(leafletMap);
+      gunMarkers.push(observerFrame);
+    }
     const observerLabel = getObserverDisplayName(observerId);
     observerMarker.bindPopup(`${observerLabel}<br>X: ${x}, Y: ${y}`);
     addPersistentLabel(observerMarker, observerLabel);
