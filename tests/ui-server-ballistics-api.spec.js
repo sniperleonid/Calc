@@ -60,6 +60,8 @@ test('ui-server exposes /api/ballistics/weapon with milSystem and table endpoint
     assert.equal(response.ok, true);
     const weapon = await response.json();
     assert.equal(weapon.milSystem?.milsPerCircle, 6000);
+    assert.equal(Number.isFinite(weapon.minElevMil), true);
+    assert.equal(Number.isFinite(weapon.maxElevMil), true);
     assert.match(weapon.tables.low, /^\/api\/ballistics\/table\?path=/);
   } finally {
     if (existsSync(lowTablePath)) unlinkSync(lowTablePath);

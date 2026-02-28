@@ -195,3 +195,47 @@ test('tabular solve matches ballistic-data examples', async () => {
 
   global.fetch = oldFetch;
 });
+
+
+test('solveFiringSolution returns null when table elevation is below minElevMil', async () => {
+  const oldFetch = global.fetch;
+  global.fetch = async (url) => {
+    const u = String(url);
+    if (u.startsWith('/api/ballistics/weapon')) {
+      return Response.json({
+        weaponId: 'TEST/LIMITS',
+        minElevMil: 800,
+        maxElevMil: 1510,
+        tables: { low: '/api/ballistics/file?path=TEST/LIMITS/ballistic_low.npz' },
+        primaryTable: {
+          format: 'legacy-npz',
+          charges: ['1'],
+          elevMil: [400],
+          byCharge: { '1': { range: [1200], elevationMil: [400], tof: [10] } },
+          meta: { dragCoeff: 0.002, massKg: 20 },
+        },
+      });
+    }
+    if (u.startsWith('/api/ballistics/table')) {
+      return Response.json({
+        format: 'legacy-npz',
+        charges: ['1'],
+        elevMil: [400],
+        byCharge: { '1': { range: [1200], elevationMil: [400], tof: [10] } },
+        meta: { dragCoeff: 0.002, massKg: 20 },
+      });
+    }
+    throw new Error(`Unexpected url ${u}`);
+  };
+
+  const solution = await solveFiringSolution({
+    weaponId: 'TEST/LIMITS',
+    gunPos: { x: 0, y: 0, z: 0 },
+    targetPos: { x: 1200, y: 0, z: 0 },
+    arc: 'LOW',
+    wind: { speedMps: 0, fromDeg: 0 },
+  });
+  assert.equal(solution, null);
+
+  global.fetch = oldFetch;
+});

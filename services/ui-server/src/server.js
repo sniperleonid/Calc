@@ -289,6 +289,7 @@ async function buildWeaponFromCatalog(weaponId) {
   return {
     weaponId: `${gunId}/${projectileId}`,
     displayName: `${gunProfile.name ?? gunId} ${projectileId}`,
+    minElevMil: Number(gunProfile.min_elevation_mil ?? 0),
     maxElevMil: Number(gunProfile.max_elevation_mil ?? 1550),
     tables: tableUrls,
     milSystem: {

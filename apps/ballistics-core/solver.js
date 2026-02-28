@@ -151,6 +151,8 @@ function solveFromTable({ table, arcType, weapon, bearingRad, range2D, dz, cross
   const deltaAzimuthDeg = computeRk4AzimuthCorrectionDeg(driftMeters, range2D);
 
   const correctedElevationMil = baseElevationMil + headwindElevMil;
+  const elevationLimits = getElevationLimits(weapon);
+  if (!isElevationWithinLimits(correctedElevationMil, elevationLimits)) return null;
 
   return {
     chargeId: selected.chargeId,
@@ -168,6 +170,21 @@ function solveFromTable({ table, arcType, weapon, bearingRad, range2D, dz, cross
     elevationDeg: radToDeg(milToRad(correctedElevationMil, weapon.milSystem?.milsPerCircle ?? 6400)),
     solverMode: 'table',
   };
+}
+
+function getElevationLimits(weapon) {
+  const minElevMil = Number(weapon?.minElevMil);
+  const maxElevMil = Number(weapon?.maxElevMil);
+  return {
+    minElevMil: Number.isFinite(minElevMil) ? minElevMil : 0,
+    maxElevMil: Number.isFinite(maxElevMil) ? maxElevMil : 1550,
+  };
+}
+
+function isElevationWithinLimits(elevMil, limits) {
+  return Number.isFinite(elevMil)
+    && elevMil >= limits.minElevMil
+    && elevMil <= limits.maxElevMil;
 }
 
 function computeRk4AzimuthCorrectionDeg(missZ, distance) {
@@ -260,6 +277,8 @@ export async function solveFiringSolution(input) {
         ttl: req.ttl,
         milsPerCircle,
       });
+      const elevationLimits = getElevationLimits(weapon);
+      if (!isElevationWithinLimits(refined.elevMil, elevationLimits)) continue;
       if (!best || refined.miss.distance < best.miss.distance) {
         const deltaAzimuthDeg = computeRk4AzimuthCorrectionDeg(refined.miss.z, range2D);
         best = {
