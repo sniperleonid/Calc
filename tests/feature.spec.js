@@ -380,7 +380,6 @@ test('observer polar-plot and gun drag azimuth helpers are available', () => {
     observer: { x: 500, y: 500 },
     azimuth: 90,
     distance: 1000,
-    droneAltitude: 300,
     observerAltitude: 140,
     verticalAngle: 12,
   });
@@ -388,6 +387,7 @@ test('observer polar-plot and gun drag azimuth helpers are available', () => {
   assert.equal(polar.mode, 'polar-plot');
   assert.equal(Math.round(polar.targetAltitude), 348);
   assert.equal(Math.round(polar.heightDifference), 208);
+  assert.equal(Math.round(polar.horizontalRange), 978);
 
   const descendingPolar = observers.solvePolarPlotMission({
     observer: { x: 500, y: 500 },
@@ -396,8 +396,40 @@ test('observer polar-plot and gun drag azimuth helpers are available', () => {
     observerAltitude: 140,
     verticalAngle: -20,
   });
-  assert.equal(Math.round(descendingPolar.targetAltitude), 0);
+  assert.equal(Math.round(descendingPolar.targetAltitude), -202);
   assert.equal(Math.round(descendingPolar.heightDifference), -342);
+
+  const northFlat = observers.solvePolarPlotMission({
+    observer: { x: 500, y: 500 },
+    azimuth: 0,
+    distance: 1000,
+    observerAltitude: 140,
+    verticalAngle: 0,
+  });
+  assert.equal(Math.round(northFlat.target.x), 500);
+  assert.equal(Math.round(northFlat.target.y), 1500);
+  assert.equal(Math.round(northFlat.targetAltitude), 140);
+
+  const eastFlat = observers.solvePolarPlotMission({
+    observer: { x: 500, y: 500 },
+    azimuth: 90,
+    distance: 1000,
+    observerAltitude: 140,
+    verticalAngle: 0,
+  });
+  assert.equal(Math.round(eastFlat.target.x), 1500);
+  assert.equal(Math.round(eastFlat.target.y), 500);
+
+  const horizontalVerticalInput = observers.solvePolarPlotMission({
+    observer: { x: 500, y: 500 },
+    azimuth: 0,
+    horizontalRange: 300,
+    verticalDelta: 60,
+    observerAltitude: 140,
+  });
+  assert.equal(Math.round(horizontalVerticalInput.target.y), 800);
+  assert.equal(Math.round(horizontalVerticalInput.targetAltitude), 200);
+  assert.equal(Math.round(horizontalVerticalInput.distance), 306);
 
   ballistics.upsertManual({ id: 'gun-1', position: { x: 0, y: 0 } });
   const drag = ballistics.rotateGunByDrag({ gunId: 'gun-1', marker: { x: 0, y: 0 }, mousePoint: { x: 100, y: 0 } });
