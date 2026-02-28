@@ -1,0 +1,46 @@
+{
+  "weapon": {
+    "weaponId": "TEST/BALLISTIC-DATA",
+    "maxElevMil": 1500,
+    "milSystem": { "milsPerCircle": 6400 },
+    "tables": {
+      "low": "/api/ballistics/file?path=TEST/BALLISTIC-DATA/ballistic_low.npz"
+    },
+    "charges": [
+      { "id": "1", "muzzleVel": 280 },
+      { "id": "2", "muzzleVel": 340 }
+    ]
+  },
+  "table": {
+    "format": "legacy-npz",
+    "charges": ["1", "2"],
+    "byCharge": {
+      "1": {
+        "rangeTable": [
+          { "range": 1000, "elevation": 1200, "tof": 12, "dElev": 20, "tofPer100m": 0.1 },
+          { "range": 2000, "elevation": 1000, "tof": 20, "dElev": 24, "tofPer100m": 0.15 },
+          { "range": 3000, "elevation": 800, "tof": 30, "dElev": 28, "tofPer100m": 0.2 }
+        ]
+      },
+      "2": {
+        "rangeTable": [
+          { "range": 2500, "elevation": 900, "tof": 14, "dElev": 12, "tofPer100m": 0.08 },
+          { "range": 4000, "elevation": 700, "tof": 24, "dElev": 18, "tofPer100m": 0.12 },
+          { "range": 5000, "elevation": 620, "tof": 30, "dElev": 21, "tofPer100m": 0.16 }
+        ]
+      }
+    }
+  },
+  "examples": [
+    {
+      "distance": 1500,
+      "heightDiff": 200,
+      "expected": { "chargeId": "1", "elevMil": 1056, "tofSec": 16.25 }
+    },
+    {
+      "distance": 1500,
+      "heightDiff": -200,
+      "expected": { "chargeId": "1", "elevMil": 1126.4, "tofSec": 15.75 }
+    }
+  ]
+}
