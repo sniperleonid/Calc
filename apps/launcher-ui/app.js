@@ -8,7 +8,7 @@ const COORD_LIMITS = { min: 0, max: 999999 };
 const HEIGHT_LIMITS = { min: 0, max: 10000 };
 const MAP_IMAGE_UPLOAD_MAX_BYTES = 150 * 1024 * 1024;
 const MAP_IMAGE_UPLOAD_MAX_DIMENSION = 4096;
-const MISSION_TARGET_IDS = ['mission-target-1', 'mission-target-2', 'mission-target-3'];
+const MISSION_TARGET_IDS = ['mission-target-1', 'mission-target-2', 'mission-target-3', 'mission-target-4', 'mission-target-5'];
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -165,7 +165,6 @@ const missionBatterySelect = document.querySelector('#mission-battery');
 const missionGunSelect = document.querySelector('#mission-gun');
 const missionProjectileSelectors = document.querySelector('#mission-projectile-selectors');
 const activeTargetSelect = document.querySelector('#active-target');
-const missionTargetActiveCheckboxes = MISSION_TARGET_IDS.map((_, index) => document.querySelector(`#target-active-${index + 1}`));
 const fireModeSelect = document.querySelector('#fire-mode');
 const correctionObserverSelect = document.querySelector('#correction-observer');
 const correctionAnchorInfo = document.querySelector('#correction-anchor-info');
@@ -202,12 +201,11 @@ function normalizeMissionTargets(mission = {}) {
     return {
       id,
       name: getMissionTargetNameByIndex(index),
-      active: Boolean(item.active ?? (index === 0)),
+      active: true,
       x: String(item.x ?? (index === 0 ? legacyX : '') ?? ''),
       y: String(item.y ?? (index === 0 ? legacyY : '') ?? ''),
     };
   });
-  if (!normalized.some((item) => item.active)) normalized[0].active = true;
   return normalized;
 }
 
@@ -445,10 +443,6 @@ function syncMissionTargetControls() {
     activeTargetSelect.value = targets.some((item) => item.id === previousValue) ? previousValue : getSelectedMissionTargetId();
     lastMissionTargetId = activeTargetSelect.value;
   }
-  missionTargetActiveCheckboxes.forEach((checkbox, index) => {
-    if (!checkbox) return;
-    checkbox.checked = Boolean(targets[index]?.active);
-  });
   updateMissionTargetInputsFromState();
 }
 
@@ -670,9 +664,9 @@ function persistLauncherSettings() {
   const selectedTargetId = getSelectedMissionTargetId();
   const targetXValue = document.querySelector('#target-x')?.value ?? '';
   const targetYValue = document.querySelector('#target-y')?.value ?? '';
-  const missionTargets = getMissionTargets().map((target, index) => ({
+  const missionTargets = getMissionTargets().map((target) => ({
     ...target,
-    active: Boolean(missionTargetActiveCheckboxes[index]?.checked),
+    active: true,
     x: target.id === selectedTargetId ? targetXValue : target.x,
     y: target.id === selectedTargetId ? targetYValue : target.y,
   }));
@@ -877,13 +871,27 @@ function locateEnemyGun() {
     method,
     target: estimated,
   };
+  const selectedTargetId = getSelectedMissionTargetId();
+  const missionTargets = getMissionTargets().map((target) => (target.id === selectedTargetId
+    ? { ...target, x: String(Math.round(estimated.x)), y: String(Math.round(estimated.y)), active: true }
+    : target));
+  state.settings.mission = {
+    ...(state.settings.mission ?? {}),
+    targets: missionTargets,
+    activeTargetId: selectedTargetId,
+  };
+  updateMissionTargetInputsFromState();
   persistLauncherSettings();
   cbOutput.textContent = `${t('cbTargetLocated')}: X=${estimated.x.toFixed(1)} Y=${estimated.y.toFixed(1)}\n${t('cbMethodUsed')}: ${t(method === 'sound-ranging' ? 'cbMethodSound' : method === 'crater-analysis' ? 'cbMethodCrater' : method === 'hyperbola-tdoa' ? 'cbMethodHyperbola' : 'cbMethodTriangulation')}`;
   return estimated;
 }
 
 function calculateCounterBatteryResponse() {
-  const target = state.settings.counterBattery?.target ?? locateEnemyGun();
+  storeCurrentMissionTargetInputs(getSelectedMissionTargetId());
+  const activeTarget = getMissionTargets().find((target) => target.id === getSelectedMissionTargetId());
+  const target = readXYFromInputs({ value: activeTarget?.x ?? '' }, { value: activeTarget?.y ?? '' })
+    ?? state.settings.counterBattery?.target
+    ?? locateEnemyGun();
   if (!target) return;
   const rows = [];
   getAllGunPoints().forEach((gun) => {
@@ -1163,7 +1171,7 @@ function renderMissionSelectors() {
   const missionTargets = getMissionTargets();
   const selectedTargetId = MISSION_TARGET_IDS.includes(state.settings.mission.activeTargetId)
     ? state.settings.mission.activeTargetId
-    : missionTargets.find((item) => item.active)?.id ?? MISSION_TARGET_IDS[0];
+    : MISSION_TARGET_IDS[0];
   state.settings.mission = { ...(state.settings.mission ?? {}), targets: missionTargets, activeTargetId: selectedTargetId };
   syncMissionTargetControls();
 
@@ -1305,6 +1313,7 @@ function applyObserverTargeting() {
   const targetYInput = document.querySelector('#target-y');
   if (targetXInput) targetXInput.value = String(Math.round(targetX));
   if (targetYInput) targetYInput.value = String(Math.round(targetY));
+  storeCurrentMissionTargetInputs(getSelectedMissionTargetId());
   persistLauncherSettings();
   refreshMapOverlay();
   fireOutput.textContent = t('observerTargetingApplied');
@@ -1547,7 +1556,7 @@ function initializeMap() {
 
 function getActiveMarkerTargets(type) {
   if (type === 'ruler' || type === 'coords') return [];
-  if (type === 'target') return getMissionTargets().filter((target) => target.active).map((target) => ({ id: target.id, label: target.name }));
+  if (type === 'target') return getMissionTargets().map((target) => ({ id: target.id, label: target.name }));
   if (type === 'observer') {
     const observers = Number(observerCountInput?.value || 1);
     return Array.from({ length: observers }, (_, idx) => {
@@ -2603,7 +2612,7 @@ function refreshMapOverlay() {
       color: impactZoneStroke,
       weight: 1.5,
       fillColor: impactZoneFill,
-      fillOpacity: 0.1,
+      fillOpacity: 0.05,
       opacity: 0.1,
       dashArray: '8 8',
       interactive: false,
@@ -2751,7 +2760,7 @@ function refreshMapOverlay() {
   });
 
   const missionTargets = getMissionTargets();
-  const activeTargets = missionTargets.filter((target) => target.active);
+  const activeTargets = missionTargets;
   const createTargetIcon = (selected) => window.L.divIcon({
     className: `target-cross-icon${selected ? ' selected' : ''}`,
     html: '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22" class="outline"/><line x1="2" y1="12" x2="22" y2="12" class="outline"/><line x1="12" y1="2" x2="12" y2="22" class="main"/><line x1="2" y1="12" x2="22" y2="12" class="main"/></svg>',
@@ -3043,15 +3052,6 @@ activeTargetSelect?.addEventListener('change', () => {
   syncMarkerTargetOptions();
   persistLauncherSettings();
   refreshMapOverlay();
-});
-
-missionTargetActiveCheckboxes.forEach((checkbox) => {
-  checkbox?.addEventListener('change', () => {
-    persistLauncherSettings();
-    syncMarkerTargetOptions();
-    syncMapMarkersWithAvailableTargets();
-    refreshMapOverlay();
-  });
 });
 
 correctionObserverSelect?.addEventListener('change', () => {
