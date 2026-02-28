@@ -6,7 +6,7 @@ import {
   getNextFirePackage,
   getCurrentPhase,
   getPhaseAssignments,
-} from '../apps/launcher-ui/fire-mission.js';
+} from '../apps/fire-control/src/fire-mission.js';
 
 const guns = [
   { id: '1', pos: { x: 0, y: 0, z: 0 } },

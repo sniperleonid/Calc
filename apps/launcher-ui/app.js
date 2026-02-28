@@ -1,7 +1,7 @@
 import { createCounterBatteryModule } from '/apps/counter-battery/module.js';
 import { computeFireSolution, computeFireSolutionsMulti } from '/apps/ballistics-core/index.js';
 import { FIRE_MODE_IDS, buildFireModeConfig, generateAimPoints, pickAimPointForGun } from './fire-modes.js';
-import { buildAimPlan, getNextFirePackage, advancePlanCursor, isPlanComplete } from './fire-mission.js';
+import { buildAimPlan, getNextFirePackage, advancePlanCursor, isPlanComplete } from '/apps/fire-control/src/fire-mission.js';
 
 const SETTINGS_KEY = 'calc.launcherSettings';
 const LIMITS = {
