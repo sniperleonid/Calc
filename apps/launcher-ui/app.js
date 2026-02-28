@@ -2988,6 +2988,12 @@ function deleteSelectedMapMarker() {
     };
   } else {
     clearMarkerCoordinatesAndAzimuth({ type: selectedMapMarker.type, targetId: selectedMapMarker.id });
+    if (selectedMapMarker.type === 'target') {
+      state.settings.mapTools = {
+        ...tools,
+        activeFirePattern: null,
+      };
+    }
   }
   selectedMapMarker = null;
   persistLauncherSettings();
