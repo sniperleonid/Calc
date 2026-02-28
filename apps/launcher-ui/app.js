@@ -230,6 +230,7 @@ let rulerLine;
 let rulerEndpointMarkers = [];
 let firePatternOverlays = [];
 let selectedManualMarkerId = null;
+let manualMarkerDragState = null;
 let rightMousePanState = null;
 let lastOverlayBoundsKey = '';
 let lastCtrlPressAt = 0;
@@ -336,6 +337,72 @@ function clearBoundMarkerCoordinates(marker) {
   }
 }
 
+function applyMarkerCoordinatesToBoundInputs(marker, point) {
+  if (!marker || !point) return;
+  const xValue = Number(point.x).toFixed(2);
+  const yValue = Number(point.y).toFixed(2);
+
+  if (marker.type === 'gun' && marker.targetId) {
+    const gunXInput = document.querySelector(`[data-gun-x="${marker.targetId}"]`);
+    const gunYInput = document.querySelector(`[data-gun-y="${marker.targetId}"]`);
+    if (gunXInput) gunXInput.value = xValue;
+    if (gunYInput) gunYInput.value = yValue;
+    return;
+  }
+
+  if (marker.type === 'observer' && marker.targetId) {
+    const observerXInput = document.querySelector(`[data-observer-x="${marker.targetId}"]`);
+    const observerYInput = document.querySelector(`[data-observer-y="${marker.targetId}"]`);
+    if (observerXInput) observerXInput.value = xValue;
+    if (observerYInput) observerYInput.value = yValue;
+    return;
+  }
+
+  if (marker.type === 'battery' && marker.targetId) {
+    const batteryGunCount = getGunCountForBattery(marker.targetId);
+    for (let gunId = 1; gunId <= batteryGunCount; gunId += 1) {
+      const gunXInput = document.querySelector(`[data-gun-x="${marker.targetId}-${gunId}"]`);
+      const gunYInput = document.querySelector(`[data-gun-y="${marker.targetId}-${gunId}"]`);
+      if (gunXInput) gunXInput.value = xValue;
+      if (gunYInput) gunYInput.value = yValue;
+    }
+  }
+}
+
+function syncManualMarkersFromBoundInputs(markers) {
+  return (markers ?? []).map((marker) => {
+    if (marker.type === 'gun' && marker.targetId) {
+      const point = readXYFromInputs(
+        document.querySelector(`[data-gun-x="${marker.targetId}"]`),
+        document.querySelector(`[data-gun-y="${marker.targetId}"]`),
+      );
+      return point ? { ...marker, x: point.x, y: point.y } : marker;
+    }
+    if (marker.type === 'observer' && marker.targetId) {
+      const point = readXYFromInputs(
+        document.querySelector(`[data-observer-x="${marker.targetId}"]`),
+        document.querySelector(`[data-observer-y="${marker.targetId}"]`),
+      );
+      return point ? { ...marker, x: point.x, y: point.y } : marker;
+    }
+    if (marker.type === 'battery' && marker.targetId) {
+      const batteryGunCount = getGunCountForBattery(marker.targetId);
+      const batteryPoints = [];
+      for (let gunId = 1; gunId <= batteryGunCount; gunId += 1) {
+        const point = readXYFromInputs(
+          document.querySelector(`[data-gun-x="${marker.targetId}-${gunId}"]`),
+          document.querySelector(`[data-gun-y="${marker.targetId}-${gunId}"]`),
+        );
+        if (point) batteryPoints.push(point);
+      }
+      if (!batteryPoints.length) return marker;
+      const center = batteryPoints.reduce((acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }), { x: 0, y: 0 });
+      return { ...marker, x: center.x / batteryPoints.length, y: center.y / batteryPoints.length };
+    }
+    return marker;
+  });
+}
+
 function syncMapMarkersWithAvailableTargets() {
   const tools = getMapToolsSettings();
   const validGunTargets = new Set(getActiveMarkerTargets('gun').map((entry) => entry.id));
@@ -438,8 +505,10 @@ function persistLauncherSettings() {
     state.settings.observerNames[observerId] = input.value ?? '';
   });
 
+  const mapToolsSettings = getMapToolsSettings();
   state.settings.mapTools = {
-    ...getMapToolsSettings(),
+    ...mapToolsSettings,
+    manualMarkers: syncManualMarkersFromBoundInputs(mapToolsSettings.manualMarkers),
   };
 
   const fireModeSettings = {};
@@ -1235,6 +1304,9 @@ function initializeMap() {
     window.L.DomEvent.stop(event);
     onMapDoubleClick(event);
   });
+  leafletMap.on('click', onMapClick);
+  leafletMap.on('mousemove', handleManualMarkerDrag);
+  leafletMap.on('mouseup', finishManualMarkerDrag);
 
   const container = leafletMap.getContainer();
   container.addEventListener('contextmenu', (event) => event.preventDefault());
@@ -1251,6 +1323,7 @@ function initializeMap() {
   });
   window.addEventListener('mouseup', () => {
     rightMousePanState = null;
+    manualMarkerDragState = null;
   });
 
   setTimeout(() => leafletMap.invalidateSize(), 0);
@@ -1421,29 +1494,7 @@ function addManualMarker(type, latlng) {
   const point = imagePointToGamePoint(imagePoint.x, imagePoint.y);
   const targetId = markerTargetSelect?.value || '';
 
-  if (type === 'gun' && targetId) {
-    const gunXInput = document.querySelector(`[data-gun-x="${targetId}"]`);
-    const gunYInput = document.querySelector(`[data-gun-y="${targetId}"]`);
-    if (gunXInput) gunXInput.value = point.x.toFixed(2);
-    if (gunYInput) gunYInput.value = point.y.toFixed(2);
-  }
-
-  if (type === 'observer' && targetId) {
-    const observerXInput = document.querySelector(`[data-observer-x="${targetId}"]`);
-    const observerYInput = document.querySelector(`[data-observer-y="${targetId}"]`);
-    if (observerXInput) observerXInput.value = point.x.toFixed(2);
-    if (observerYInput) observerYInput.value = point.y.toFixed(2);
-  }
-
-  if (type === 'battery' && targetId) {
-    const batteryGunCount = getGunCountForBattery(targetId);
-    for (let gunId = 1; gunId <= batteryGunCount; gunId += 1) {
-      const gunXInput = document.querySelector(`[data-gun-x="${targetId}-${gunId}"]`);
-      const gunYInput = document.querySelector(`[data-gun-y="${targetId}-${gunId}"]`);
-      if (gunXInput) gunXInput.value = point.x.toFixed(2);
-      if (gunYInput) gunYInput.value = point.y.toFixed(2);
-    }
-  }
+  applyMarkerCoordinatesToBoundInputs({ type, targetId }, point);
 
   const tools = getMapToolsSettings();
   const marker = {
@@ -1459,6 +1510,74 @@ function addManualMarker(type, latlng) {
   persistLauncherSettings();
   refreshMapOverlay();
   if (mapToolsOutput) mapToolsOutput.textContent = `${t('markerPlaced')}: ${type} (${marker.x.toFixed(1)}, ${marker.y.toFixed(1)})`;
+}
+
+function startManualMarkerDrag(markerId, markerLayer) {
+  if (!markerId || !markerLayer) return;
+  manualMarkerDragState = { markerId, markerLayer };
+}
+
+function handleManualMarkerDrag(event) {
+  if (!manualMarkerDragState?.markerLayer || !event?.latlng) return;
+  manualMarkerDragState.markerLayer.setLatLng(event.latlng);
+}
+
+function finishManualMarkerDrag(event) {
+  if (!manualMarkerDragState?.markerId || !event?.latlng) return;
+  const { markerId } = manualMarkerDragState;
+  manualMarkerDragState = null;
+
+  const imagePoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+  const point = imagePointToGamePoint(imagePoint.x, imagePoint.y);
+  const tools = getMapToolsSettings();
+  const updated = (tools.manualMarkers ?? []).map((marker) => (marker.id === markerId
+    ? {
+      ...marker,
+      x: point.x,
+      y: point.y,
+      mapX: imagePoint.x,
+      mapY: imagePoint.y,
+    }
+    : marker));
+  const movedMarker = updated.find((marker) => marker.id === markerId);
+  if (movedMarker) applyMarkerCoordinatesToBoundInputs(movedMarker, point);
+  state.settings.mapTools = { ...tools, manualMarkers: updated };
+  persistLauncherSettings();
+  refreshMapOverlay();
+}
+
+function updateGunHeadingFromMapClick(latlng) {
+  const targetKey = markerTargetSelect?.value || '';
+  if (!targetKey || !targetKey.includes('-')) return false;
+  const [batteryRaw, gunRaw] = targetKey.split('-');
+  const batteryId = Number(batteryRaw);
+  const gunId = Number(gunRaw);
+  if (!Number.isFinite(batteryId) || !Number.isFinite(gunId)) return false;
+
+  const gunPoint = readXYFromInputs(
+    document.querySelector(`[data-gun-x="${targetKey}"]`),
+    document.querySelector(`[data-gun-y="${targetKey}"]`),
+  );
+  if (!gunPoint) return false;
+
+  const mapPoint = latLngToMapPoint(latlng.lat, latlng.lng);
+  const clickedPoint = imagePointToGamePoint(mapPoint.x, mapPoint.y);
+  const azimuthDeg = normalizeAzimuth((Math.atan2(clickedPoint.x - gunPoint.x, clickedPoint.y - gunPoint.y) * 180) / Math.PI);
+  const gunKey = `${batteryId}-${gunId}`;
+  state.settings.gunSettings = { ...(state.settings.gunSettings ?? {}), [gunKey]: { ...getGunSetting(gunKey), heading: azimuthDeg } };
+  persistLauncherSettings();
+  refreshMapOverlay();
+  if (mapToolsOutput) mapToolsOutput.textContent = `${t('gunDirectionAzimuth')}: ${azimuthDeg.toFixed(1)}° (${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId})`;
+  return true;
+}
+
+function onMapClick(event) {
+  const isShift = Boolean(event.originalEvent?.shiftKey);
+  if (!isShift) return;
+  if ((markerToolSelect?.value || 'gun') !== 'gun') return;
+  if (updateGunHeadingFromMapClick(event.latlng)) {
+    window.L.DomEvent.stop(event);
+  }
 }
 
 function onMapDoubleClick(event) {
@@ -2154,7 +2273,7 @@ function refreshMapOverlay() {
     marker.on('mousedown', (event) => {
       if (event.originalEvent?.button !== 0) return;
       selectedManualMarkerId = item.id;
-      refreshMapOverlay();
+      startManualMarkerDrag(item.id, marker);
     });
     manualMarkers.push(marker);
   });
