@@ -1527,6 +1527,36 @@ function buildSectorPolygonPoints({ x, y, heading, traverseDeg, radius, innerRad
   return points;
 }
 
+function buildSectorGuideLines({ x, y, heading, traverseDeg, minRadius = 0, maxRadius }) {
+  const half = Math.max(0.5, Number(traverseDeg) / 2);
+  const segments = 36;
+  const outerArc = [];
+  const innerArc = [];
+  for (let idx = 0; idx <= segments; idx += 1) {
+    const angle = normalizeAzimuth(heading - half + (idx / segments) * (half * 2));
+    const rad = (angle * Math.PI) / 180;
+    outerArc.push({ x: x + Math.sin(rad) * maxRadius, y: y + Math.cos(rad) * maxRadius });
+    if (minRadius > 0) {
+      innerArc.push({ x: x + Math.sin(rad) * minRadius, y: y + Math.cos(rad) * minRadius });
+    }
+  }
+
+  const startAngle = normalizeAzimuth(heading - half);
+  const endAngle = normalizeAzimuth(heading + half);
+  const startRad = (startAngle * Math.PI) / 180;
+  const endRad = (endAngle * Math.PI) / 180;
+  const edgeStart = [
+    { x: x + Math.sin(startRad) * minRadius, y: y + Math.cos(startRad) * minRadius },
+    { x: x + Math.sin(startRad) * maxRadius, y: y + Math.cos(startRad) * maxRadius },
+  ];
+  const edgeEnd = [
+    { x: x + Math.sin(endRad) * minRadius, y: y + Math.cos(endRad) * minRadius },
+    { x: x + Math.sin(endRad) * maxRadius, y: y + Math.cos(endRad) * maxRadius },
+  ];
+
+  return { outerArc, innerArc, edgeStart, edgeEnd };
+}
+
 function formatRulerMeasurement(p1, p2) {
   const pointA = normalizeRulerPoint(p1);
   const pointB = normalizeRulerPoint(p2);
@@ -2435,11 +2465,72 @@ function refreshMapOverlay() {
     const traverseDeg = clamp(Number(profile?.traverseDeg) || 360, 1, 360);
     const minRange = Math.max(0, Number(profile?.minRange) || 0);
     const maxRange = Math.max(minRange, Number(profile?.maxRange) || 0);
-
-    // Keep map overlays focused on tactical markers (guns, observers, target, user markers).
-    // Range circles / sectors created visual clutter and were mistaken for marker artifacts.
-
     const gunColor = getBatteryColor(batteryId);
+
+    const sectorColor = `${gunColor}88`;
+    if (maxRange > 0) {
+      if (traverseDeg >= 360) {
+        const outerRing = window.L.circle(gamePointToLatLng(gunX, gunY), {
+          radius: maxRange,
+          color: sectorColor,
+          weight: 1.5,
+          fillColor: sectorColor,
+          fillOpacity: 0.08,
+          dashArray: '6 8',
+        }).addTo(leafletMap);
+        gunMarkers.push(outerRing);
+
+        if (minRange > 0) {
+          const innerRing = window.L.circle(gamePointToLatLng(gunX, gunY), {
+            radius: minRange,
+            color: sectorColor,
+            weight: 1.5,
+            fill: false,
+            dashArray: '6 8',
+          }).addTo(leafletMap);
+          gunMarkers.push(innerRing);
+        }
+      } else {
+        const sectorPolygon = buildSectorPolygonPoints({
+          x: gunX,
+          y: gunY,
+          heading: renderedHeading,
+          traverseDeg,
+          radius: maxRange,
+          innerRadius: minRange,
+        }).map((point) => gamePointToLatLng(point.x, point.y));
+        const fillSector = window.L.polygon(sectorPolygon, {
+          color: sectorColor,
+          weight: 1,
+          fillColor: sectorColor,
+          fillOpacity: 0.08,
+          interactive: false,
+        }).addTo(leafletMap);
+        gunMarkers.push(fillSector);
+
+        const guide = buildSectorGuideLines({
+          x: gunX,
+          y: gunY,
+          heading: renderedHeading,
+          traverseDeg,
+          minRadius: minRange,
+          maxRadius: maxRange,
+        });
+        const guideStyle = {
+          color: sectorColor,
+          weight: 2,
+          dashArray: '5 7',
+          interactive: false,
+        };
+        gunMarkers.push(window.L.polyline(guide.outerArc.map((point) => gamePointToLatLng(point.x, point.y)), guideStyle).addTo(leafletMap));
+        if (minRange > 0) {
+          gunMarkers.push(window.L.polyline(guide.innerArc.map((point) => gamePointToLatLng(point.x, point.y)), guideStyle).addTo(leafletMap));
+        }
+        gunMarkers.push(window.L.polyline(guide.edgeStart.map((point) => gamePointToLatLng(point.x, point.y)), guideStyle).addTo(leafletMap));
+        gunMarkers.push(window.L.polyline(guide.edgeEnd.map((point) => gamePointToLatLng(point.x, point.y)), guideStyle).addTo(leafletMap));
+      }
+    }
+
     const isGunSelected = isSelectedMarker('gun', gunKey);
     const marker = window.L.circleMarker(gamePointToLatLng(gunX, gunY), {
       radius: isGunSelected ? 10 : 8,
