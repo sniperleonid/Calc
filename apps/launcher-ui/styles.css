@@ -283,7 +283,7 @@ select,
 }
 
 .observer-row {
-  border: 1px dashed color-mix(in srgb, var(--border), transparent 45%);
+  border: 1px dashed color-mix(in srgb, var(--battery-color, var(--border)), transparent 35%);
   border-radius: 8px;
   padding: 8px;
 }
@@ -308,7 +308,7 @@ select,
 }
 
 .battery-config-row {
-  border: 1px dashed color-mix(in srgb, var(--border), transparent 45%);
+  border: 1px dashed color-mix(in srgb, var(--battery-color, var(--border)), transparent 35%);
   border-radius: 8px;
   padding: 10px;
 }
