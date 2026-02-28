@@ -441,6 +441,7 @@ select,
 .map-card {
   position: relative;
   min-height: 680px;
+  overflow: hidden;
 }
 
 .map-info-overlay {
@@ -448,9 +449,10 @@ select,
   top: 14px;
   right: 14px;
   z-index: 500;
-  width: fit-content;
-  max-width: min(420px, calc(100% - 28px));
-  max-height: 45vh;
+  width: min(420px, calc(100% - 28px));
+  min-height: 0;
+  max-width: calc(100% - 28px);
+  max-height: calc(100% - 28px);
   padding: 10px 12px;
   margin: 0;
   overflow: auto;
@@ -461,6 +463,10 @@ select,
   border-radius: 8px;
   backdrop-filter: blur(4px);
   pointer-events: none;
+}
+
+.map-info-overlay:empty {
+  display: none;
 }
 
 .leaflet-map {
