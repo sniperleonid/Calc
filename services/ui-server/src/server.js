@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, readdirSync, statSync, mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
@@ -39,6 +39,74 @@ function safeReadJson(path) {
   } catch {
     return null;
   }
+}
+
+
+function parseNpzTable(filePath) {
+  const script = `
+import json, zipfile, struct
+from pathlib import Path
+
+def parse_npy(data):
+    major = data[6]
+    if major <= 1:
+        hlen = struct.unpack('<H', data[8:10])[0]
+        off = 10
+    else:
+        hlen = struct.unpack('<I', data[8:12])[0]
+        off = 12
+    header = data[off:off+hlen].decode('latin1')
+    descr = header.split("'descr':")[1].split(',')[0].strip().strip("'")
+    shape_raw = header.split("'shape':")[1].split(')')[0].strip().lstrip('(')
+    shape = [int(x.strip()) for x in shape_raw.split(',') if x.strip()]
+    cnt = 1
+    for x in shape: cnt *= x
+    start = off + hlen
+    out = []
+    if descr.endswith('f4'):
+      fmt = '<' + 'f'*cnt
+      out = list(struct.unpack_from(fmt, data, start))
+    elif descr.endswith('f8'):
+      fmt = '<' + 'd'*cnt
+      out = list(struct.unpack_from(fmt, data, start))
+    elif descr.endswith('i4'):
+      fmt = '<' + 'i'*cnt
+      out = list(struct.unpack_from(fmt, data, start))
+    else:
+      out = []
+    return out
+
+import sys
+path = Path(sys.argv[1])
+arrays = {}
+with zipfile.ZipFile(path, 'r') as z:
+    for name in z.namelist():
+        if not name.endswith('.npy'): continue
+        arrays[name[:-4]] = parse_npy(z.read(name))
+
+elev = arrays.get('elev_mil', [])
+charges = [str(int(c)) if float(c).is_integer() else str(c) for c in arrays.get('charges_id', [])]
+by_charge = {}
+for cid in charges:
+    by_charge[cid] = {
+        'range': arrays.get(f'range_c{cid}', []),
+        'elevationMil': elev,
+        'tof': arrays.get(f'tof_c{cid}')
+    }
+
+print(json.dumps({
+    'format':'legacy-npz',
+    'elevMil': elev,
+    'charges': charges,
+    'byCharge': by_charge,
+    'meta': {
+      'dragCoeff': (arrays.get('meta_air_drag') or [None])[0],
+      'massKg': (arrays.get('meta_mass') or [None])[0],
+    }
+}))
+`
+  const raw = execFileSync('python3', ['-c', script, filePath], { encoding: 'utf-8' });
+  return JSON.parse(raw);
 }
 
 function listArtilleryCatalog() {
@@ -83,6 +151,53 @@ function listArtilleryCatalog() {
     });
 
   return { guns };
+}
+
+function safeTablePath(relativePath) {
+  const normalized = String(relativePath || '').replace(/^\/+/, '');
+  const full = resolve(tablesRoot, normalized);
+  if (!full.startsWith(tablesRoot)) return null;
+  return full;
+}
+
+async function buildWeaponFromCatalog(weaponId) {
+  const [gunId, projectileId] = String(weaponId || '').split('/');
+  if (!gunId || !projectileId) return null;
+  const gunProfile = safeReadJson(resolve(tablesRoot, gunId, 'profile.json')) ?? {};
+  const projectilePath = resolve(tablesRoot, gunId, projectileId);
+  if (!existsSync(projectilePath) || !statSync(projectilePath).isDirectory()) return null;
+
+  const tableFiles = readdirSync(projectilePath, { withFileTypes: true })
+    .filter((fileEntry) => fileEntry.isFile() && extname(fileEntry.name).toLowerCase() === '.npz')
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b, 'en'));
+
+  const tables = {
+    direct: tableFiles.find((name) => name.includes('direct')),
+    low: tableFiles.find((name) => name.includes('low')),
+    high: tableFiles.find((name) => name.includes('high')),
+  };
+
+  const tableUrls = Object.fromEntries(
+    Object.entries(tables)
+      .filter(([, value]) => Boolean(value))
+      .map(([key, value]) => [key, `/api/ballistics/file?path=${encodeURIComponent(`${gunId}/${projectileId}/${value}`)}`]),
+  );
+
+  const primaryTableFile = tables.low ?? tables.direct ?? tables.high;
+  let primaryTable = null;
+  if (primaryTableFile) {
+    const filePath = resolve(projectilePath, primaryTableFile);
+    primaryTable = parseNpzTable(filePath);
+  }
+
+  return {
+    weaponId: `${gunId}/${projectileId}`,
+    displayName: `${gunProfile.name ?? gunId} ${projectileId}`,
+    maxElevMil: Number(gunProfile.max_elevation_mil ?? 1550),
+    tables: tableUrls,
+    primaryTable,
+  };
 }
 
 function listLogs() {
@@ -192,7 +307,7 @@ function saveMapImage(req, res) {
   });
 }
 
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
   if (req.url === '/api/logs') {
     sendJson(res, 200, { files: listLogs(), logsDirectory: getLogsDirectoryPath() });
     return;
@@ -221,6 +336,45 @@ const server = createServer((req, res) => {
 
   if (req.url === '/api/artillery-catalog' && req.method === 'GET') {
     sendJson(res, 200, listArtilleryCatalog());
+    return;
+  }
+
+  if (req.url?.startsWith('/api/ballistics/file') && req.method === 'GET') {
+    const parsed = new URL(req.url, 'http://localhost');
+    const relativePath = parsed.searchParams.get('path') || '';
+    const filePath = safeTablePath(relativePath);
+    if (!filePath || !existsSync(filePath) || !statSync(filePath).isFile()) {
+      sendJson(res, 404, { error: 'File not found.' });
+      return;
+    }
+    const ext = extname(filePath).toLowerCase();
+    const type = ext === '.npz' ? 'application/octet-stream' : 'application/json; charset=utf-8';
+    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store' });
+    res.end(readFileSync(filePath));
+    return;
+  }
+
+
+  if (req.url?.startsWith('/api/ballistics/table') && req.method === 'GET') {
+    const parsed = new URL(req.url, 'http://localhost');
+    const relativePath = parsed.searchParams.get('path') || '';
+    const filePath = safeTablePath(relativePath);
+    if (!filePath || !existsSync(filePath) || !statSync(filePath).isFile()) {
+      sendJson(res, 404, { error: 'Table not found.' });
+      return;
+    }
+    sendJson(res, 200, parseNpzTable(filePath));
+    return;
+  }
+
+  if (req.url?.startsWith('/api/ballistics/weapon') && req.method === 'GET') {
+    const parsed = new URL(req.url, 'http://localhost');
+    const weapon = await buildWeaponFromCatalog(parsed.searchParams.get('weaponId'));
+    if (!weapon) {
+      sendJson(res, 404, { error: 'Weapon not found.' });
+      return;
+    }
+    sendJson(res, 200, weapon);
     return;
   }
 

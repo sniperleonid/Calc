@@ -1,0 +1,17 @@
+{
+  "weaponId": "D30/122mm_HE",
+  "displayName": "D-30",
+  "massKg": 21,
+  "dragCoeff": 0.0024,
+  "charges": [
+    {"id":"1","muzzleVel":200},
+    {"id":"2","muzzleVel":260},
+    {"id":"3","muzzleVel":310}
+  ],
+  "maxElevMil": 1550,
+  "tables": {
+    "direct": "/api/ballistics/file?path=D30/122mm_HE/ballistic_direct.npz",
+    "low": "/api/ballistics/file?path=D30/122mm_HE/ballistic_low.npz",
+    "high": "/api/ballistics/file?path=D30/122mm_HE/ballistic_high.npz"
+  }
+}
