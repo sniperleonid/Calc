@@ -9,6 +9,18 @@ test('POINT returns single aim point', () => {
   assert.deepEqual(points[0], { x: 1000, y: 2000, z: 12, meta: { index: 0, role: 'center', offsetX: 0, offsetY: 0 } });
 });
 
+test('CONVERGED returns a single converge point', () => {
+  const points = generateAimPoints({
+    mode: FIRE_MODE_IDS.CONVERGED,
+    centerPoint: { x: 100, y: 200 },
+    convergePoint: { x: 150, y: 250, z: 10 },
+  }, { gunCount: 4 });
+  assert.equal(points.length, 1);
+  assert.equal(points[0].x, 150);
+  assert.equal(points[0].y, 250);
+  assert.equal(points[0].z, 10);
+});
+
 test('PARALLEL_SHEAF distributes guns across width', () => {
   const points = generateAimPoints({
     mode: FIRE_MODE_IDS.PARALLEL_SHEAF,
@@ -20,6 +32,18 @@ test('PARALLEL_SHEAF distributes guns across width', () => {
   assert.equal(points[0].x < points[1].x, true);
   assert.equal(points[3].x > points[2].x, true);
   assert.equal(points[0].y, 500);
+});
+
+test('OPEN_SHEAF distributes guns across width like sheaf lanes', () => {
+  const points = generateAimPoints({
+    mode: FIRE_MODE_IDS.OPEN_SHEAF,
+    centerPoint: { x: 500, y: 500 },
+    sheafWidthM: 120,
+    bearingDeg: 0,
+  }, { gunCount: 3 });
+  assert.equal(points.length, 3);
+  assert.equal(points[0].x < points[1].x, true);
+  assert.equal(points[1].x < points[2].x, true);
 });
 
 test('CIRCULAR_AREA returns center plus ring points', () => {
@@ -45,4 +69,16 @@ test('LINEAR builds points by spacing and pickAimPointForGun supports round-robi
   });
   assert.equal(points.length, 5);
   assert.equal(pickAimPointForGun({ aimPoints: points, gunIndex: 6, distribute: 'PATTERN' }).y, 25);
+});
+
+test('RECT_AREA builds grid points by width/length/spacing', () => {
+  const points = generateAimPoints({
+    mode: FIRE_MODE_IDS.RECT_AREA,
+    centerPoint: { x: 0, y: 0 },
+    widthM: 100,
+    lengthM: 100,
+    spacingM: 50,
+    bearingDeg: 0,
+  });
+  assert.equal(points.length, 9);
 });

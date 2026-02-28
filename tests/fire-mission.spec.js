@@ -68,6 +68,29 @@ test('migrateOldMissionToFdc keeps nested FDC blocks for CREEPING/MRSI/TOT', () 
   assert.deepEqual(fdc.mrsi.mrsiAllowedArcs, ['LOW']);
 });
 
+test('migrateOldMissionToFdc keeps nested geometry points from FDC UI config', () => {
+  const point = { x: 1200, y: 3400, z: 55 };
+  const start = { x: 1000, y: 3000, z: 55 };
+  const end = { x: 1400, y: 3800, z: 55 };
+  const center = { x: 1300, y: 3500, z: 55 };
+
+  const fdc = migrateOldMissionToFdc({
+    targetType: 'LINE',
+    geometry: {
+      point,
+      start,
+      end,
+      center,
+      spacingM: 50,
+    },
+  });
+
+  assert.deepEqual(fdc.geometry.point, point);
+  assert.deepEqual(fdc.geometry.start, start);
+  assert.deepEqual(fdc.geometry.end, end);
+  assert.deepEqual(fdc.geometry.center, center);
+});
+
 
 
 test('migrateOldMissionToFdc normalizes invalid or localized mode values', () => {
