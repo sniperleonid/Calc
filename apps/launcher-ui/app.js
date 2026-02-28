@@ -1670,8 +1670,12 @@ async function showNextFirePackage() {
     return;
   }
   const rows = pkg.assignments.flatMap((assignment) => assignment.commands.map((command, idx) => {
-    const solvedRow = pkg.solutions.perGunSolutions[assignment.gunId]?.[idx];
+    const solvedRows = pkg.solutions.perGunSolutions[assignment.gunId] ?? [];
+    const solvedRow = solvedRows[idx] ?? solvedRows.find((row) => row.commandRef === command);
     const point = solvedRow?.aimPoint ?? activeAimPlan.aimPoints[command.aimPointIndex];
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+      return `Gun ${assignment.gunId}: недоступна точка прицеливания (индекс ${command.aimPointIndex ?? 'n/a'})`;
+    }
     const solution = solvedRow?.solution;
     const base = `Gun ${assignment.gunId}: Aim X=${point.x.toFixed(1)} Y=${point.y.toFixed(1)} Az=${Number(solution?.azimuthDeg || 0).toFixed(2)} Elev=${Number(solution?.elevMil || 0).toFixed(1)} TOF=${Number(solution?.tofSec || 0).toFixed(2)}`;
     if (command.mrsiShotPlan?.length) {
