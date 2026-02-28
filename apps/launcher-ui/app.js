@@ -189,6 +189,30 @@ const profilesEditor = document.querySelector('#profiles-editor');
 const t = (key) => i18n[state.lang][key] ?? key;
 let counterBatteryModule;
 
+const counterBatteryModule = createCounterBatteryModule({
+  state,
+  t,
+  cbMethodSelect,
+  cbObservationsContainer,
+  cbOutput,
+  readXYFromInputs,
+  getObserverEntries,
+  getObserverDisplayName,
+  getSelectedMissionTargetId,
+  getMissionTargets,
+  updateMissionTargetInputsFromState,
+  persistLauncherSettings,
+  storeCurrentMissionTargetInputs,
+  getAllGunPoints,
+  getArtilleryProfiles,
+  gunProfiles,
+  clamp,
+  getGunSetting,
+  getBatteryDisplayName,
+  normalizeAzimuth,
+  getAzimuthDelta,
+});
+
 function getMissionTargetNameByIndex(index) {
   return `Ц-${index + 1}`;
 }
@@ -597,8 +621,17 @@ function syncMapMarkersWithAvailableTargets() {
   if (filtered.length === source.length) return;
   const removed = source.filter((marker) => !filtered.some((entry) => entry.id === marker.id));
   if (selectedMapMarker?.type === 'manual' && !filtered.some((marker) => marker.id === selectedMapMarker.id)) selectedMapMarker = null;
-  state.settings.mapTools = { ...tools, manualMarkers: filtered };
+  const shouldClearFirePattern = removed.some((marker) => marker.type === 'target');
+  state.settings.mapTools = {
+    ...tools,
+    manualMarkers: filtered,
+    activeFirePattern: shouldClearFirePattern ? null : tools.activeFirePattern,
+  };
   persistLauncherSettings();
+}
+
+function shouldClearFirePatternByMarker(marker) {
+  return Boolean(marker?.type === 'target');
 }
 
 function persistLauncherSettings() {
@@ -1784,6 +1817,7 @@ function openManualMarkerEditor(markerId, markerLayer) {
     state.settings.mapTools = {
       ...tools,
       manualMarkers: (tools.manualMarkers ?? []).filter((marker) => marker.id !== markerId),
+      activeFirePattern: shouldClearFirePatternByMarker(markerToDelete) ? null : tools.activeFirePattern,
     };
     if (isSelectedMarker('manual', markerId)) selectedMapMarker = null;
     persistLauncherSettings();
@@ -2796,6 +2830,7 @@ function deleteSelectedMapMarker() {
     state.settings.mapTools = {
       ...tools,
       manualMarkers: (tools.manualMarkers ?? []).filter((marker) => marker.id !== selectedMapMarker.id),
+      activeFirePattern: shouldClearFirePatternByMarker(markerToDelete) ? null : tools.activeFirePattern,
     };
   } else {
     clearMarkerCoordinatesAndAzimuth({ type: selectedMapMarker.type, targetId: selectedMapMarker.id });
