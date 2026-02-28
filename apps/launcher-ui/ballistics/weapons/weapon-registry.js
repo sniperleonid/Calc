@@ -22,7 +22,7 @@ function estimateVelocityByCharge(table, charge) {
 export async function getWeapon(weaponId) {
   if (cache.has(weaponId)) return cache.get(weaponId);
   const response = await fetch(`/api/ballistics/weapon?weaponId=${encodeURIComponent(weaponId)}`, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`Weapon not found: ${weaponId}`);
+  if (!response.ok) throw new Error(`Weapon not found in tables catalog: ${weaponId}`);
   const payload = await response.json();
   const normalized = normalizeWeaponProfile(payload);
 

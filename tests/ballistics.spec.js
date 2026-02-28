@@ -115,3 +115,33 @@ test('crosswind creates drift sign', async () => {
   assert.equal(Math.abs(solution.driftMeters) > 0.01, true);
   global.fetch = oldFetch;
 });
+
+
+test('weapon registry loads from server tables catalog endpoint', async () => {
+  const { getWeapon } = await import('../apps/launcher-ui/ballistics/weapons/weapon-registry.js');
+  const oldFetch = global.fetch;
+  const urls = [];
+  global.fetch = async (url) => {
+    urls.push(String(url));
+    if (String(url).startsWith('/api/ballistics/weapon')) {
+      return Response.json({
+        weaponId: 'D30/122mm_HE',
+        tables: { low: '/api/ballistics/file?path=D30/122mm_HE/ballistic_low.npz' },
+        maxElevMil: 1230,
+        primaryTable: {
+          charges: ['1'],
+          elevMil: [200],
+          byCharge: { '1': { range: [1000], elevationMil: [200], tof: [8] } },
+          meta: { dragCoeff: 0.0024, massKg: 21 },
+        },
+      });
+    }
+    throw new Error('unexpected fetch url');
+  };
+
+  const weapon = await getWeapon('D30/122mm_HE');
+  assert.equal(weapon.weaponId, 'D30/122mm_HE');
+  assert.equal(urls.some((u) => u.startsWith('/api/ballistics/weapon?weaponId=')), true);
+  global.fetch = oldFetch;
+});
+
