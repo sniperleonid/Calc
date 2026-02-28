@@ -64,20 +64,24 @@
 
       <section class="tab-panel" data-panel="global">
         <div class="section-layout global-layout">
-          <article class="card">
+          <article class="card global-card">
             <h2 data-i18n="batterySectionTitle">Батареи</h2>
-            <label for="battery-count" data-i18n="batteryCount">Количество батарей</label>
-            <input id="battery-count" type="number" min="1" max="5" value="2" />
+            <div class="global-control">
+              <label for="battery-count" data-i18n="batteryCount">Количество батарей</label>
+              <input id="battery-count" type="number" min="1" max="5" value="2" />
+            </div>
             <div id="battery-config" class="stack"></div>
           </article>
-          <article class="card">
+          <article class="card global-card">
             <h2 data-i18n="gunsSectionTitle">Орудия</h2>
             <div id="guns-coordinates" class="stack"></div>
           </article>
-          <article class="card">
+          <article class="card global-card">
             <h2 data-i18n="observerSectionTitle">Наблюдатели</h2>
-            <label for="observer-count" data-i18n="observerCount">Количество наблюдателей (до 5)</label>
-            <input id="observer-count" type="number" min="1" max="5" value="2" />
+            <div class="global-control">
+              <label for="observer-count" data-i18n="observerCount">Количество наблюдателей (до 5)</label>
+              <input id="observer-count" type="number" min="1" max="5" value="2" />
+            </div>
             <div id="observer-bindings" class="stack"></div>
           </article>
         </div>
