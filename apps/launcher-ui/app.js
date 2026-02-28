@@ -176,7 +176,6 @@ const missionBatterySelect = document.querySelector('#mission-battery');
 const missionGunSelect = document.querySelector('#mission-gun');
 const missionProjectileSelectors = document.querySelector('#mission-projectile-selectors');
 const activeTargetSelect = document.querySelector('#active-target');
-const fireModeSelect = document.querySelector('#fire-mode');
 const trajectoryTypeSelect = document.querySelector('#trajectory-type');
 const indirectArcSelect = document.querySelector('#indirect-arc');
 const indirectArcSettings = document.querySelector('#indirect-arc-settings');
@@ -753,11 +752,6 @@ function persistLauncherSettings() {
     manualMarkers: mapToolsSettings.manualMarkers ?? [],
   };
 
-  const fireModeSettings = {};
-  document.querySelectorAll('[data-fire-setting]').forEach((input) => {
-    fireModeSettings[input.dataset.fireSetting] = input.value ?? '';
-  });
-
   const selectedTargetId = getSelectedMissionTargetId();
   const targetXValue = document.querySelector('#target-x')?.value ?? '';
   const targetYValue = document.querySelector('#target-y')?.value ?? '';
@@ -781,7 +775,6 @@ function persistLauncherSettings() {
     gun: missionGunSelect?.value ?? 'all',
     trajectoryType: trajectoryTypeSelect?.value ?? 'indirect',
     indirectArc: indirectArcSelect?.value ?? 'low',
-    fireMode: fireModeSelect?.value ?? FIRE_MODE_IDS.POINT,
     correction: {
       observerId: correctionObserverSelect?.value ?? '1',
       lateralMeters: Number(document.querySelector('#correction-lr')?.value ?? 0) || 0,
@@ -799,7 +792,6 @@ function persistLauncherSettings() {
       azimuth: document.querySelector('#observer-target-azimuth')?.value ?? '',
       angle: document.querySelector('#observer-target-angle')?.value ?? '',
     },
-    fireModeSettings,
     missionFdc: migrateOldMissionToFdc(getFireMissionConfigFromUI()),
   };
 
@@ -845,7 +837,6 @@ function applyI18n() {
   renderObservers();
   renderMissionSelectors();
   renderCounterBatterySection();
-  syncFireModeSettingsVisibility();
   syncFdcSettingsVisibility();
   hydrateMapToolsForm();
   syncMarkerTargetOptions();
@@ -1219,7 +1210,6 @@ function renderMissionSelectors() {
 
   if (trajectoryTypeSelect) trajectoryTypeSelect.value = state.settings.mission.trajectoryType ?? 'indirect';
   if (indirectArcSelect) indirectArcSelect.value = state.settings.mission.indirectArc ?? 'low';
-  if (fireModeSelect) fireModeSelect.value = state.settings.mission.fireMode ?? FIRE_MODE_IDS.POINT;
   const missionFdc = migrateOldMissionToFdc(state.settings.mission?.missionFdc ?? state.settings.mission ?? {});
   if (fmTargetTypeSelect) fmTargetTypeSelect.value = missionFdc.targetType;
   if (fmSheafTypeSelect) fmSheafTypeSelect.value = missionFdc.sheafType;
@@ -1230,12 +1220,7 @@ function renderMissionSelectors() {
   if (center?.y != null) document.querySelector('#fm-center-y').value = center.y;
   if (missionFdc.geometry?.point?.x != null) document.querySelector('#fm-point-x').value = missionFdc.geometry.point.x;
   if (missionFdc.geometry?.point?.y != null) document.querySelector('#fm-point-y').value = missionFdc.geometry.point.y;
-  const fireModeSettings = state.settings.mission.fireModeSettings ?? {};
-  document.querySelectorAll('[data-fire-setting]').forEach((input) => {
-    input.value = fireModeSettings[input.dataset.fireSetting] ?? '';
-  });
   syncTrajectoryControls();
-  syncFireModeSettingsVisibility();
   syncFdcSettingsVisibility();
 }
 
@@ -1461,13 +1446,6 @@ function getObserverCorrections(batteryId, gunIds, batteryHeight) {
     corrections.push({ observerId, heightDelta: (observerHeight - batteryHeight).toFixed(1) });
   });
   return corrections;
-}
-
-function syncFireModeSettingsVisibility() {
-  const mode = fireModeSelect?.value ?? FIRE_MODE_IDS.POINT;
-  document.querySelectorAll('[data-fire-mode-panel]').forEach((panel) => {
-    panel.classList.toggle('hidden', panel.dataset.fireModePanel !== mode);
-  });
 }
 
 function syncFdcSettingsVisibility() {
@@ -3357,11 +3335,6 @@ correctionObserverSelect?.addEventListener('change', () => {
   persistLauncherSettings();
 });
 
-fireModeSelect?.addEventListener('change', () => {
-  syncFireModeSettingsVisibility();
-  persistLauncherSettings();
-  refreshMapOverlay();
-});
 fmTargetTypeSelect?.addEventListener('change', () => {
   syncFdcSettingsVisibility();
   persistLauncherSettings();
@@ -3433,9 +3406,6 @@ document.addEventListener('input', (event) => {
     if (event.target.matches('#cal-scale-meters')) {
       const tools = getMapToolsSettings();
       state.settings.mapTools = { ...tools, calibrationScaleMeters: event.target.value };
-    }
-    if (event.target.matches('[data-fire-setting]')) {
-      syncFireModeSettingsVisibility();
     }
   }
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) {
