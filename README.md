@@ -80,7 +80,7 @@ npm test
 
 #### Launcher UI (`apps/launcher-ui`)
 
-- `createCounterBatteryModule(deps)` (`counter-battery-module.js`) — отдельный модуль контрбатарейного функционала.
+- `createCounterBatteryModule(deps)` (`apps/counter-battery/module.js`) — отдельный модуль контрбатарейного функционала.
   - Публичные методы модуля:
     - `render()`.
     - `locateEnemyGun()`.
