@@ -835,9 +835,11 @@ class ObserverModule extends UnitModule {
     return { ...observer.lineOfSight };
   }
 
-  solvePolarPlotMission({ observer, azimuth, distance, droneAltitude = 0 }) {
+  solvePolarPlotMission({ observer, azimuth, distance, droneAltitude = 0, observerAltitude = 0, verticalAngle = 0 }) {
     const radians = (clampAngle(azimuth) * Math.PI) / 180;
     const groundDistance = Math.max(0, Math.sqrt(Math.max(0, distance * distance - droneAltitude * droneAltitude)));
+    const heightDifference = distance * Math.sin((verticalAngle * Math.PI) / 180);
+    const targetAltitude = observerAltitude + heightDifference;
     return {
       observer,
       target: {
@@ -847,6 +849,10 @@ class ObserverModule extends UnitModule {
       azimuth: clampAngle(azimuth),
       distance,
       droneAltitude,
+      observerAltitude,
+      targetAltitude,
+      heightDifference,
+      verticalAngle,
       mode: 'polar-plot',
     };
   }
