@@ -26,6 +26,85 @@ npm test
 - `services/realtime-gateway` — сервис обмена сообщениями в реальном времени.
 - `packages/shared-types` — минимальные общие типы API.
 
+## Инвентаризация функций и статусов (февраль 2026)
+
+Ниже перечислены ключевые функции/классы и их фактический статус по коду.
+
+### 1) Используется в текущем запуске (`npm run start`)
+
+#### Оркестрация запуска
+
+- `scripts/start-all.mjs`
+  - `findPython()` — поиск Python-интерпретатора.
+  - `hasUvicorn(python)` — проверка наличия `uvicorn`.
+  - `run(name, command, args, options)` — запуск дочерних сервисов.
+  - `shutdown(signal)` — штатное завершение запущенных процессов.
+
+#### Ballistics Core API (`services/ballistics-core/app.py`)
+
+- `root()` — health/info корня API (`GET /`).
+- `favicon()` — заглушка favicon (`GET /favicon.ico`).
+- `solve_fire_mission_endpoint(req)` — расчёт огневой задачи (`POST /solve-fire-mission`).
+- `apply_correction_endpoint(req)` — применение корректировки (`POST /apply-correction`).
+- `triangulation_endpoint(method, req)` — триангуляция (`POST /triangulation/{method}`).
+
+Используемые функции ядра баллистики:
+
+- `solve_fire_mission(req)` (`ballistics/solver.py`).
+- `apply_correction(req)` (`ballistics/corrections.py`).
+- `triangulate(req)` (`ballistics/triangulation.py`).
+- `save_protocol(...)` (`ballistics/protocol.py`).
+- `load_ballistic_table(...)`, `load_gun_profile(...)` (`ballistics/data_store.py`).
+
+#### Realtime Gateway (`services/realtime-gateway/src`)
+
+- `new RealtimeGateway()` (`runtime.js`) — основной экземпляр шины событий.
+- `gateway.subscribe('gun.status', ...)` (`runtime.js`) — активная подписка runtime.
+- `RealtimeGateway.subscribe(channel, listener)` (`server.js`) — регистрация слушателей.
+- `RealtimeGateway.publish(channel, payload)` (`server.js`) — публикация событий.
+- `RealtimeGateway.getMissionJournal(missionId)` (`server.js`) — доступ к журналу миссий.
+
+Внутренние обработчики публикаций в `RealtimeGateway`:
+
+- `#handleMissionAssign(payload)`.
+- `#handleGunStatus(payload)`.
+- `#handleObserverCorrection(payload)`.
+- `#handleLogisticsRequest(payload)`.
+
+#### UI Server (`services/ui-server/src/server.js`)
+
+- `sendJson(res, status, payload)` — единый JSON-ответ.
+- `listLogs()` — список логов (`GET /api/logs`).
+- `getLatestMapImageUrl()` — получение последней карты (`GET /api/map-image/latest`).
+- `saveMapImage(req, res)` — загрузка карты (`POST /api/map-image`).
+
+#### Launcher UI (`apps/launcher-ui`)
+
+- `createCounterBatteryModule(deps)` (`counter-battery-module.js`) — отдельный модуль контрбатарейного функционала.
+  - Публичные методы модуля:
+    - `render()`.
+    - `locateEnemyGun()`.
+    - `calculateResponse()`.
+    - `addObservationPoint()`.
+    - `clearObservationPoints()`.
+
+### 2) Реализовано и покрыто тестами, но не включено в `npm run start` как отдельный сервис
+
+- `LobbyService` (`services/realtime-gateway/src/lobby-service.js`):
+  - `createRoom(...)`, `joinRoom(...)`, `assignRole(...)`, `setMissionSnapshot(...)`, `getMissionForUser(...)`, `getRoom(...)`.
+  - Статус: сервис ролей/комнат реализован в коде и тестах, но в runtime-gateway не поднят как HTTP/WebSocket API.
+
+- UI/домен-модули, используемые в тестовом контуре:
+  - `PinnedGunnerPanel` (`apps/fire-control/src/pinned-gunner-panel.js`).
+  - `CorrectionPanel` (`apps/observer-console/src/correction-panel.js`).
+  - `HudOverlay` (`apps/hud/src/hud-overlay.js`).
+  - `TacticalWorkspace` (`apps/web-map/src/tactical-workspace.js`).
+
+### 3) В разработке / интеграция не завершена
+
+- Онлайн-комнаты, роли и парольные лобби (`LobbyService`) — логика есть, но не подключена в основной runtime как пользовательский сетевой интерфейс.
+- Полноценная многопользовательская роль-модель в launcher UI — в текущем запуске интерфейс ориентирован на одного оператора (см. примечание ниже).
+
 ## Диаграмма модулей
 
 ```mermaid
