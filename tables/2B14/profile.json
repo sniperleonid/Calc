@@ -14,5 +14,8 @@
     "S832S_Illumination_AM"
   ],
   "min_range_m": 85,
-  "max_range_m": 3900
+  "max_range_m": 3900,
+  "mil_system": {
+    "mils_per_circle": 6000
+  }
 }

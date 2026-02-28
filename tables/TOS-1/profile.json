@@ -9,5 +9,8 @@
     "220MM_Thermobaric"
   ],
   "min_range_m": 400,
-  "max_range_m": 6000
+  "max_range_m": 6000,
+  "mil_system": {
+    "mils_per_circle": 6000
+  }
 }

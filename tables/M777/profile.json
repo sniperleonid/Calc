@@ -16,5 +16,8 @@
   "metadata": {
     "manufacturer": "BAE Systems",
     "caliber": "155mm"
+  },
+  "mil_system": {
+    "mils_per_circle": 6400
   }
 }

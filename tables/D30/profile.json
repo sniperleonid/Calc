@@ -9,5 +9,8 @@
     "122mm_HE"
   ],
   "min_range_m": 400,
-  "max_range_m": 15300
+  "max_range_m": 15300,
+  "mil_system": {
+    "mils_per_circle": 6000
+  }
 }
