@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { bearingFromNorthRad, windFromSpeedDir, targetFromObserver } from '../apps/ballistics-core/geometry.js';
 import { solveFiringSolution, interpolateTable } from '../apps/ballistics-core/solver.js';
+import { applyHeightCorrection } from '../apps/ballistics-core/atmosphere.js';
+import { milToRad, radToMil } from '../apps/ballistics-core/units.js';
 
 function almost(actual, expected, eps = 1e-3) {
   assert.equal(Math.abs(actual - expected) <= eps, true, `expected ${actual} ~= ${expected}`);
@@ -145,3 +148,50 @@ test('weapon registry loads from server tables catalog endpoint', async () => {
   global.fetch = oldFetch;
 });
 
+
+
+test('mil conversion supports 6000 and 6400 systems', () => {
+  almost(radToMil(milToRad(1000, 6000), 6000), 1000, 1e-6);
+  almost(radToMil(milToRad(1000, 6400), 6400), 1000, 1e-6);
+  assert.notEqual(milToRad(1600, 6000), milToRad(1600, 6400));
+});
+
+test('height correction keeps sign and 0.6 factor for large negative heightDiff', () => {
+  almost(applyHeightCorrection({ baseElevationMil: 1000, heightDiff: 200, dElevPer100m: 10 }), 980);
+  almost(applyHeightCorrection({ baseElevationMil: 1000, heightDiff: -50, dElevPer100m: 10 }), 1005);
+  almost(applyHeightCorrection({ baseElevationMil: 1000, heightDiff: -200, dElevPer100m: 10 }), 1012);
+});
+
+test('tabular solve matches ballistic-data examples', async () => {
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures.ballistic-data.json', import.meta.url), 'utf-8'));
+  const oldFetch = global.fetch;
+  global.fetch = async (url) => {
+    const u = String(url);
+    if (u.startsWith('/api/ballistics/weapon')) {
+      return Response.json({
+        ...fixture.weapon,
+        primaryTable: fixture.table,
+      });
+    }
+    if (u.startsWith('/api/ballistics/table')) {
+      return Response.json(fixture.table);
+    }
+    throw new Error(`Unexpected url ${u}`);
+  };
+
+  for (const sample of fixture.examples) {
+    const solution = await solveFiringSolution({
+      weaponId: fixture.weapon.weaponId,
+      gunPos: { x: 0, y: 0, z: 0 },
+      targetPos: { x: sample.distance, y: 0, z: sample.heightDiff },
+      arc: 'LOW',
+      wind: { speedMps: 0, fromDeg: 0 },
+    });
+    almost(solution.elevMil, sample.expected.elevMil, 1e-6);
+    almost(solution.tofSec, sample.expected.tofSec, 1e-6);
+    assert.equal(solution.chargeId, sample.expected.chargeId);
+    assert.equal(solution.solverMode, 'table');
+  }
+
+  global.fetch = oldFetch;
+});

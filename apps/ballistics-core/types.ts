@@ -11,6 +11,7 @@ export interface SolveRequest {
   dt?: number;
   ttl?: number;
   weaponId: string;
+  simulate?: boolean;
 }
 
 export interface FireSolution {
@@ -25,4 +26,5 @@ export interface FireSolution {
   impactZ: number;
   missDistance: number;
   arcType: Exclude<ArcType, 'AUTO'>;
+  solverMode?: 'table' | 'rk4';
 }

@@ -1,27 +1,14 @@
-import { applyHeightCorrection, applyWindCorrection } from './atmosphere.js';
+import { applyHeightCorrection, applyTofHeightCorrection } from './atmosphere.js';
 import { bearingFromNorthRad, distance2D, rotateWorldToFireFrame, windFromSpeedDir } from './geometry.js';
 import { getTables } from './tables/table-cache.js';
 import { closestApproach, simulateTrajectory } from './trajectory.js';
 import { radToDeg, radToMil, milToRad, wrapDeg } from './units.js';
 import { getWeapon } from './weapons/weapon-registry.js';
 
-function inverseInterpolateElevation(rangeArray, elevArray, targetRange) {
-  let best = elevArray[0] ?? 0;
-  let err = Infinity;
-  for (let i = 0; i < Math.min(rangeArray.length, elevArray.length); i += 1) {
-    const e = Math.abs(rangeArray[i] - targetRange);
-    if (e < err) {
-      err = e;
-      best = elevArray[i];
-    }
-  }
-  return best;
-}
-
-function evaluateCandidate({ weapon, charge, elevMil, windFF, targetX, targetY, dt, ttl }) {
+function evaluateCandidate({ weapon, charge, elevMil, windFF, targetX, targetY, dt, ttl, milsPerCircle }) {
   const trajectory = simulateTrajectory({
     muzzleVel: charge.muzzleVel,
-    elevationRad: milToRad(elevMil),
+    elevationRad: milToRad(elevMil, milsPerCircle),
     dragCoeff: weapon.dragCoeff,
     massKg: weapon.massKg,
     wind: windFF,
@@ -55,15 +42,120 @@ function getArcOrder(arc) {
   return [arc];
 }
 
-function guessFromTable(table, targetX) {
-  const guesses = [];
-  for (const chargeId of table.charges || []) {
-    const range = table.byCharge?.[chargeId]?.range || [];
-    const elev = table.byCharge?.[chargeId]?.elevationMil || table.elevMil || [];
-    if (!range.length || !elev.length) continue;
-    guesses.push({ chargeId: String(chargeId), elevMil: inverseInterpolateElevation(range, elev, targetX), tofSec: null });
+function getRangeTableRows(table, chargeId) {
+  const chargeData = table?.byCharge?.[chargeId];
+  if (Array.isArray(chargeData?.rangeTable) && chargeData.rangeTable.length) {
+    return chargeData.rangeTable;
   }
-  return guesses;
+  const range = chargeData?.range ?? [];
+  const elevation = chargeData?.elevationMil ?? table?.elevMil ?? [];
+  const tof = chargeData?.tof ?? [];
+  const dElev = chargeData?.dElev ?? [];
+  const tofPer100m = chargeData?.tofPer100m ?? [];
+  const size = Math.min(range.length, elevation.length);
+  const rows = [];
+  for (let i = 0; i < size; i += 1) {
+    rows.push({
+      range: range[i],
+      elevation: elevation[i],
+      tof: tof[i],
+      dElev: dElev[i],
+      tofPer100m: tofPer100m[i],
+    });
+  }
+  return rows;
+}
+
+function interpolateRows(rows, distance) {
+  if (!rows.length) return null;
+  const sorted = [...rows].sort((a, b) => a.range - b.range);
+  if (distance <= sorted[0].range) return sorted[0];
+  for (let i = 1; i < sorted.length; i += 1) {
+    if (distance <= sorted[i].range) {
+      const left = sorted[i - 1];
+      const right = sorted[i];
+      if (right.range === left.range) return right;
+      const t = (distance - left.range) / (right.range - left.range);
+      const lerp = (a, b) => {
+        if (!Number.isFinite(a) && !Number.isFinite(b)) return undefined;
+        if (!Number.isFinite(a)) return b;
+        if (!Number.isFinite(b)) return a;
+        return a + (b - a) * t;
+      };
+      return {
+        range: distance,
+        elevation: lerp(left.elevation, right.elevation),
+        tof: lerp(left.tof, right.tof),
+        dElev: lerp(left.dElev, right.dElev),
+        tofPer100m: lerp(left.tofPer100m, right.tofPer100m),
+      };
+    }
+  }
+  return sorted.at(-1);
+}
+
+function pickChargeByDistance(table, distance) {
+  const candidates = [];
+  for (const chargeId of table?.charges || []) {
+    const rows = getRangeTableRows(table, String(chargeId));
+    if (!rows.length) continue;
+    const ranges = rows.map((row) => Number(row.range)).filter((value) => Number.isFinite(value));
+    if (!ranges.length) continue;
+    const minRange = Math.min(...ranges);
+    const maxRange = Math.max(...ranges);
+    candidates.push({ chargeId: String(chargeId), minRange, maxRange, rows });
+  }
+
+  const inRange = candidates
+    .filter((candidate) => distance >= candidate.minRange && distance <= candidate.maxRange)
+    .sort((a, b) => a.maxRange - b.maxRange);
+  if (inRange.length) return inRange[0];
+
+  return candidates
+    .sort((a, b) => Math.abs(distance - b.maxRange) - Math.abs(distance - a.maxRange))
+    .at(-1) ?? null;
+}
+
+function solveFromTable({ table, arcType, weapon, bearingRad, range2D, dz, crossWindMps }) {
+  const selected = pickChargeByDistance(table, range2D);
+  if (!selected) return null;
+
+  const base = interpolateRows(selected.rows, range2D);
+  if (!base || !Number.isFinite(base.elevation)) return null;
+
+  const elevationMil = applyHeightCorrection({
+    baseElevationMil: base.elevation,
+    heightDiff: dz,
+    distance: range2D,
+    dElevPer100m: base.dElev,
+  });
+  const tofSec = applyTofHeightCorrection({
+    baseTofSec: base.tof,
+    heightDiff: dz,
+    tofPer100m: base.tofPer100m,
+  });
+
+  return {
+    chargeId: selected.chargeId,
+    elevMil: elevationMil,
+    azimuthDeg: wrapDeg(radToDeg(bearingRad)),
+    tofSec,
+    muzzleVel: (weapon.charges || []).find((charge) => String(charge.id) === selected.chargeId)?.muzzleVel,
+    driftMeters: crossWindMps * (Number.isFinite(tofSec) ? tofSec : 0),
+    impactX: range2D,
+    impactY: dz,
+    impactZ: crossWindMps * (Number.isFinite(tofSec) ? tofSec : 0),
+    missDistance: 0,
+    arcType,
+    deltaAzimuthDegFromNoWind: 0,
+    elevationDeg: radToDeg(milToRad(elevationMil, weapon.milSystem?.milsPerCircle ?? 6400)),
+    solverMode: 'table',
+  };
+}
+
+function computeRk4AzimuthCorrectionDeg(missZ, distance) {
+  const safeDistance = Math.max(1, distance);
+  return radToDeg(Math.atan2(-missZ, safeDistance));
 }
 
 export async function solveFiringSolution(input) {
@@ -72,9 +164,11 @@ export async function solveFiringSolution(input) {
     dt: 0.02,
     ttl: 60,
     arc: 'AUTO',
+    simulate: false,
     ...input,
   };
   const weapon = await getWeapon(req.weaponId);
+  const milsPerCircle = weapon.milSystem?.milsPerCircle ?? 6400;
   const dx = req.targetPos.x - req.gunPos.x;
   const dy = req.targetPos.y - req.gunPos.y;
   const dz = req.targetPos.z - req.gunPos.z;
@@ -86,19 +180,51 @@ export async function solveFiringSolution(input) {
   const windFF = { x: ff.along, y: 0, z: ff.cross };
 
   const tables = await getTables(req.weaponId, weapon.tables || {});
-  let best = null;
+  const allowTableMode = !req.simulate;
 
+  if (allowTableMode) {
+    for (const arcType of getArcOrder(req.arc)) {
+      const table = tables[arcType.toLowerCase()];
+      if (!table) continue;
+      const solved = solveFromTable({
+        table,
+        arcType,
+        weapon,
+        bearingRad,
+        range2D,
+        dz,
+        crossWindMps: ff.cross,
+      });
+      if (solved) return solved;
+    }
+  }
+
+  let best = null;
   for (const arcType of getArcOrder(req.arc)) {
     const table = tables[arcType.toLowerCase()];
-    const guesses = table
-      ? guessFromTable(table, range2D)
-      : (weapon.charges || []).map((charge) => ({ chargeId: String(charge.id), elevMil: arcType === 'HIGH' ? 900 : 300 }));
+    const guesses = [];
+    if (table?.charges?.length) {
+      for (const chargeId of table.charges) {
+        const rows = getRangeTableRows(table, String(chargeId));
+        const base = interpolateRows(rows, range2D);
+        if (!base || !Number.isFinite(base.elevation)) continue;
+        guesses.push({ chargeId: String(chargeId), elevMil: base.elevation, dElev: base.dElev });
+      }
+    } else {
+      for (const charge of weapon.charges || []) {
+        guesses.push({ chargeId: String(charge.id), elevMil: arcType === 'HIGH' ? 900 : 300 });
+      }
+    }
 
     for (const guess of guesses) {
       const charge = (weapon.charges || []).find((item) => String(item.id) === String(guess.chargeId));
       if (!charge) continue;
-      let initial = guess.elevMil;
-      initial = applyHeightCorrection({ baseElevationMil: initial, heightDiff: dz, distance: range2D });
+      const initial = applyHeightCorrection({
+        baseElevationMil: guess.elevMil,
+        heightDiff: dz,
+        distance: range2D,
+        dElevPer100m: guess.dElev,
+      });
       const refined = refineElevation({
         weapon,
         charge,
@@ -108,13 +234,14 @@ export async function solveFiringSolution(input) {
         targetY: dz,
         dt: req.dt,
         ttl: req.ttl,
+        milsPerCircle,
       });
       if (!best || refined.miss.distance < best.miss.distance) {
-        const windFix = applyWindCorrection({ crossWindMps: ff.cross, tofSec: refined.miss.t, distance: range2D });
+        const deltaAzimuthDeg = computeRk4AzimuthCorrectionDeg(refined.miss.z, range2D);
         best = {
           chargeId: String(charge.id),
           elevMil: refined.elevMil,
-          azimuthDeg: wrapDeg(radToDeg(bearingRad) + windFix.deltaAzimuthDeg),
+          azimuthDeg: wrapDeg(radToDeg(bearingRad) + deltaAzimuthDeg),
           tofSec: refined.miss.t,
           muzzleVel: charge.muzzleVel,
           driftMeters: refined.miss.z,
@@ -123,8 +250,9 @@ export async function solveFiringSolution(input) {
           impactZ: refined.miss.z,
           missDistance: refined.miss.distance,
           arcType,
-          deltaAzimuthDegFromNoWind: windFix.deltaAzimuthDeg,
-          elevationDeg: radToDeg(milToRad(refined.elevMil)),
+          deltaAzimuthDegFromNoWind: deltaAzimuthDeg,
+          elevationDeg: radToDeg(milToRad(refined.elevMil, milsPerCircle)),
+          solverMode: 'rk4',
         };
       }
     }
@@ -136,8 +264,8 @@ export async function solveFiringSolution(input) {
 export const computeFireSolution = solveFiringSolution;
 export const calcDistance2D = distance2D;
 export function calcBearingDeg(dx, dy) { return wrapDeg(radToDeg(bearingFromNorthRad(dx, dy))); }
-export function degToMil(deg) { return radToMil((deg * Math.PI) / 180); }
-export function milToDeg(mil) { return (mil * 360) / 6400; }
+export function degToMil(deg, milsPerCircle = 6400) { return radToMil((deg * Math.PI) / 180, milsPerCircle); }
+export function milToDeg(mil, milsPerCircle = 6400) { return (mil * 360) / milsPerCircle; }
 export function lerp(x, x0, x1, y0, y1) {
   if (x1 === x0) return y0;
   const t = (x - x0) / (x1 - x0);

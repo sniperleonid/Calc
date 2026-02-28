@@ -2,6 +2,10 @@ import { mapNpzToBallisticTable } from './npz-loader.js';
 
 const cache = new Map();
 
+function cacheKey(weaponId, tablePaths) {
+  return `${weaponId}:${JSON.stringify(tablePaths || {})}`;
+}
+
 async function loadTable(url) {
   if (url.endsWith('.npz')) {
     const base = globalThis.location?.origin ?? 'http://localhost';
@@ -15,15 +19,16 @@ async function loadTable(url) {
 
   const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok) throw new Error(`Failed loading table ${url}`);
-  return response.json();
+  return mapNpzToBallisticTable(await response.json());
 }
 
 export async function getTables(weaponId, tablePaths) {
-  if (cache.has(weaponId)) return cache.get(weaponId);
+  const key = cacheKey(weaponId, tablePaths);
+  if (cache.has(key)) return cache.get(key);
   const result = {};
   if (tablePaths.direct) result.direct = await loadTable(tablePaths.direct);
   if (tablePaths.low) result.low = await loadTable(tablePaths.low);
   if (tablePaths.high) result.high = await loadTable(tablePaths.high);
-  cache.set(weaponId, result);
+  cache.set(key, result);
   return result;
 }
