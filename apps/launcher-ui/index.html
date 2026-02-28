@@ -185,8 +185,8 @@
             <label for="marker-tool" data-i18n="markerToolLabel">Тип метки</label>
             <select id="marker-tool">
               <option value="gun" data-i18n="markerToolGun">Активное орудие</option>
-              <option value="battery" data-i18n="markerToolBattery">Активная батарея</option>
-              <option value="observer" data-i18n="markerToolObserver">Наблюдатель</option>
+              <option value="target" data-i18n="markerToolTarget">Цель</option>
+                            <option value="observer" data-i18n="markerToolObserver">Наблюдатель</option>
               <option value="ruler" data-i18n="markerToolRuler">Линейка</option>
               <option value="coords" data-i18n="markerToolCoords">Снятие координат</option>
             </select>
@@ -196,6 +196,36 @@
               <button class="btn" id="apply-manual-markers" data-i18n="applyManualMarkers">Применить ручные метки</button>
               <button class="btn ghost" id="clear-manual-markers" data-i18n="clearManualMarkers">Очистить ручные метки</button>
             </div>
+            <details class="map-settings-accordion">
+              <summary data-i18n="mapSettingsTitle">Настройки карты</summary>
+              <div class="stack top-gap">
+                <p class="hint" data-i18n="mapSettingsHint">Настройки карты скрыты и не мешают работе с метками.</p>
+                <div class="card-actions">
+                  <button class="btn ghost" id="toggle-calibration-mode" data-i18n="calibrationModeToggle">Калибровка: выкл</button>
+                </div>
+                <div id="calibration-controls" class="stack hidden">
+                  <p class="hint" data-i18n="calibrationHint">Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.</p>
+                  <p class="hint" id="calibration-last-info"></p>
+                  <div class="pair pair-2">
+                    <input id="cal-p0-x" type="number" placeholder="P0 X" />
+                    <input id="cal-p0-y" type="number" placeholder="P0 Y" />
+                  </div>
+                  <div class="pair pair-1">
+                    <input id="cal-scale-meters" type="number" min="0" step="0.1" placeholder="P1-P2 scale (m)" />
+                  </div>
+                  <div class="card-actions inline-actions">
+                    <button class="btn ghost" id="apply-calibration" data-i18n="applyCalibration">Применить калибровку</button>
+                    <button class="btn ghost" id="reset-calibration" data-i18n="resetCalibration">Сбросить калибровку</button>
+                  </div>
+                </div>
+                <label for="map-image-upload" data-i18n="mapImageUpload">Загрузить свою карту (PNG/JPG)</label>
+                <input id="map-image-upload" type="file" accept="image/png,image/jpeg,image/webp" />
+                <div class="card-actions inline-actions">
+                  <button class="btn ghost" id="paste-map-image" data-i18n="pasteMapImage">Вставить карту из буфера</button>
+                  <button class="btn ghost" id="clear-map-image" data-i18n="clearMapImage">Убрать карту</button>
+                </div>
+              </div>
+            </details>
             <pre id="map-tools-output" class="output compact-output"></pre>
           </article>
         </div>

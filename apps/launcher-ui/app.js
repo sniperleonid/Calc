@@ -104,9 +104,9 @@ const i18n = {
     invalidCoordinates: 'Ошибка координат: разрешены только цифры и допустимые пределы',
     mapToolsTitle: 'Инструменты меток', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', pasteMapImage: 'Вставить карту из буфера', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту', mapImageTooLarge: 'Файл карты больше 150 МБ. Уменьшите файл и попробуйте снова.', mapImageUploadFailed: 'Не удалось загрузить изображение карты на сервер.', mapImageClipboardUnsupported: 'Буфер обмена не поддерживается браузером или недоступен без HTTPS/localhost.', mapImageClipboardEmpty: 'В буфере обмена не найдено изображение.',
     calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки', calibrationRequiredBeforeWork: 'Сначала выполните калибровку карты. Пока калибровка не завершена, расчёты и рабочие инструменты заблокированы.', lastCalibrationLabel: 'Последняя калибровка', lastCalibrationMissing: 'Последняя калибровка отсутствует',
-    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolBattery: 'Активная батарея', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки', markerEditorTitle: 'Параметры метки', markerNameLabel: 'Название', markerAzimuthLabel: 'Азимут', markerEditorSaved: 'Параметры метки обновлены', markerDeleted: 'Метка удалена',
+    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolTarget: 'Цель', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки', markerEditorTitle: 'Параметры метки', markerNameLabel: 'Название', markerAzimuthLabel: 'Азимут', markerEditorSaved: 'Параметры метки обновлены', markerDeleted: 'Метка удалена',
     rulerPointSet: 'Точка линейки установлена', rulerMeasurement: 'Линейка', rulerCleared: 'Линейка удалена', coordsCaptured: 'Координаты точки',
-    calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', applyManualMarkers: 'Применить ручные метки', mapSettingsTitle: 'Настройки карты', mapSettingsHint: 'Калибровка и загрузка карты вынесены сюда, чтобы не загромождать вкладку с метками.', markerLocked: 'Постоянную метку нельзя перемещать или менять', clearManualMarkers: 'Очистить ручные метки', profilesTitle: 'Профили орудий и боеприпасов', profilesHint: 'Настройка сектора огня, зон минимальной/максимальной дальности и привязок к снарядам/таблицам.', profileTraverseDeg: 'Сектор наведения (°)', profileMinRange: 'Минимальная дальность (м)', profileMaxRange: 'Максимальная дальность (м)', profileProjectiles: 'Привязанные снаряды', profileTables: 'Баллистические таблицы', mapRotationHint: 'Shift + левая кнопка мыши: задать азимут орудия', mapWarningPrefix: 'Предупреждение'
+    calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', applyManualMarkers: 'Применить ручные метки', mapSettingsTitle: 'Настройки карты', mapSettingsHint: 'Настройки карты скрыты и не мешают работе с метками.', markerLocked: 'Постоянную метку нельзя перемещать или менять', clearManualMarkers: 'Очистить ручные метки', profilesTitle: 'Профили орудий и боеприпасов', profilesHint: 'Настройка сектора огня, зон минимальной/максимальной дальности и привязок к снарядам/таблицам.', profileTraverseDeg: 'Сектор наведения (°)', profileMinRange: 'Минимальная дальность (м)', profileMaxRange: 'Максимальная дальность (м)', profileProjectiles: 'Привязанные снаряды', profileTables: 'Баллистические таблицы', mapRotationHint: 'Shift + левая кнопка мыши: задать азимут орудия', mapWarningPrefix: 'Предупреждение'
   },
   en: {
     appVersion: 'Calc v1', appTitle: 'Ballistics Calculator', appSubtitle: 'Unified shell for fire mission planning and operational data.',
@@ -142,9 +142,9 @@ const i18n = {
     invalidCoordinates: 'Coordinate error: only digits and allowed limits are accepted',
     mapToolsTitle: 'Marker tools', mapImageUpload: 'Upload your map (PNG/JPG)', pasteMapImage: 'Paste map from clipboard', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image', mapImageTooLarge: 'Map image is larger than 150 MB. Reduce file size and try again.', mapImageUploadFailed: 'Failed to upload map image to server.', mapImageClipboardUnsupported: 'Clipboard image read is not available in this browser or without HTTPS/localhost.', mapImageClipboardEmpty: 'No image found in clipboard.',
     calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points', calibrationRequiredBeforeWork: 'Complete map calibration first. Calculations and map tools are locked until calibration is applied.', lastCalibrationLabel: 'Last calibration', lastCalibrationMissing: 'No saved calibration yet',
-    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolBattery: 'Active battery', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target', markerEditorTitle: 'Marker parameters', markerNameLabel: 'Name', markerAzimuthLabel: 'Azimuth', markerEditorSaved: 'Marker parameters updated', markerDeleted: 'Marker deleted',
+    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolTarget: 'Target', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target', markerEditorTitle: 'Marker parameters', markerNameLabel: 'Name', markerAzimuthLabel: 'Azimuth', markerEditorSaved: 'Marker parameters updated', markerDeleted: 'Marker deleted',
     rulerPointSet: 'Ruler point set', rulerMeasurement: 'Ruler', rulerCleared: 'Ruler removed', coordsCaptured: 'Picked coordinates',
-    calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', applyManualMarkers: 'Apply manual markers', mapSettingsTitle: 'Map settings', mapSettingsHint: 'Calibration and map upload are moved here to keep the markers tab clean.', markerLocked: 'Permanent marker cannot be moved or edited', clearManualMarkers: 'Clear manual markers', profilesTitle: 'Gun and ammo profiles', profilesHint: 'Configure fire sector, min/max range zones, and projectile/table bindings.', profileTraverseDeg: 'Traverse sector (°)', profileMinRange: 'Min range (m)', profileMaxRange: 'Max range (m)', profileProjectiles: 'Linked projectiles', profileTables: 'Ballistic tables', mapRotationHint: 'Shift + left mouse: point gun azimuth', mapWarningPrefix: 'Warning' 
+    calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', applyManualMarkers: 'Apply manual markers', mapSettingsTitle: 'Map settings', mapSettingsHint: 'Map settings are collapsible so they do not interfere with marker work.', markerLocked: 'Permanent marker cannot be moved or edited', clearManualMarkers: 'Clear manual markers', profilesTitle: 'Gun and ammo profiles', profilesHint: 'Configure fire sector, min/max range zones, and projectile/table bindings.', profileTraverseDeg: 'Traverse sector (°)', profileMinRange: 'Min range (m)', profileMaxRange: 'Max range (m)', profileProjectiles: 'Linked projectiles', profileTables: 'Ballistic tables', mapRotationHint: 'Shift + left mouse: point gun azimuth', mapWarningPrefix: 'Warning' 
   },
 };
 
@@ -407,14 +407,11 @@ function applyMarkerCoordinatesToBoundInputs(marker, point) {
     return;
   }
 
-  if (marker.type === 'battery' && marker.targetId) {
-    const batteryGunCount = getGunCountForBattery(marker.targetId);
-    for (let gunId = 1; gunId <= batteryGunCount; gunId += 1) {
-      const gunXInput = document.querySelector(`[data-gun-x="${marker.targetId}-${gunId}"]`);
-      const gunYInput = document.querySelector(`[data-gun-y="${marker.targetId}-${gunId}"]`);
-      if (gunXInput) gunXInput.value = xValue;
-      if (gunYInput) gunYInput.value = yValue;
-    }
+  if (marker.type === 'target') {
+    const targetXInput = document.querySelector('#target-x');
+    const targetYInput = document.querySelector('#target-y');
+    if (targetXInput) targetXInput.value = xValue;
+    if (targetYInput) targetYInput.value = yValue;
   }
 }
 
@@ -434,19 +431,9 @@ function syncManualMarkersFromBoundInputs(markers) {
       );
       return point ? { ...marker, x: point.x, y: point.y } : marker;
     }
-    if (marker.type === 'battery' && marker.targetId) {
-      const batteryGunCount = getGunCountForBattery(marker.targetId);
-      const batteryPoints = [];
-      for (let gunId = 1; gunId <= batteryGunCount; gunId += 1) {
-        const point = readXYFromInputs(
-          document.querySelector(`[data-gun-x="${marker.targetId}-${gunId}"]`),
-          document.querySelector(`[data-gun-y="${marker.targetId}-${gunId}"]`),
-        );
-        if (point) batteryPoints.push(point);
-      }
-      if (!batteryPoints.length) return marker;
-      const center = batteryPoints.reduce((acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }), { x: 0, y: 0 });
-      return { ...marker, x: center.x / batteryPoints.length, y: center.y / batteryPoints.length };
+    if (marker.type === 'target') {
+      const point = readXYFromInputs(document.querySelector('#target-x'), document.querySelector('#target-y'));
+      return point ? { ...marker, x: point.x, y: point.y } : marker;
     }
     return marker;
   });
@@ -455,13 +442,14 @@ function syncManualMarkersFromBoundInputs(markers) {
 function syncMapMarkersWithAvailableTargets() {
   const tools = getMapToolsSettings();
   const validGunTargets = new Set(getActiveMarkerTargets('gun').map((entry) => entry.id));
-  const validBatteryTargets = new Set(getActiveMarkerTargets('battery').map((entry) => entry.id));
+  const validTargetTargets = new Set(getActiveMarkerTargets('target').map((entry) => entry.id));
   const validObserverTargets = new Set(getActiveMarkerTargets('observer').map((entry) => entry.id));
   const source = tools.manualMarkers ?? [];
   const filtered = source.filter((marker) => {
     if (marker.type === 'gun') return validGunTargets.has(marker.targetId);
-    if (marker.type === 'battery') return validBatteryTargets.has(marker.targetId);
+    if (marker.type === 'target') return validTargetTargets.has(marker.targetId || 'mission-target');
     if (marker.type === 'observer') return validObserverTargets.has(marker.targetId);
+    if (marker.type === 'battery') return false;
     return true;
   });
 
@@ -1388,6 +1376,7 @@ function initializeMap() {
 
 function getActiveMarkerTargets(type) {
   if (type === 'ruler' || type === 'coords') return [];
+  if (type === 'target') return [{ id: 'mission-target', label: t('target') }];
   if (type === 'observer') {
     const observers = Number(observerCountInput?.value || 1);
     return Array.from({ length: observers }, (_, idx) => {
@@ -1397,12 +1386,6 @@ function getActiveMarkerTargets(type) {
   }
 
   const batteries = Number(batteryCountInput?.value || 1);
-  if (type === 'battery') {
-    return Array.from({ length: batteries }, (_, idx) => {
-      const batteryId = idx + 1;
-      return { id: String(batteryId), label: getBatteryDisplayName(batteryId) };
-    });
-  }
 
   const targets = [];
   for (let b = 1; b <= batteries; b += 1) {
@@ -1425,10 +1408,6 @@ function syncMarkerTargetOptions() {
   if (!targets.length) return;
   if (targets.some((target) => target.id === previousValue)) {
     markerTargetSelect.value = previousValue;
-    return;
-  }
-  if (type === 'battery') {
-    markerTargetSelect.value = missionBatterySelect?.value || targets[0].id;
     return;
   }
   if (type === 'gun') {
@@ -1549,7 +1528,7 @@ function setCalibrationMode(isEnabled) {
 function addManualMarker(type, latlng) {
   const imagePoint = latLngToMapPoint(latlng.lat, latlng.lng);
   const point = imagePointToGamePoint(imagePoint.x, imagePoint.y);
-  const targetId = markerTargetSelect?.value || '';
+  const targetId = markerToolSelect?.value === 'target' ? 'mission-target' : (markerTargetSelect?.value || '');
 
   applyMarkerCoordinatesToBoundInputs({ type, targetId }, point);
 
@@ -2234,8 +2213,8 @@ function getObserverDisplayName(observerId) {
 
 function getMarkerTypeName(type) {
   if (type === 'gun') return t('gun');
-  if (type === 'battery') return t('battery');
   if (type === 'observer') return t('observer');
+  if (type === 'target') return t('target');
   if (type === 'ruler') return t('markerToolRuler');
   if (type === 'coords') return t('markerToolCoords');
   return type;
@@ -2246,7 +2225,6 @@ function buildMarkerLabel(type, markerId) {
     const [batteryId, gunId] = markerId.split('-');
     return `${t('batteryShort')}${batteryId}-${t('gunShort')}${gunId}`;
   }
-  if (type === 'battery' && markerId) return getBatteryDisplayName(markerId);
   if (type === 'observer' && markerId) return getObserverDisplayName(markerId);
   return getMarkerTypeName(type);
 }
@@ -2308,8 +2286,6 @@ function refreshMapOverlay() {
     rulerLine.remove();
     rulerLine = null;
   }
-
-  const battery = Number(missionBatterySelect?.value || 1);
 
   const legendRows = [`<p>${t('mapRotationHint')}</p>`];
   const markerStyle = {
@@ -2414,7 +2390,6 @@ function refreshMapOverlay() {
     const center = batteryGunPoints.reduce((acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }), { x: 0, y: 0 });
     center.x /= batteryGunPoints.length;
     center.y /= batteryGunPoints.length;
-    const isSelectedBattery = batteryId === battery;
     const minX = Math.min(...batteryGunPoints.map((point) => point.x));
     const maxX = Math.max(...batteryGunPoints.map((point) => point.x));
     const minY = Math.min(...batteryGunPoints.map((point) => point.y));
@@ -2424,28 +2399,14 @@ function refreshMapOverlay() {
       gamePointToLatLng(minX - batteryPadding, minY - batteryPadding),
       gamePointToLatLng(maxX + batteryPadding, maxY + batteryPadding),
     ], {
-      color: isSelectedBattery ? '#ff3b30' : markerStyle.battery,
+      color: markerStyle.battery,
       fill: false,
-      weight: isSelectedBattery ? 3 : 1,
-    }).addTo(leafletMap);
-    const batteryCrossV = window.L.polyline([
-      gamePointToLatLng(center.x, center.y - 5),
-      gamePointToLatLng(center.x, center.y + 5),
-    ], {
-      color: markerStyle.battery,
-      weight: 1,
-    }).addTo(leafletMap);
-    const batteryCrossH = window.L.polyline([
-      gamePointToLatLng(center.x - 5, center.y),
-      gamePointToLatLng(center.x + 5, center.y),
-    ], {
-      color: markerStyle.battery,
-      weight: 1,
+      weight: 2,
+      dashArray: '8 6',
     }).addTo(leafletMap);
     const batteryName = getBatteryDisplayName(batteryId);
-    batteryBox.bindPopup(`${batteryName}<br>X: ${center.x.toFixed(1)}, Y: ${center.y.toFixed(1)}`);
     addPersistentLabel(batteryBox, batteryName);
-    gunMarkers.push(batteryBox, batteryCrossV, batteryCrossH);
+    gunMarkers.push(batteryBox);
     legendRows.push(`<p><span class="legend-dot" style="--dot-color:${markerStyle.battery}"></span>${batteryName}: X=${center.x.toFixed(1)}, Y=${center.y.toFixed(1)}</p>`);
   }
 

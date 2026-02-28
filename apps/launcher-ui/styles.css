@@ -369,6 +369,24 @@ select,
   display: none;
 }
 
+.map-settings-accordion {
+  margin-top: 10px;
+  border: 1px dashed color-mix(in srgb, var(--border), transparent 40%);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.map-settings-accordion summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--muted);
+  list-style: none;
+}
+
+.map-settings-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
 @media (max-width: 1100px) {
   .panel-grid-3,
   .section-layout,
