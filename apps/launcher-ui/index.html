@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calc · Баллистический калькулятор</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="shell-header">
+        <p class="logo-label" data-i18n="appVersion">Calc v1</p>
+        <h1 data-i18n="appTitle">Баллистический калькулятор</h1>
+        <p class="subtitle" data-i18n="appSubtitle">
+          Единая оболочка для планирования огневых задач и оперативных данных.
+        </p>
+      </header>
+
+      <nav class="tabs" aria-label="Sections">
+        <button class="tab active" data-tab="global" data-i18n="tabGlobal" data-i18n-title="tipTabGlobal">Глобальные настройки</button>
+        <button class="tab" data-tab="fire" data-i18n="tabFire" data-i18n-title="tipTabFire">Огневые задачи</button>
+        <button class="tab" data-tab="counter-battery" data-i18n="tabCounterBattery">Контрбатарейная борьба</button>
+        <button class="tab" data-tab="map" data-i18n="tabMap" data-i18n-title="tipTabMap">Карта</button>
+        <button class="tab" data-tab="safety" data-i18n="tabSafety" data-i18n-title="tipTabSafety">Безопасность и данные</button>
+        <button class="tab" data-tab="settings" data-i18n="tabSettings" data-i18n-title="tipTabSettings">Настройки</button>
+      </nav>
+
+      <section class="tab-panel active" data-panel="global">
+        <div class="section-layout global-layout">
+          <article class="card global-card">
+            <h2 data-i18n="batterySectionTitle">Батареи</h2>
+            <div class="global-control">
+              <label for="battery-count" data-i18n="batteryCount">Количество батарей</label>
+              <input id="battery-count" type="number" min="1" max="5" value="2" />
+            </div>
+            <div id="battery-config" class="stack"></div>
+          </article>
+          <article class="card global-card">
+            <h2 data-i18n="gunsSectionTitle">Орудия</h2>
+            <div id="guns-coordinates" class="stack"></div>
+          </article>
+          <article class="card global-card">
+            <h2 data-i18n="observerSectionTitle">Наблюдатели</h2>
+            <div class="global-control">
+              <label for="observer-count" data-i18n="observerCount">Количество наблюдателей (до 5)</label>
+              <input id="observer-count" type="number" min="1" max="5" value="2" />
+            </div>
+            <div id="observer-bindings" class="stack"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="fire">
+        <div class="section-layout">
+          <article class="card mission-form-card">
+            <h2 data-i18n="missionTitle">Калькулятор огневой задачи</h2>
+            <label for="mission-name" data-i18n="missionName">Название задачи</label>
+            <input id="mission-name" value="Mission-1" />
+            <label for="active-target" data-i18n="activeTargetLabel">Активная цель</label>
+            <select id="active-target"></select>
+            <label for="target-x" data-i18n="targetX">Координата цели X</label>
+            <input id="target-x" type="text" inputmode="numeric" data-coordinate value="1500" />
+            <label for="target-y" data-i18n="targetY">Координата цели Y</label>
+            <input id="target-y" type="text" inputmode="numeric" data-coordinate value="1800" />
+            <label for="target-height" data-i18n="targetHeight">Высота цели (м)</label>
+            <input id="target-height" type="text" inputmode="numeric" data-height value="0" />
+            <label for="mission-battery" data-i18n="missionBattery">Батарея</label>
+            <select id="mission-battery"></select>
+            <label for="mission-gun" data-i18n="missionGun">Орудие (или все в батарее)</label>
+            <select id="mission-gun"></select>
+            <h3 data-i18n="missionProjectileSelectionTitle">Выбор снарядов по типам орудий</h3>
+            <p class="hint" data-i18n="missionProjectileSelectionHint">Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.</p>
+            <div id="mission-projectile-selectors" class="stack compact-stack"></div>
+            <label for="trajectory-type" data-i18n="trajectoryType">Тип траектории</label>
+            <select id="trajectory-type">
+              <option value="indirect" data-i18n="trajectoryTypeIndirect">Навесная</option>
+              <option value="direct" data-i18n="trajectoryTypeDirect">Прямая</option>
+            </select>
+            <div id="indirect-arc-settings" class="stack compact-stack">
+              <label for="indirect-arc" data-i18n="indirectArcType">Навесная траектория</label>
+              <select id="indirect-arc">
+                <option value="low" data-i18n="indirectArcLow">Низкая</option>
+                <option value="high" data-i18n="indirectArcHigh">Высокая</option>
+              </select>
+            </div>
+            <p id="trajectory-support-hint" class="hint"></p>
+            <label for="fire-mode" data-i18n="fireMode">Тип огня</label>
+            <select id="fire-mode">
+              <option value="POINT" data-i18n="fireModePoint">Точка (1 точка)</option>
+              <option value="CONVERGED" data-i18n="fireModeConverged">Сходящийся</option>
+              <option value="PARALLEL_SHEAF" data-i18n="fireModeParallelSheaf">Параллельный веер</option>
+              <option value="OPEN_SHEAF" data-i18n="fireModeOpenSheaf">Открытый веер</option>
+              <option value="CIRCULAR_AREA" data-i18n="fireModeCircularArea">Круговой</option>
+              <option value="LINEAR" data-i18n="fireModeLinear">Линейный</option>
+              <option value="RECT_AREA" data-i18n="fireModeRectArea">Прямоугольник</option>
+            </select>
+            <div id="fire-mode-settings" class="stack compact-stack">
+              <div data-fire-mode-panel="POINT" class="pair pair-2">
+                <p class="hint" data-i18n="fireModePointHint">Все орудия стреляют в одну точку цели.</p>
+              </div>
+              <div data-fire-mode-panel="CONVERGED" class="pair pair-2 hidden">
+                <p class="hint" data-i18n="fireModeConvergedHint">Сведение огня в одну точку с возможными индивидуальными поправками.</p>
+              </div>
+              <div data-fire-mode-panel="LINEAR" class="pair pair-2 hidden">
+                <input id="fire-linear-start-x" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearStartX" placeholder="Start X" />
+                <input id="fire-linear-start-y" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearStartY" placeholder="Start Y" />
+                <input id="fire-linear-end-x" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearEndX" placeholder="End X" />
+                <input id="fire-linear-end-y" type="text" inputmode="numeric" data-coordinate data-fire-setting="linearEndY" placeholder="End Y" />
+                <input id="fire-linear-spacing" type="number" min="5" step="5" data-fire-setting="linearSpacing" placeholder="Spacing (m)" />
+              </div>
+              <div data-fire-mode-panel="PARALLEL_SHEAF" class="pair pair-2 hidden">
+                <input id="fire-parallel-width" type="number" min="10" step="10" data-fire-setting="parallelWidth" placeholder="Width (m)" />
+                <input id="fire-parallel-bearing" type="number" min="0" max="359" step="1" data-fire-setting="parallelBearing" placeholder="Bearing°" />
+              </div>
+              <div data-fire-mode-panel="OPEN_SHEAF" class="pair pair-2 hidden">
+                <input id="fire-open-width" type="number" min="10" step="10" data-fire-setting="openWidth" placeholder="Width (m)" />
+                <input id="fire-open-bearing" type="number" min="0" max="359" step="1" data-fire-setting="openBearing" placeholder="Bearing°" />
+              </div>
+              <div data-fire-mode-panel="CIRCULAR_AREA" class="pair pair-2 hidden">
+                <input id="fire-circular-radius" type="number" min="10" step="10" data-fire-setting="circularRadius" placeholder="Radius (m)" />
+                <input id="fire-circular-count" type="number" min="4" max="24" step="1" data-fire-setting="circularCount" placeholder="Points" />
+              </div>
+              <div data-fire-mode-panel="RECT_AREA" class="pair pair-2 hidden">
+                <input id="fire-rect-width" type="number" min="10" step="10" data-fire-setting="rectWidth" placeholder="Width (m)" />
+                <input id="fire-rect-length" type="number" min="10" step="10" data-fire-setting="rectLength" placeholder="Length (m)" />
+                <input id="fire-rect-bearing" type="number" min="0" max="359" step="1" data-fire-setting="rectBearing" placeholder="Bearing°" />
+                <input id="fire-rect-spacing" type="number" min="5" step="5" data-fire-setting="rectSpacing" placeholder="Spacing (m)" />
+              </div>
+            </div>
+            <h3>Огневая задача (FDC)</h3>
+            <div class="pair pair-2">
+              <label>Тип цели
+                <select id="fm-target-type">
+                  <option value="POINT">Точечная цель</option>
+                  <option value="LINE">Линия</option>
+                  <option value="RECTANGLE">Прямоугольник</option>
+                  <option value="CIRCLE">Круг</option>
+                </select>
+              </label>
+              <label>Схема распределения
+                <select id="fm-sheaf-type">
+                  <option value="CONVERGED">Сходящийся</option>
+                  <option value="PARALLEL">Параллельный</option>
+                  <option value="OPEN">Открытый</option>
+                </select>
+              </label>
+              <label>Режим выполнения
+                <select id="fm-control-type">
+                  <option value="SIMULTANEOUS">Одновременный</option>
+                  <option value="SEQUENCE">Поочерёдный</option>
+                  <option value="CREEPING">Ползущий огонь</option>
+                  <option value="TOT">Время поражения (TOT)</option>
+                  <option value="MRSI">MRSI</option>
+                </select>
+              </label>
+              <label data-fm-field="bearingDeg">Азимут, °<input id="fm-bearing" type="number" step="1" value="0" /></label>
+              <label data-fm-field="lengthM">Длина, м<input id="fm-length" type="number" step="1" value="200" /></label>
+              <label data-fm-field="widthM">Ширина, м<input id="fm-width" type="number" step="1" value="200" /></label>
+              <label data-fm-field="radiusM">Радиус, м<input id="fm-radius" type="number" step="1" value="100" /></label>
+              <label data-fm-field="spacingM">Шаг точек, м<input id="fm-spacing" type="number" step="1" value="40" /></label>
+              <label data-fm-field="aimpointCount">Количество точек<input id="fm-aimpoint-count" type="number" step="1" value="8" /></label>
+              <label data-fm-field="sheafWidthM">Ширина веера, м<input id="fm-sheaf-width" type="number" step="1" value="180" /></label>
+              <label data-fm-field="openFactor">Коэффициент раскрытия<input id="fm-open-factor" type="number" step="0.1" value="2" /></label>
+              <label data-fm-field="phaseIntervalSec">Интервал между фазами, с<input id="fm-phase-interval" type="number" step="0.5" value="0" /></label>
+              <label data-fm-field="stepM">Шаг ползущего огня, м<input id="fm-step-m" type="number" step="1" value="50" /></label>
+              <label data-fm-field="stepsCount">Количество шагов<input id="fm-steps-count" type="number" step="1" value="3" /></label>
+              <label data-fm-field="stepIntervalSec">Интервал между шагами, с<input id="fm-step-interval" type="number" step="0.5" value="10" /></label>
+              <label data-fm-field="desiredImpactSec">Желаемое время удара, с<input id="fm-tot-time" type="number" step="1" value="0" /></label>
+              <label data-fm-field="mrsiRounds">Количество выстрелов<input id="fm-mrsi-rounds" type="number" step="1" value="3" /></label>
+              <label data-fm-field="mrsiMinSepSec">Минимальный интервал, с<input id="fm-mrsi-min-sep" type="number" step="0.5" value="2" /></label>
+              <fieldset data-fm-field="mrsiAllowedArcs">
+                <legend>Разрешённые дуги</legend>
+                <label><input type="checkbox" data-fm-mrsi-arc value="LOW" checked /> Низкая</label>
+                <label><input type="checkbox" data-fm-mrsi-arc value="HIGH" checked /> Высокая</label>
+                <label><input type="checkbox" data-fm-mrsi-arc value="DIRECT" /> Прямая</label>
+              </fieldset>
+            </div>
+          </article>
+          <article class="card">
+            <h2 data-i18n="correctionTabTitle">Корректировка по активной цели</h2>
+            <p class="hint" data-i18n="correctionTabHint">Используются активная цель и выбранные орудия из вкладки «Огневые задачи».</p>
+            <h3 data-i18n="correctionTitle">Корректировка</h3>
+            <label for="correction-observer" data-i18n="correctionObserver">Наблюдатель корректировки</label>
+            <select id="correction-observer"></select>
+            <p id="correction-anchor-info" class="hint"></p>
+            <div class="pair pair-2">
+              <input id="correction-lr" type="number" step="1" placeholder="L/R (m)" />
+              <input id="correction-add-drop" type="number" step="1" placeholder="Add/Drop (m)" />
+            </div>
+            <div class="pair pair-2">
+              <input id="wind-speed" type="number" step="0.1" placeholder="Wind speed (m/s)" value="0" />
+              <input id="wind-direction" type="number" step="0.1" placeholder="Wind from (°)" value="0" />
+            </div>
+            <p id="adjustment-offset-info" class="hint">ΔTarget: 0m / 0m</p>
+            <p id="wind-components-info" class="hint">Headwind: 0 m/s | Crosswind: 0 m/s | Drift correction: 0 m</p>
+            <div class="card-actions inline-actions">
+              <button class="btn ghost" id="adj-add-50">+50м</button>
+              <button class="btn ghost" id="adj-drop-50">-50м</button>
+              <button class="btn ghost" id="adj-right-25">+25м вправо</button>
+              <button class="btn ghost" id="adj-left-25">-25м влево</button>
+            </div>
+            <div class="card-actions inline-actions">
+              <button class="btn ghost" id="save-correction" data-i18n="saveCorrection">Сохранить поправку</button>
+              <button class="btn ghost" id="reset-correction" data-i18n="resetCorrection">Сбросить поправку</button>
+            </div>
+            <h3 data-i18n="observerTargetingTitle">Наведение наблюдателем</h3>
+            <p class="hint" data-i18n="observerTargetingHint">Если координаты цели неизвестны, задайте дальность и азимут. Угол/высота — опционально.</p>
+            <div class="pair pair-2">
+              <input id="observer-target-distance" type="number" min="0" step="1" placeholder="Distance (m)" />
+              <input id="observer-target-horizontal-distance" type="number" min="0" step="1" placeholder="Horizontal (m)" />
+              <input id="observer-target-vertical-distance" type="number" step="1" placeholder="Vertical (m)" />
+              <input id="observer-target-azimuth" type="number" min="0" max="359" step="0.1" placeholder="Azimuth°" />
+              <input id="observer-target-angle" type="number" min="-89" max="89" step="0.1" placeholder="Angle°" />
+            </div>
+            <div class="card-actions inline-actions">
+              <button class="btn ghost" id="apply-observer-targeting" data-i18n="applyObserverTargeting">Рассчитать цель от наблюдателя</button>
+            </div>
+          </article>
+          <article class="card">
+            <h2 data-i18n="actionsTitle">Действия</h2>
+            <p class="hint" data-i18n="gunnerHint">Все расчёты выполняются на основе глобальных настроек.</p>
+            <div class="card-actions">
+              <button class="btn" id="calculate-btn" data-i18n="calculate">Рассчитать</button>
+              <button class="btn ghost" id="show-mto" data-i18n="showMto">Показать MTO</button>
+              <button class="btn ghost" id="save-mission" data-i18n="logMission">Сохранить миссию</button>
+              <button class="btn" id="build-fire-mission">Сформировать миссию</button>
+              <button class="btn" id="next-fire-package">Следующий расчёт</button>
+              <button class="btn ghost" id="reset-fire-mission">Сброс миссии</button>
+            </div>
+            <pre id="fire-output" class="output"></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="map">
+        <div class="section-layout map-layout">
+          <article class="card map-card" data-i18n-title="tipMapCanvasCard">
+            <h2 data-i18n="mapPanelTitle">Тактическая карта (Leaflet)</h2>
+            <pre id="map-tools-output" class="output compact-output map-info-overlay"></pre>
+            <div id="leaflet-map" class="leaflet-map" aria-label="Leaflet tactical map"></div>
+          </article>
+          <article class="card" data-i18n-title="tipMapToolsCard">
+            <h2 data-i18n="mapLegendTitle">Легенда</h2>
+            <p class="hint" data-i18n="mapLegendHint">Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».</p>
+            <div id="map-legend" class="stack"></div>
+
+            <h2 data-i18n="mapToolsTitle">Инструменты меток</h2>
+            <label for="marker-tool" data-i18n="markerToolLabel">Тип метки</label>
+            <select id="marker-tool">
+              <option value="gun" data-i18n="markerToolGun">Активное орудие</option>
+              <option value="target" data-i18n="markerToolTarget">Цель</option>
+                            <option value="observer" data-i18n="markerToolObserver">Наблюдатель</option>
+              <option value="ruler" data-i18n="markerToolRuler">Линейка</option>
+              <option value="coords" data-i18n="markerToolCoords">Снятие координат</option>
+            </select>
+            <label for="marker-target" data-i18n="markerTargetLabel">Активная цель метки</label>
+            <select id="marker-target"></select>
+            <div class="card-actions">
+              <button class="btn" id="apply-manual-markers" data-i18n="applyManualMarkers">Применить ручные метки</button>
+              <button class="btn ghost" id="clear-manual-markers" data-i18n="clearManualMarkers">Очистить ручные метки</button>
+            </div>
+            <details class="map-settings-accordion">
+              <summary data-i18n="mapSettingsTitle">Настройки карты</summary>
+              <div class="stack top-gap">
+                <p class="hint" data-i18n="mapSettingsHint">Настройки карты скрыты и не мешают работе с метками.</p>
+                <div class="card-actions">
+                  <button class="btn ghost" id="toggle-calibration-mode" data-i18n="calibrationModeToggle">Калибровка: выкл</button>
+                </div>
+                <div id="calibration-controls" class="stack hidden">
+                  <p class="hint" data-i18n="calibrationHint">Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.</p>
+                  <p class="hint" id="calibration-last-info"></p>
+                  <div class="pair pair-2">
+                    <input id="cal-p0-x" type="number" placeholder="P0 X" />
+                    <input id="cal-p0-y" type="number" placeholder="P0 Y" />
+                  </div>
+                  <div class="pair pair-1">
+                    <input id="cal-scale-meters" type="number" min="0" step="0.1" placeholder="P1-P2 scale (m)" />
+                  </div>
+                  <div class="card-actions inline-actions">
+                    <button class="btn ghost" id="apply-calibration" data-i18n="applyCalibration">Применить калибровку</button>
+                    <button class="btn ghost" id="reset-calibration" data-i18n="resetCalibration">Сбросить калибровку</button>
+                  </div>
+                </div>
+                <label for="map-image-upload" data-i18n="mapImageUpload">Загрузить свою карту (PNG/JPG)</label>
+                <input id="map-image-upload" type="file" accept="image/png,image/jpeg,image/webp" />
+                <div class="card-actions inline-actions">
+                  <button class="btn ghost" id="paste-map-image" data-i18n="pasteMapImage">Вставить карту из буфера</button>
+                  <button class="btn ghost" id="clear-map-image" data-i18n="clearMapImage">Убрать карту</button>
+                </div>
+              </div>
+            </details>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="counter-battery">
+        <div class="section-layout">
+          <article class="card">
+            <h2 data-i18n="counterBatteryTitle">Контрбатарейное обнаружение</h2>
+            <p class="hint" data-i18n="counterBatteryHint">Используйте наблюдения для определения вражеского орудия: звук, воронки, триангуляция по азимутам и гиперболический TDOA.</p>
+            <label for="cb-method" data-i18n="counterBatteryMethod">Метод определения</label>
+            <select id="cb-method">
+              <option value="sound-ranging" data-i18n="cbMethodSound">Звукопеленгация (sound ranging)</option>
+              <option value="crater-analysis" data-i18n="cbMethodCrater">Анализ воронок и обратный азимут</option>
+              <option value="azimuth-triangulation" data-i18n="cbMethodTriangulation">Триангуляция по азимутам наблюдателей</option>
+              <option value="hyperbola-tdoa" data-i18n="cbMethodHyperbola">Гипербола по разности времени прихода (TDOA)</option>
+            </select>
+            <label for="cb-sound-bearing" data-i18n="cbBearing">Азимут на источник (°)</label>
+            <input id="cb-sound-bearing" type="number" min="0" max="359.9" step="0.1" placeholder="52.5" />
+            <label for="cb-est-distance" data-i18n="cbEstimatedDistance">Оценочная дальность (м)</label>
+            <input id="cb-est-distance" type="number" min="0" step="10" placeholder="5200" />
+            <label for="cb-tdoa-delta" data-i18n="cbTdoaDelta">Разница времени прихода (мс)</label>
+            <input id="cb-tdoa-delta" type="number" step="1" placeholder="45" />
+            <label for="cb-impact-bearing" data-i18n="cbImpactBearing">Обратный азимут от воронки (°)</label>
+            <input id="cb-impact-bearing" type="number" min="0" max="359.9" step="0.1" placeholder="231" />
+          </article>
+          <article class="card">
+            <h2 data-i18n="counterBatteryObservers">Данные наблюдателей</h2>
+            <p class="hint" data-i18n="counterBatteryObserversHint">Наблюдатель докладывает азимут. Чем больше точек, тем точнее местоположение врага.</p>
+            <div id="cb-observations" class="stack"></div>
+            <div class="card-actions inline-actions">
+              <button class="btn ghost" id="cb-add-point" data-i18n="cbAddPoint">Добавить точку</button>
+              <button class="btn ghost" id="cb-clear-points" data-i18n="cbClearPoints">Очистить точки</button>
+            </div>
+            <div class="card-actions top-gap">
+              <button class="btn" id="cb-locate-target" data-i18n="cbLocateTarget">Найти вражеское орудие</button>
+              <button class="btn ghost" id="cb-calculate-response" data-i18n="cbCalculateResponse">Рассчитать ответный огонь</button>
+            </div>
+            <pre id="cb-output" class="output"></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="safety">
+        <div class="section-layout">
+          <article class="card">
+            <h2 data-i18n="safeDataTitle">Контроль данных</h2>
+            <p data-i18n="safeDataDescription">Проверка журналов и экспорт служебных данных.</p>
+            <div class="card-actions">
+              <a class="btn ghost" href="http://localhost:8000/docs" target="_blank" rel="noreferrer" data-i18n="openApi">Открыть API</a>
+              <button class="btn ghost" id="open-map" data-i18n="openMap">Открыть карту</button>
+              <button class="btn ghost" id="health-check" data-i18n="checkServices" data-i18n-title="checkServicesHint">Проверить сервисы</button>
+              <button class="btn ghost" id="open-logs" data-i18n="openLogs">Открыть логи</button>
+              <button class="btn ghost" id="export-data" data-i18n="exportData">Экспорт данных</button>
+              <button class="btn danger" id="clear-data" data-i18n="clearAllData">Очистить данные</button>
+            </div>
+            <pre id="safety-output" class="output compact-output"></pre>
+          </article>
+          <article class="card">
+            <h2 data-i18n="serviceState">Состояние сервисов</h2>
+            <p class="status info" data-service="ballistics-copy"></p>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="settings">
+        <div class="section-layout">
+          <article class="card">
+            <h2 data-i18n="generalSettings">Общие настройки</h2>
+            <label for="language" data-i18n="language">Язык</label>
+            <select id="language">
+              <option value="ru">Русский</option>
+              <option value="en">English</option>
+            </select>
+
+            <label for="theme" data-i18n="theme">Тема</label>
+            <select id="theme">
+              <option value="terminal" data-i18n="themeTerminal">Terminal Green</option>
+              <option value="midnight" data-i18n="themeMidnight">Midnight Blue</option>
+              <option value="commander" data-i18n="themeCommander">Commander Light</option>
+            </select>
+            <div class="card-actions top-gap">
+              <button class="btn ghost" id="clear-browser-cache" data-i18n="clearBrowserCache">Очистить кэш браузера страницы</button>
+            </div>
+          </article>
+
+        </div>
+      </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
