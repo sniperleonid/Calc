@@ -117,7 +117,7 @@ const i18n = {
     invalidCoordinates: 'Ошибка координат: разрешены только цифры и допустимые пределы',
     mapToolsTitle: 'Инструменты меток', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', pasteMapImage: 'Вставить карту из буфера', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту', mapImageTooLarge: 'Файл карты больше 150 МБ. Уменьшите файл и попробуйте снова.', mapImageUploadFailed: 'Не удалось загрузить изображение карты на сервер.', mapImageClipboardUnsupported: 'Буфер обмена не поддерживается браузером или недоступен без HTTPS/localhost.', mapImageClipboardEmpty: 'В буфере обмена не найдено изображение.',
     calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки', calibrationRequiredBeforeWork: 'Сначала выполните калибровку карты. Пока калибровка не завершена, расчёты и рабочие инструменты заблокированы.', lastCalibrationLabel: 'Последняя калибровка', lastCalibrationMissing: 'Последняя калибровка отсутствует',
-    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolTarget: 'Цель', markerToolPattern: 'Паттерн огня', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки', markerEditorTitle: 'Параметры метки', markerNameLabel: 'Название', markerAzimuthLabel: 'Азимут', markerEditorSaved: 'Параметры метки обновлены', markerDeleted: 'Метка удалена',
+    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolTarget: 'Цель', markerToolPattern: 'Паттерн огня', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки', markerEditorTitle: 'Параметры метки', markerNameLabel: 'Название', markerAzimuthLabel: 'Азимут', markerEditorSaved: 'Параметры метки обновлены', markerDeleted: 'Метка удалена', drawPattern: 'Рисовать паттерн', drawPatternActive: 'Рисование паттерна: вкл', drawPatternInactive: 'Рисовать паттерн',
     rulerPointSet: 'Точка линейки установлена', rulerMeasurement: 'Линейка', rulerCleared: 'Линейка удалена', coordsCaptured: 'Координаты точки',
     calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', applyManualMarkers: 'Применить ручные метки', mapSettingsTitle: 'Настройки карты', mapSettingsHint: 'Настройки карты скрыты и не мешают работе с метками.', markerLocked: 'Постоянную метку нельзя перемещать или менять', clearManualMarkers: 'Очистить ручные метки', profilesTitle: 'Профили орудий и боеприпасов', profilesHint: 'Профили загружаются из tables/<gun>/profile.json и редактируются вручную в файлах.', profileTraverseDeg: 'Сектор наведения (°)', profileMinRange: 'Минимальная дальность (м)', profileMaxRange: 'Максимальная дальность (м)', profileProjectiles: 'Привязанные снаряды', profileTables: 'Баллистические таблицы', mapRotationHint: 'Левая кнопка мыши по орудию: задать азимут', mapWarningPrefix: 'Предупреждение'
   },
@@ -155,7 +155,7 @@ const i18n = {
     invalidCoordinates: 'Coordinate error: only digits and allowed limits are accepted',
     mapToolsTitle: 'Marker tools', mapImageUpload: 'Upload your map (PNG/JPG)', pasteMapImage: 'Paste map from clipboard', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image', mapImageTooLarge: 'Map image is larger than 150 MB. Reduce file size and try again.', mapImageUploadFailed: 'Failed to upload map image to server.', mapImageClipboardUnsupported: 'Clipboard image read is not available in this browser or without HTTPS/localhost.', mapImageClipboardEmpty: 'No image found in clipboard.',
     calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points', calibrationRequiredBeforeWork: 'Complete map calibration first. Calculations and map tools are locked until calibration is applied.', lastCalibrationLabel: 'Last calibration', lastCalibrationMissing: 'No saved calibration yet',
-    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolTarget: 'Target', markerToolPattern: 'Fire pattern', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target', markerEditorTitle: 'Marker parameters', markerNameLabel: 'Name', markerAzimuthLabel: 'Azimuth', markerEditorSaved: 'Marker parameters updated', markerDeleted: 'Marker deleted',
+    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolTarget: 'Target', markerToolPattern: 'Fire pattern', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target', markerEditorTitle: 'Marker parameters', markerNameLabel: 'Name', markerAzimuthLabel: 'Azimuth', markerEditorSaved: 'Marker parameters updated', markerDeleted: 'Marker deleted', drawPattern: 'Draw pattern', drawPatternActive: 'Pattern drawing: on', drawPatternInactive: 'Draw pattern',
     rulerPointSet: 'Ruler point set', rulerMeasurement: 'Ruler', rulerCleared: 'Ruler removed', coordsCaptured: 'Picked coordinates',
     calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', applyManualMarkers: 'Apply manual markers', mapSettingsTitle: 'Map settings', mapSettingsHint: 'Map settings are collapsible so they do not interfere with marker work.', markerLocked: 'Permanent marker cannot be moved or edited', clearManualMarkers: 'Clear manual markers', profilesTitle: 'Gun and ammo profiles', profilesHint: 'Profiles are loaded from tables/<gun>/profile.json and should be edited manually in files.', profileTraverseDeg: 'Traverse sector (°)', profileMinRange: 'Min range (m)', profileMaxRange: 'Max range (m)', profileProjectiles: 'Linked projectiles', profileTables: 'Ballistic tables', mapRotationHint: 'Left mouse on gun: point gun azimuth', mapWarningPrefix: 'Warning' 
   },
@@ -206,6 +206,8 @@ const mapImageUploadInput = document.querySelector('#map-image-upload');
 const pasteMapImageButton = document.querySelector('#paste-map-image');
 const markerToolSelect = document.querySelector('#marker-tool');
 const markerTargetSelect = document.querySelector('#marker-target');
+const drawPatternButton = document.querySelector('#draw-pattern');
+const drawPatternControls = document.querySelector('#draw-pattern-controls');
 const calibrationModeButton = document.querySelector('#toggle-calibration-mode');
 const calibrationControls = document.querySelector('#calibration-controls');
 const calibrationLastInfo = document.querySelector('#calibration-last-info');
@@ -408,6 +410,7 @@ let manualMarkerDragState = null;
 let gunHeadingDragState = null;
 let pendingGunHeading = null;
 let mapPatternDrawState = null;
+let isPatternDrawMode = false;
 let rightMousePanState = null;
 let lastOverlayBoundsKey = '';
 let lastCtrlPressAt = 0;
@@ -2338,7 +2341,6 @@ function finishCirclePatternDraw(event) {
   resetPatternDrawState();
   persistLauncherSettings();
   refreshMapOverlay();
-  if (mapToolsOutput) mapToolsOutput.textContent = 'Круговой паттерн обновлён из карты.';
 }
 
 function updateGunHeadingDrag(event) {
@@ -2429,6 +2431,53 @@ function resetPatternDrawState() {
   mapPatternDrawState = null;
 }
 
+function updateDrawPatternUi() {
+  if (drawPatternControls) drawPatternControls.classList.toggle('hidden', markerToolSelect?.value !== 'target');
+  if (drawPatternButton) {
+    drawPatternButton.textContent = isPatternDrawMode ? t('drawPatternActive') : t('drawPatternInactive');
+    drawPatternButton.classList.toggle('ghost', !isPatternDrawMode);
+  }
+}
+
+function optimizePatternInputs() {
+  const targetType = fmTargetTypeSelect?.value || 'POINT';
+  const sheafType = fmSheafTypeSelect?.value || 'CONVERGED';
+  if (sheafType !== 'CONVERGED') {
+    const sheafInput = document.querySelector('#fm-sheaf-width');
+    const current = Math.max(10, Number(sheafInput?.value || 100) || 100);
+    let limit = current;
+    if (targetType === 'LINE') {
+      limit = 10;
+    } else if (targetType === 'RECTANGLE') {
+      const width = Math.max(1, Number(fmWidthInput?.value || 1) || 1);
+      limit = Math.max(10, Math.round(width * 0.75));
+    } else if (targetType === 'CIRCLE') {
+      const radius = Math.max(1, Number(fmRadiusInput?.value || 1) || 1);
+      limit = Math.max(10, Math.round(radius));
+    }
+    if (sheafInput && Number(sheafInput.value || 0) > limit) sheafInput.value = String(limit);
+  }
+
+  if (targetType === 'CIRCLE' && fmAimPointCountInput) {
+    const radius = Math.max(1, Number(fmRadiusInput?.value || 1) || 1);
+    const spacing = Math.max(1, Number(document.querySelector('#fm-spacing')?.value || 40) || 40);
+    const suggested = Math.max(3, Math.round((2 * Math.PI * radius) / spacing));
+    fmAimPointCountInput.value = String(suggested);
+  }
+}
+
+function recalculateMissionAfterPatternDraw(statusText) {
+  optimizePatternInputs();
+  try {
+    buildFireMissionPlan();
+    persistLauncherSettings();
+    refreshMapOverlay();
+    if (mapToolsOutput && statusText) mapToolsOutput.textContent = `${statusText} Миссия пересчитана.`;
+  } catch (error) {
+    if (mapToolsOutput) mapToolsOutput.textContent = error?.message || 'Не удалось пересчитать миссию после рисования паттерна.';
+  }
+}
+
 function setMissionTargetFromPoint(point) {
   if (!point) return;
   applyMarkerCoordinatesToBoundInputs({ type: 'target', targetId: getSelectedMissionTargetId() }, point);
@@ -2446,6 +2495,7 @@ function applyLinePatternFromPoints(startPoint, endPoint) {
   if (fmLengthInput) fmLengthInput.value = String(Math.max(1, Math.round(length)));
   const bearingInput = document.querySelector('#fm-bearing');
   if (bearingInput) bearingInput.value = String(Number(bearingDeg.toFixed(1)));
+  recalculateMissionAfterPatternDraw('Линейный паттерн обновлён из карты.');
 }
 
 function applyRectanglePatternFromPoints(points = []) {
@@ -2468,6 +2518,7 @@ function applyRectanglePatternFromPoints(points = []) {
   if (fmLengthInput) fmLengthInput.value = String(Math.max(1, Math.round(length)));
   const bearingInput = document.querySelector('#fm-bearing');
   if (bearingInput) bearingInput.value = String(Number(bearingDeg.toFixed(1)));
+  recalculateMissionAfterPatternDraw('Прямоугольный паттерн обновлён из карты.');
 }
 
 function applyCirclePatternFromPoints(centerPoint, edgePoint) {
@@ -2476,13 +2527,14 @@ function applyCirclePatternFromPoints(centerPoint, edgePoint) {
   if (!Number.isFinite(radius) || radius < 1) return;
   setMissionTargetFromPoint(centerPoint);
   if (fmRadiusInput) fmRadiusInput.value = String(Math.max(1, Math.round(radius)));
+  recalculateMissionAfterPatternDraw('Круговой паттерн обновлён из карты.');
 }
 
 function isFdcTargetDrawingEnabled() {
   const tools = getMapToolsSettings();
   if (tools.calibrationMode || !hasCalibrationConfigured(tools)) return false;
   const selectedTool = markerToolSelect?.value || '';
-  return selectedTool === 'target' || selectedTool === 'pattern';
+  return selectedTool === 'target' && isPatternDrawMode;
 }
 
 function onMapClick(event) {
@@ -2502,9 +2554,7 @@ function onMapClick(event) {
       } else {
         applyLinePatternFromPoints(mapPatternDrawState.points[0], gamePoint);
         resetPatternDrawState();
-        persistLauncherSettings();
         refreshMapOverlay();
-        if (mapToolsOutput) mapToolsOutput.textContent = 'Линейный паттерн обновлён из карты.';
       }
       return;
     }
@@ -2516,9 +2566,7 @@ function onMapClick(event) {
       } else {
         applyRectanglePatternFromPoints(points);
         resetPatternDrawState();
-        persistLauncherSettings();
         refreshMapOverlay();
-        if (mapToolsOutput) mapToolsOutput.textContent = 'Прямоугольный паттерн обновлён из карты.';
       }
       return;
     }
@@ -2545,13 +2593,6 @@ function onMapDoubleClick(event) {
     if (toolType === 'coords') {
       const gamePoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
       if (mapToolsOutput) mapToolsOutput.textContent = `${t('coordsCaptured')}: X=${gamePoint.x.toFixed(2)}, Y=${gamePoint.y.toFixed(2)}`;
-      return;
-    }
-    if (toolType === 'pattern') {
-      const targetType = fmTargetTypeSelect?.value || 'POINT';
-      if (mapToolsOutput) mapToolsOutput.textContent = targetType === 'CIRCLE'
-        ? 'Паттерн: зажмите ЛКМ и потяните для радиуса круга.'
-        : 'Паттерн: рисуйте фигуру обычными кликами на карте.';
       return;
     }
     if (toolType === 'ruler') {
@@ -3118,6 +3159,24 @@ function drawFirePatternOverlay(pattern, markerStyle) {
   return overlays;
 }
 
+function getDraftPatternOverlay() {
+  if (!mapPatternDrawState) return null;
+  if (mapPatternDrawState.type === 'LINE') {
+    return { mode: FIRE_MODE_IDS.LINEAR, geometry: { type: 'point-cloud', points: mapPatternDrawState.points ?? [] } };
+  }
+  if (mapPatternDrawState.type === 'RECTANGLE') {
+    return { mode: FIRE_MODE_IDS.RECT_AREA, geometry: { type: 'point-cloud', points: mapPatternDrawState.points ?? [] } };
+  }
+  if (mapPatternDrawState.type === 'CIRCLE') {
+    const center = mapPatternDrawState.center;
+    const edge = mapPatternDrawState.edge;
+    if (!center || !edge) return null;
+    const radius = Math.hypot(edge.x - center.x, edge.y - center.y);
+    return { mode: FIRE_MODE_IDS.CIRCULAR_AREA, geometry: { type: 'ring', center, radius, points: [center, edge] } };
+  }
+  return null;
+}
+
 function refreshMapOverlay() {
   if (!leafletMap) return;
   syncMapMarkersWithAvailableTargets();
@@ -3342,7 +3401,8 @@ function refreshMapOverlay() {
   });
 
   const tools = getMapToolsSettings();
-  firePatternOverlays = drawFirePatternOverlay(tools.activeFirePattern, markerStyle);
+  const patternOverlay = getDraftPatternOverlay() ?? tools.activeFirePattern;
+  firePatternOverlays = drawFirePatternOverlay(patternOverlay, markerStyle);
   const rulerA = normalizeRulerPoint(tools.ruler?.p1);
   const rulerB = normalizeRulerPoint(tools.ruler?.p2);
   if (rulerA) {
@@ -3753,7 +3813,22 @@ document.querySelector('#apply-manual-markers')?.addEventListener('click', apply
 document.querySelector('#clear-manual-markers')?.addEventListener('click', clearManualMarkers);
 markerToolSelect?.addEventListener('change', () => {
   resetPatternDrawState();
+  isPatternDrawMode = false;
+  updateDrawPatternUi();
   syncMarkerTargetOptions();
+});
+drawPatternButton?.addEventListener('click', () => {
+  isPatternDrawMode = !isPatternDrawMode;
+  updateDrawPatternUi();
+  if (isPatternDrawMode) {
+    recalculateMissionAfterPatternDraw('Режим рисования паттерна включён.');
+    const targetType = fmTargetTypeSelect?.value || 'POINT';
+    if (mapToolsOutput) mapToolsOutput.textContent = targetType === 'CIRCLE'
+      ? 'Паттерн: зажмите ЛКМ и потяните для радиуса круга.'
+      : 'Паттерн: рисуйте фигуру кликами по карте.';
+  } else if (mapToolsOutput) {
+    mapToolsOutput.textContent = 'Режим рисования паттерна выключен.';
+  }
 });
 mapImageUploadInput?.addEventListener('change', async (event) => {
   const file = event.target.files?.[0];
@@ -3771,6 +3846,7 @@ async function initializeLauncher() {
   applyI18n();
   enhanceTabTiles();
   updateCalibrationSummary();
+  updateDrawPatternUi();
   persistLauncherSettings();
   hydrateMapImageFromServer();
   runHealthCheck();

@@ -206,13 +206,15 @@
             <select id="marker-tool">
               <option value="gun" data-i18n="markerToolGun">Активное орудие</option>
               <option value="target" data-i18n="markerToolTarget">Цель</option>
-              <option value="pattern" data-i18n="markerToolPattern">Паттерн огня</option>
               <option value="observer" data-i18n="markerToolObserver">Наблюдатель</option>
               <option value="ruler" data-i18n="markerToolRuler">Линейка</option>
               <option value="coords" data-i18n="markerToolCoords">Снятие координат</option>
             </select>
             <label for="marker-target" data-i18n="markerTargetLabel">Активная цель метки</label>
             <select id="marker-target"></select>
+            <div class="card-actions hidden" id="draw-pattern-controls">
+              <button class="btn" id="draw-pattern" data-i18n="drawPattern">Рисовать паттерн</button>
+            </div>
             <div class="card-actions">
               <button class="btn" id="apply-manual-markers" data-i18n="applyManualMarkers">Применить ручные метки</button>
               <button class="btn ghost" id="clear-manual-markers" data-i18n="clearManualMarkers">Очистить ручные метки</button>
