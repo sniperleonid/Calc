@@ -1942,6 +1942,12 @@ function initializeMap() {
   container.addEventListener('contextmenu', (event) => event.preventDefault());
   container.addEventListener('mousedown', (event) => {
     if (event.button !== 2) return;
+    if (isFdcTargetDrawingEnabled()) {
+      resetPatternDrawState();
+      refreshMapOverlay();
+      if (mapToolsOutput) mapToolsOutput.textContent = 'Рисование паттерна отменено. Начните снова с первой точки.';
+      return;
+    }
     rightMousePanState = { x: event.clientX, y: event.clientY };
   });
   container.addEventListener('mousemove', (event) => {
@@ -2572,35 +2578,6 @@ function onMapClick(event) {
     return;
   }
 
-  if (isFdcTargetDrawingEnabled() && event?.latlng) {
-    const targetType = fmTargetTypeSelect?.value || 'POINT';
-    const imagePoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
-    const gamePoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
-    if (targetType === 'LINE') {
-      if (!mapPatternDrawState || mapPatternDrawState.type !== 'LINE') {
-        mapPatternDrawState = { type: 'LINE', points: [gamePoint] };
-        if (mapToolsOutput) mapToolsOutput.textContent = 'Линия: выберите конечную точку.';
-      } else {
-        applyLinePatternFromPoints(mapPatternDrawState.points[0], gamePoint);
-        resetPatternDrawState();
-        refreshMapOverlay();
-      }
-      return;
-    }
-    if (targetType === 'RECTANGLE') {
-      const points = (mapPatternDrawState?.type === 'RECTANGLE' ? mapPatternDrawState.points : []).concat(gamePoint).slice(0, 4);
-      mapPatternDrawState = { type: 'RECTANGLE', points };
-      if (points.length < 4) {
-        if (mapToolsOutput) mapToolsOutput.textContent = `Прямоугольник: точек ${points.length}/4.`;
-      } else {
-        applyRectanglePatternFromPoints(points);
-        resetPatternDrawState();
-        refreshMapOverlay();
-      }
-      return;
-    }
-  }
-
   if (selectedMapMarker) {
     selectedMapMarker = null;
     refreshMapOverlay();
@@ -2616,6 +2593,35 @@ function onMapDoubleClick(event) {
   if (!tools.calibrationMode) {
     if (!hasCalibrationConfigured(tools)) {
       if (mapToolsOutput) mapToolsOutput.textContent = t('calibrationRequiredBeforeWork');
+      return;
+    }
+    if (isFdcTargetDrawingEnabled()) {
+      const targetType = fmTargetTypeSelect?.value || 'POINT';
+      const gamePoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
+      if (targetType === 'LINE') {
+        if (!mapPatternDrawState || mapPatternDrawState.type !== 'LINE') {
+          mapPatternDrawState = { type: 'LINE', points: [gamePoint] };
+          if (mapToolsOutput) mapToolsOutput.textContent = 'Линия: выберите конечную точку.';
+        } else {
+          applyLinePatternFromPoints(mapPatternDrawState.points[0], gamePoint);
+          resetPatternDrawState();
+          refreshMapOverlay();
+        }
+        return;
+      }
+      if (targetType === 'RECTANGLE') {
+        const points = (mapPatternDrawState?.type === 'RECTANGLE' ? mapPatternDrawState.points : []).concat(gamePoint).slice(0, 4);
+        mapPatternDrawState = { type: 'RECTANGLE', points };
+        if (points.length < 4) {
+          if (mapToolsOutput) mapToolsOutput.textContent = `Прямоугольник: точек ${points.length}/4.`;
+        } else {
+          applyRectanglePatternFromPoints(points);
+          resetPatternDrawState();
+          refreshMapOverlay();
+        }
+        return;
+      }
+      if (mapToolsOutput) mapToolsOutput.textContent = 'Для этого типа цели паттерн рисуется перетаскиванием.';
       return;
     }
     const toolType = markerToolSelect?.value || 'gun';
