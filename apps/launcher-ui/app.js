@@ -1520,6 +1520,30 @@ function toFiniteNumber(value, fallback = 0) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
+function toRadians(value) {
+  return (toFiniteNumber(value, 0) * Math.PI) / 180;
+}
+
+function buildRectangleVerticesFromConfig(config = {}, fallbackCenterPoint = null) {
+  const center = config?.geometry?.center ?? config?.geometry?.point ?? fallbackCenterPoint;
+  if (!center || !Number.isFinite(center.x) || !Number.isFinite(center.y)) return [];
+  const width = Math.max(1, toFiniteNumber(config?.geometry?.widthM, 200));
+  const length = Math.max(1, toFiniteNumber(config?.geometry?.lengthM, 200));
+  const bearing = toRadians(toFiniteNumber(config?.geometry?.bearingDeg, 0));
+  const right = { x: Math.sin(bearing + Math.PI / 2), y: Math.cos(bearing + Math.PI / 2) };
+  const forward = { x: Math.sin(bearing), y: Math.cos(bearing) };
+  const corners = [
+    { lateral: -width / 2, depth: -length / 2 },
+    { lateral: width / 2, depth: -length / 2 },
+    { lateral: width / 2, depth: length / 2 },
+    { lateral: -width / 2, depth: length / 2 },
+  ];
+  return corners.map(({ lateral, depth }) => ({
+    x: center.x + right.x * lateral + forward.x * depth,
+    y: center.y + right.y * lateral + forward.y * depth,
+  }));
+}
+
 function buildFireModeLabelKey(mode) {
   const map = {
     [FIRE_MODE_IDS.POINT]: 'fireModePoint',
@@ -1533,7 +1557,7 @@ function buildFireModeLabelKey(mode) {
   return map[mode] ?? 'fireModePoint';
 }
 
-function buildActiveFirePattern({ mode, centerPoint, aimPoints }) {
+function buildActiveFirePattern({ mode, centerPoint, aimPoints, config }) {
   const points = (aimPoints ?? []).filter((point) => point && Number.isFinite(point.x) && Number.isFinite(point.y));
   if (!points.length) return null;
   if (mode === FIRE_MODE_IDS.LINEAR && points.length > 1) {
@@ -1547,7 +1571,8 @@ function buildActiveFirePattern({ mode, centerPoint, aimPoints }) {
     return { mode, geometry: { type: 'ring', center: safeCenter, radius, points: ringPoints } };
   }
   if (mode === FIRE_MODE_IDS.RECT_AREA) {
-    return { mode, geometry: { type: 'point-cloud', points } };
+    const vertices = buildRectangleVerticesFromConfig(config, centerPoint);
+    return { mode, geometry: { type: 'rectangle', vertices, points } };
   }
   if (mode === FIRE_MODE_IDS.PARALLEL_SHEAF || mode === FIRE_MODE_IDS.OPEN_SHEAF) {
     return { mode, geometry: { type: 'point-cloud', points } };
@@ -1569,7 +1594,7 @@ function updateActiveFirePatternOnMap(plan, config) {
   const tools = getMapToolsSettings();
   const mode = deriveFireModeFromFdcConfig(config);
   const centerPoint = config?.geometry?.center ?? config?.geometry?.point ?? plan?.aimPoints?.[0] ?? null;
-  const pattern = buildActiveFirePattern({ mode, centerPoint, aimPoints: plan?.aimPoints ?? [] });
+  const pattern = buildActiveFirePattern({ mode, centerPoint, aimPoints: plan?.aimPoints ?? [], config });
   state.settings.mapTools = {
     ...tools,
     activeFirePattern: pattern,
@@ -3074,8 +3099,8 @@ function drawFirePatternOverlay(pattern, markerStyle) {
     const center = toLatLng(geometry.center);
     if (center) overlays.push(window.L.circle(center, { color, radius: geometry.radius, weight: 2, fillOpacity: 0.05 }).addTo(leafletMap));
   }
-  if (geometry.type === 'point-cloud') {
-    (geometry.points ?? []).forEach((point) => {
+  if (Array.isArray(geometry.points)) {
+    geometry.points.forEach((point) => {
       const latLng = toLatLng(point);
       if (latLng) overlays.push(window.L.circleMarker(latLng, { color, radius: 4, weight: 1, fillOpacity: 0.7 }).addTo(leafletMap));
     });
