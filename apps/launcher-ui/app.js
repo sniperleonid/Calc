@@ -407,6 +407,7 @@ let lastMissionTargetId = MISSION_TARGET_IDS[0];
 let manualMarkerDragState = null;
 let gunHeadingDragState = null;
 let pendingGunHeading = null;
+let mapPatternDrawState = null;
 let rightMousePanState = null;
 let lastOverlayBoundsKey = '';
 let lastCtrlPressAt = 0;
@@ -1893,6 +1894,9 @@ function initializeMap() {
     onMapDoubleClick(event);
   });
   leafletMap.on('click', onMapClick);
+  leafletMap.on('mousedown', startCirclePatternDraw);
+  leafletMap.on('mousemove', updateCirclePatternDraw);
+  leafletMap.on('mouseup', finishCirclePatternDraw);
   leafletMap.on('mousedown', updateGunHeadingDrag);
   leafletMap.on('mousemove', updateGunHeadingDrag);
   leafletMap.on('mouseup', finishGunHeadingDrag);
@@ -1916,6 +1920,7 @@ function initializeMap() {
   window.addEventListener('mouseup', () => {
     rightMousePanState = null;
     manualMarkerDragState = null;
+    finishCirclePatternDraw();
     finishGunHeadingDrag();
   });
 
@@ -2266,6 +2271,51 @@ function startGunHeadingDrag(event, { gunKey, gunX, gunY, batteryId, gunId }) {
   pendingGunHeading = { gunKey, heading: null };
 }
 
+function shouldStartCirclePatternDraw(event) {
+  if (!event?.latlng || event.originalEvent?.button !== 0) return false;
+  if (!isFdcTargetDrawingEnabled()) return false;
+  return (fmTargetTypeSelect?.value || 'POINT') === 'CIRCLE';
+}
+
+function startCirclePatternDraw(event) {
+  if (!shouldStartCirclePatternDraw(event)) return false;
+  const imagePoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+  const center = imagePointToGamePoint(imagePoint.x, imagePoint.y);
+  mapPatternDrawState = {
+    type: 'CIRCLE',
+    center,
+    edge: center,
+  };
+  if (mapToolsOutput) mapToolsOutput.textContent = 'Круг: потяните мышью для радиуса и отпустите кнопку.';
+  window.L.DomEvent.stop(event);
+  return true;
+}
+
+function updateCirclePatternDraw(event) {
+  if (mapPatternDrawState?.type !== 'CIRCLE' || !event?.latlng) return;
+  const imagePoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+  const edge = imagePointToGamePoint(imagePoint.x, imagePoint.y);
+  mapPatternDrawState = { ...mapPatternDrawState, edge };
+  const radius = Math.hypot(edge.x - mapPatternDrawState.center.x, edge.y - mapPatternDrawState.center.y);
+  if (fmRadiusInput) fmRadiusInput.value = String(Math.max(1, Math.round(radius)));
+  setMissionTargetFromPoint(mapPatternDrawState.center);
+  refreshMapOverlay();
+}
+
+function finishCirclePatternDraw(event) {
+  if (mapPatternDrawState?.type !== 'CIRCLE') return;
+  let latestEdge = mapPatternDrawState.edge;
+  if (event?.latlng) {
+    const imagePoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+    latestEdge = imagePointToGamePoint(imagePoint.x, imagePoint.y);
+  }
+  applyCirclePatternFromPoints(mapPatternDrawState.center, latestEdge);
+  resetPatternDrawState();
+  persistLauncherSettings();
+  refreshMapOverlay();
+  if (mapToolsOutput) mapToolsOutput.textContent = 'Круговой паттерн обновлён из карты.';
+}
+
 function updateGunHeadingDrag(event) {
   if (!gunHeadingDragState || !event?.latlng) return;
   const mapPoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
@@ -2350,10 +2400,102 @@ function updateGunHeadingFromMapClick(latlng) {
   return true;
 }
 
+function resetPatternDrawState() {
+  mapPatternDrawState = null;
+}
+
+function setMissionTargetFromPoint(point) {
+  if (!point) return;
+  applyMarkerCoordinatesToBoundInputs({ type: 'target', targetId: getSelectedMissionTargetId() }, point);
+}
+
+function applyLinePatternFromPoints(startPoint, endPoint) {
+  if (!startPoint || !endPoint) return;
+  const dx = endPoint.x - startPoint.x;
+  const dy = endPoint.y - startPoint.y;
+  const length = Math.hypot(dx, dy);
+  if (!Number.isFinite(length) || length < 1) return;
+  const center = { x: (startPoint.x + endPoint.x) / 2, y: (startPoint.y + endPoint.y) / 2 };
+  const bearingDeg = normalizeAzimuth((Math.atan2(dx, dy) * 180) / Math.PI);
+  setMissionTargetFromPoint(center);
+  if (fmLengthInput) fmLengthInput.value = String(Math.max(1, Math.round(length)));
+  const bearingInput = document.querySelector('#fm-bearing');
+  if (bearingInput) bearingInput.value = String(Number(bearingDeg.toFixed(1)));
+}
+
+function applyRectanglePatternFromPoints(points = []) {
+  if (points.length < 4) return;
+  const [p1, p2, p3, p4] = points;
+  const center = {
+    x: (p1.x + p2.x + p3.x + p4.x) / 4,
+    y: (p1.y + p2.y + p3.y + p4.y) / 4,
+  };
+  const widthA = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  const widthB = Math.hypot(p3.x - p4.x, p3.y - p4.y);
+  const lengthA = Math.hypot(p3.x - p2.x, p3.y - p2.y);
+  const lengthB = Math.hypot(p4.x - p1.x, p4.y - p1.y);
+  const width = (widthA + widthB) / 2;
+  const length = (lengthA + lengthB) / 2;
+  if (!Number.isFinite(width) || !Number.isFinite(length) || width < 1 || length < 1) return;
+  const bearingDeg = normalizeAzimuth((Math.atan2(p2.x - p1.x, p2.y - p1.y) * 180) / Math.PI);
+  setMissionTargetFromPoint(center);
+  if (fmWidthInput) fmWidthInput.value = String(Math.max(1, Math.round(width)));
+  if (fmLengthInput) fmLengthInput.value = String(Math.max(1, Math.round(length)));
+  const bearingInput = document.querySelector('#fm-bearing');
+  if (bearingInput) bearingInput.value = String(Number(bearingDeg.toFixed(1)));
+}
+
+function applyCirclePatternFromPoints(centerPoint, edgePoint) {
+  if (!centerPoint || !edgePoint) return;
+  const radius = Math.hypot(edgePoint.x - centerPoint.x, edgePoint.y - centerPoint.y);
+  if (!Number.isFinite(radius) || radius < 1) return;
+  setMissionTargetFromPoint(centerPoint);
+  if (fmRadiusInput) fmRadiusInput.value = String(Math.max(1, Math.round(radius)));
+}
+
+function isFdcTargetDrawingEnabled() {
+  const tools = getMapToolsSettings();
+  if (tools.calibrationMode || !hasCalibrationConfigured(tools)) return false;
+  return (markerToolSelect?.value || '') === 'target';
+}
+
 function onMapClick(event) {
   if (gunHeadingDragState) {
     window.L.DomEvent.stop(event);
     return;
+  }
+
+  if (isFdcTargetDrawingEnabled() && event?.latlng) {
+    const targetType = fmTargetTypeSelect?.value || 'POINT';
+    const imagePoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+    const gamePoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
+    if (targetType === 'LINE') {
+      if (!mapPatternDrawState || mapPatternDrawState.type !== 'LINE') {
+        mapPatternDrawState = { type: 'LINE', points: [gamePoint] };
+        if (mapToolsOutput) mapToolsOutput.textContent = 'Линия: выберите конечную точку.';
+      } else {
+        applyLinePatternFromPoints(mapPatternDrawState.points[0], gamePoint);
+        resetPatternDrawState();
+        persistLauncherSettings();
+        refreshMapOverlay();
+        if (mapToolsOutput) mapToolsOutput.textContent = 'Линейный паттерн обновлён из карты.';
+      }
+      return;
+    }
+    if (targetType === 'RECTANGLE') {
+      const points = (mapPatternDrawState?.type === 'RECTANGLE' ? mapPatternDrawState.points : []).concat(gamePoint).slice(0, 4);
+      mapPatternDrawState = { type: 'RECTANGLE', points };
+      if (points.length < 4) {
+        if (mapToolsOutput) mapToolsOutput.textContent = `Прямоугольник: точек ${points.length}/4.`;
+      } else {
+        applyRectanglePatternFromPoints(points);
+        resetPatternDrawState();
+        persistLauncherSettings();
+        refreshMapOverlay();
+        if (mapToolsOutput) mapToolsOutput.textContent = 'Прямоугольный паттерн обновлён из карты.';
+      }
+      return;
+    }
   }
 
   if (selectedMapMarker) {
@@ -3470,6 +3612,7 @@ correctionObserverSelect?.addEventListener('change', () => {
 });
 
 fmTargetTypeSelect?.addEventListener('change', () => {
+  resetPatternDrawState();
   syncFdcSettingsVisibility();
   persistLauncherSettings();
 });
@@ -3575,6 +3718,7 @@ document.querySelector('#clear-map-image')?.addEventListener('click', clearMapIm
 document.querySelector('#apply-manual-markers')?.addEventListener('click', applyManualMarkers);
 document.querySelector('#clear-manual-markers')?.addEventListener('click', clearManualMarkers);
 markerToolSelect?.addEventListener('change', () => {
+  resetPatternDrawState();
   syncMarkerTargetOptions();
 });
 mapImageUploadInput?.addEventListener('change', async (event) => {
