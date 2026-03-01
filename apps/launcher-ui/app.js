@@ -1,5 +1,5 @@
 import { createCounterBatteryModule } from '/apps/counter-battery/module.js';
-import { computeFireSolution, computeFireSolutionsMulti } from '/apps/ballistics-core/index.js';
+import { computeFireSolution, computeFireSolutionsMulti, getWeapon } from '/apps/ballistics-core/index.js';
 import { FIRE_MODE_IDS } from './fire-modes.js';
 import {
   buildAimPlanFromFdc,
@@ -100,7 +100,7 @@ const i18n = {
     correctionAnchorObserver: 'Привязан к наблюдателю', correctionAnchorGun: 'Корректировка от орудия (наблюдатель не привязан)',
     observerTargetingTitle: 'Наведение наблюдателем', observerTargetingHint: 'Если координаты цели неизвестны, задайте дальность и азимут. Угол/высота — опционально.', applyObserverTargeting: 'Рассчитать цель от наблюдателя',
     correctionApplied: 'Поправка сохранена', correctionResetDone: 'Поправка сброшена', observerTargetingApplied: 'Координаты цели обновлены от наблюдателя', observerTargetingUnavailable: 'Нет координат наблюдателя для наведения',
-    missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', missionProjectileSelectionTitle: 'Выбор снарядов по типам орудий', missionProjectileSelectionHint: 'Снаряд выбирается отдельно для каждого типа орудия, участвующего в задаче.', trajectoryType: 'Тип траектории', trajectoryTypeIndirect: 'Навесная', trajectoryTypeDirect: 'Прямая', indirectArcType: 'Навесная траектория', indirectArcLow: 'Низкая', indirectArcHigh: 'Высокая', trajectorySupportHintDirectUnsupported: 'Прямая траектория недоступна: для выбранного орудия/снаряда нет таблицы direct.', trajectorySupportHintIndirectUnsupported: 'Навесная траектория недоступна: для выбранного орудия/снаряда нет таблиц low/high.', trajectorySupportHintArcHighOnly: 'Доступна только высокая навесная траектория.', trajectorySupportHintArcLowOnly: 'Доступна только низкая навесная траектория.', trajectorySupportHintArcUnavailable: 'Для навесной траектории нет таблиц low/high. Будет выбрана доступная траектория автоматически.', activeTargetLabel: 'Активная цель', targetX: 'Координата цели X', targetY: 'Координата цели Y', targetHeight: 'Высота цели (м)',
+    missionTitle: 'Калькулятор огневой задачи', missionName: 'Название задачи', missionBattery: 'Батарея', missionGun: 'Орудие (или все в батарее)', missionProjectileSelectionTitle: 'Выбор снарядов и зарядов по типам орудий', missionProjectileSelectionHint: 'Снаряд и пороховой заряд выбираются отдельно для каждого типа орудия, участвующего в задаче.', missionChargeMode: 'Режим заряда', missionChargeModeAuto: 'Авто', missionChargeModeManual: 'Ручной', missionChargeLabel: 'Пороховой заряд', missionChargeLoading: 'загрузка...', missionChargeUnavailable: 'нет зарядов', manualChargeErrorHeader: 'Не удалось рассчитать для выбранного ручного заряда активной цели.', manualChargeErrorChooseAnother: 'Выберите другой заряд из доступных вариантов:', trajectoryType: 'Тип траектории', trajectoryTypeIndirect: 'Навесная', trajectoryTypeDirect: 'Прямая', indirectArcType: 'Навесная траектория', indirectArcLow: 'Низкая', indirectArcHigh: 'Высокая', trajectorySupportHintDirectUnsupported: 'Прямая траектория недоступна: для выбранного орудия/снаряда нет таблицы direct.', trajectorySupportHintIndirectUnsupported: 'Навесная траектория недоступна: для выбранного орудия/снаряда нет таблиц low/high.', trajectorySupportHintArcHighOnly: 'Доступна только высокая навесная траектория.', trajectorySupportHintArcLowOnly: 'Доступна только низкая навесная траектория.', trajectorySupportHintArcUnavailable: 'Для навесной траектории нет таблиц low/high. Будет выбрана доступная траектория автоматически.', activeTargetLabel: 'Активная цель', targetX: 'Координата цели X', targetY: 'Координата цели Y', targetHeight: 'Высота цели (м)',
     fireMode: 'Тип огня', fireModePoint: 'Точка (1 точка)', fireModeConverged: 'Сходящийся', fireModeParallelSheaf: 'Параллельный веер', fireModeOpenSheaf: 'Открытый веер', fireModeCircularArea: 'Круговой', fireModeLinear: 'Линейный', fireModeRectArea: 'Прямоугольник', fireModePointHint: 'Все орудия стреляют в одну точку цели.', fireModeConvergedHint: 'Сведение огня в одну точку с возможными индивидуальными поправками.',
     counterBatteryTitle: 'Контрбатарейное обнаружение', counterBatteryHint: 'Реальные методы: звукопеленгация, анализ воронок с обратным азимутом, триангуляция по азимутам и гипербола TDOA.', counterBatteryMethod: 'Метод определения', cbMethodSound: 'Звукопеленгация (sound ranging)', cbMethodCrater: 'Анализ воронок и обратный азимут', cbMethodTriangulation: 'Триангуляция по азимутам наблюдателей', cbMethodHyperbola: 'Гипербола по разности времени прихода (TDOA)', cbBearing: 'Азимут на источник (°)', cbEstimatedDistance: 'Оценочная дальность (м)', cbTdoaDelta: 'Разница времени прихода (мс)', cbImpactBearing: 'Обратный азимут от воронки (°)', counterBatteryObservers: 'Данные наблюдателей', counterBatteryObserversHint: 'Чем больше точек наблюдения, тем точнее координаты вражеского орудия.', cbAddPoint: 'Добавить точку', cbClearPoints: 'Очистить точки', cbLocateTarget: 'Найти вражеское орудие', cbCalculateResponse: 'Рассчитать ответный огонь', cbObserverPoint: 'Точка', cbObserver: 'Наблюдатель', cbObservationAzimuth: 'Азимут наблюдения (°)', cbObservationDelay: 'Задержка звука (с)', cbNeedTwoPoints: 'Нужно минимум две валидные точки наблюдения.', cbTargetLocated: 'Цель определена', cbTargetNotFound: 'Не удалось определить координаты цели по выбранному методу.', cbResponseHeader: 'Ответный огонь (доступные орудия в зоне досягаемости)', cbNoReachableGuns: 'Нет доступных орудий в зоне досягаемости.', cbMethodUsed: 'Метод', cbRecommendedGun: 'Рекомендуем:', cbGunFacing: 'направление ', cbNeedsReposition: '(понадобится разворот вне сектора)',
     mapPanelTitle: 'Тактическая карта (Leaflet)', mapLegendTitle: 'Легенда', mapLegendHint: 'Карта показывает орудия выбранной батареи и текущую цель из вкладки «Огневые задачи».',
@@ -138,7 +138,7 @@ const i18n = {
     correctionAnchorObserver: 'Anchored to observer', correctionAnchorGun: 'Correction from gun (observer not linked)',
     observerTargetingTitle: 'Observer targeting', observerTargetingHint: 'If target coordinates are unknown, enter distance and azimuth. Angle/height are optional.', applyObserverTargeting: 'Compute target from observer',
     correctionApplied: 'Correction saved', correctionResetDone: 'Correction reset', observerTargetingApplied: 'Target coordinates updated from observer', observerTargetingUnavailable: 'Observer coordinates are unavailable',
-    missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', missionProjectileSelectionTitle: 'Projectile selection by gun type', missionProjectileSelectionHint: 'Pick a projectile separately for each gun type involved in the mission.', trajectoryType: 'Trajectory type', trajectoryTypeIndirect: 'Indirect', trajectoryTypeDirect: 'Direct', indirectArcType: 'Indirect trajectory arc', indirectArcLow: 'Low', indirectArcHigh: 'High', trajectorySupportHintDirectUnsupported: 'Direct trajectory is not available: no direct table for selected gun/projectile.', trajectorySupportHintIndirectUnsupported: 'Indirect trajectory is not available: no low/high tables for selected gun/projectile.', trajectorySupportHintArcHighOnly: 'Only high indirect trajectory is available.', trajectorySupportHintArcLowOnly: 'Only low indirect trajectory is available.', trajectorySupportHintArcUnavailable: 'No low/high tables for indirect trajectory. Available trajectory will be selected automatically.', activeTargetLabel: 'Active target', targetX: 'Target X coordinate', targetY: 'Target Y coordinate', targetHeight: 'Target altitude (m)',
+    missionTitle: 'Fire mission calculator', missionName: 'Mission name', missionBattery: 'Battery', missionGun: 'Gun (or full battery)', missionProjectileSelectionTitle: 'Projectile and charge selection by gun type', missionProjectileSelectionHint: 'Pick projectile and powder charge separately for each gun type involved in the mission.', missionChargeMode: 'Charge mode', missionChargeModeAuto: 'Auto', missionChargeModeManual: 'Manual', missionChargeLabel: 'Powder charge', missionChargeLoading: 'loading...', missionChargeUnavailable: 'no charges', manualChargeErrorHeader: 'Cannot compute active target for selected manual charge.', manualChargeErrorChooseAnother: 'Try another available charge:', trajectoryType: 'Trajectory type', trajectoryTypeIndirect: 'Indirect', trajectoryTypeDirect: 'Direct', indirectArcType: 'Indirect trajectory arc', indirectArcLow: 'Low', indirectArcHigh: 'High', trajectorySupportHintDirectUnsupported: 'Direct trajectory is not available: no direct table for selected gun/projectile.', trajectorySupportHintIndirectUnsupported: 'Indirect trajectory is not available: no low/high tables for selected gun/projectile.', trajectorySupportHintArcHighOnly: 'Only high indirect trajectory is available.', trajectorySupportHintArcLowOnly: 'Only low indirect trajectory is available.', trajectorySupportHintArcUnavailable: 'No low/high tables for indirect trajectory. Available trajectory will be selected automatically.', activeTargetLabel: 'Active target', targetX: 'Target X coordinate', targetY: 'Target Y coordinate', targetHeight: 'Target altitude (m)',
     fireMode: 'Fire mode', fireModePoint: 'Point (single aim)', fireModeConverged: 'Converged', fireModeParallelSheaf: 'Parallel sheaf', fireModeOpenSheaf: 'Open sheaf', fireModeCircularArea: 'Circular area', fireModeLinear: 'Linear', fireModeRectArea: 'Rectangle area', fireModePointHint: 'All guns fire at one point.', fireModeConvergedHint: 'All guns converge on one point with optional individual corrections.',
     counterBatteryTitle: 'Counter-battery detection', counterBatteryHint: 'Real techniques: sound ranging, crater analysis with reverse azimuth, observer azimuth triangulation, and TDOA hyperbola.', counterBatteryMethod: 'Detection method', cbMethodSound: 'Sound ranging', cbMethodCrater: 'Crater analysis + reverse azimuth', cbMethodTriangulation: 'Observer azimuth triangulation', cbMethodHyperbola: 'TDOA hyperbola', cbBearing: 'Bearing to source (°)', cbEstimatedDistance: 'Estimated range (m)', cbTdoaDelta: 'Arrival time difference (ms)', cbImpactBearing: 'Reverse azimuth from crater (°)', counterBatteryObservers: 'Observer data', counterBatteryObserversHint: 'More observation points produce better enemy gun localization.', cbAddPoint: 'Add point', cbClearPoints: 'Clear points', cbLocateTarget: 'Locate enemy gun', cbCalculateResponse: 'Calculate counter-fire', cbObserverPoint: 'Point', cbObserver: 'Observer', cbObservationAzimuth: 'Observation azimuth (°)', cbObservationDelay: 'Sound delay (s)', cbNeedTwoPoints: 'At least two valid observation points are required.', cbTargetLocated: 'Target localized', cbTargetNotFound: 'Unable to compute target coordinates with selected method.', cbResponseHeader: 'Counter-fire (reachable friendly guns)', cbNoReachableGuns: 'No reachable guns in range.', cbMethodUsed: 'Method', cbRecommendedGun: 'Recommended:', cbGunFacing: 'facing ', cbNeedsReposition: '(requires reposition outside traverse)',
     mapPanelTitle: 'Tactical map (Leaflet)', mapLegendTitle: 'Legend', mapLegendHint: 'The map shows guns in selected battery and the current target from Fire Missions tab.',
@@ -195,6 +195,7 @@ const fmAimPointCountInput = document.querySelector('#fm-aimpoint-count');
 const fmConditionalFields = Array.from(document.querySelectorAll('[data-fm-field]'));
 let activeAimPlan = null;
 let adjustmentSession = null;
+const missionChargeOptionsCache = new Map();
 const cbMethodSelect = document.querySelector('#cb-method');
 const cbObservationsContainer = document.querySelector('#cb-observations');
 const cbOutput = document.querySelector('#cb-output');
@@ -783,6 +784,16 @@ function persistLauncherSettings() {
       acc[select.dataset.missionProjectileProfile] = select.value || '';
       return acc;
     }, {}),
+    chargeModeByProfile: Array.from(document.querySelectorAll('[data-mission-charge-mode-profile]')).reduce((acc, select) => {
+      if (!select.dataset.missionChargeModeProfile) return acc;
+      acc[select.dataset.missionChargeModeProfile] = select.value === 'manual' ? 'manual' : 'auto';
+      return acc;
+    }, {}),
+    chargeByProfile: Array.from(document.querySelectorAll('[data-mission-charge-profile]')).reduce((acc, select) => {
+      if (!select.dataset.missionChargeProfile) return acc;
+      acc[select.dataset.missionChargeProfile] = select.value || '';
+      return acc;
+    }, {}),
     observerTargeting: {
       distance: document.querySelector('#observer-target-distance')?.value ?? '',
       horizontalDistance: document.querySelector('#observer-target-horizontal-distance')?.value ?? '',
@@ -1046,6 +1057,50 @@ function parseProjectileOptions(profile) {
 }
 
 
+async function getChargeOptionsForWeapon(weaponId) {
+  if (!weaponId) return [];
+  if (missionChargeOptionsCache.has(weaponId)) return missionChargeOptionsCache.get(weaponId);
+  try {
+    const weapon = await getWeapon(weaponId);
+    const options = (weapon?.charges ?? []).map((charge) => String(charge?.id ?? '')).filter(Boolean);
+    missionChargeOptionsCache.set(weaponId, options);
+    return options;
+  } catch {
+    missionChargeOptionsCache.set(weaponId, []);
+    return [];
+  }
+}
+
+function getChargeModeForProfile(profileId) {
+  return document.querySelector(`[data-mission-charge-mode-profile="${profileId}"]`)?.value || 'auto';
+}
+
+function getManualChargeForProfile(profileId) {
+  return document.querySelector(`[data-mission-charge-profile="${profileId}"]`)?.value || '';
+}
+
+async function hydrateMissionChargeSelectors() {
+  const selectors = Array.from(document.querySelectorAll('[data-mission-charge-profile]'));
+  await Promise.all(selectors.map(async (select) => {
+    const profileId = select.dataset.missionChargeProfile;
+    const projectile = document.querySelector(`[data-mission-projectile-profile="${profileId}"]`)?.value || '';
+    const weaponId = `${profileId}/${projectile}`;
+    const charges = await getChargeOptionsForWeapon(weaponId);
+    const savedCharge = state.settings.mission?.chargeByProfile?.[profileId] ?? '';
+    select.innerHTML = charges.length
+      ? charges.map((chargeId) => `<option value="${chargeId}">${chargeId}</option>`).join('')
+      : `<option value="">${t('missionChargeUnavailable')}</option>`;
+    if (charges.length) {
+      select.value = charges.includes(savedCharge) ? savedCharge : charges[0];
+    } else {
+      select.value = '';
+    }
+    const modeSelect = document.querySelector(`[data-mission-charge-mode-profile="${profileId}"]`);
+    const mode = modeSelect?.value ?? 'auto';
+    select.disabled = mode !== 'manual' || !charges.length;
+  }));
+}
+
 function getProjectileForProfile(profileId, profile) {
   return document.querySelector(`[data-mission-projectile-profile="${profileId}"]`)?.value || parseProjectileOptions(profile)[0];
 }
@@ -1151,19 +1206,23 @@ function renderMissionProjectileSelectors() {
     if (profileId) usedProfiles.add(profileId);
   });
 
-  const saved = state.settings.mission?.projectileByProfile ?? {};
+  const savedProjectiles = state.settings.mission?.projectileByProfile ?? {};
+  const savedChargeMode = state.settings.mission?.chargeModeByProfile ?? {};
   missionProjectileSelectors.innerHTML = '';
   usedProfiles.forEach((profileId) => {
     const profile = profiles[profileId] ?? { name: profileId };
     const options = parseProjectileOptions(profile);
     const row = document.createElement('div');
     row.className = 'pair';
-    row.innerHTML = `<label>${profile.name ?? profileId}</label><select data-mission-projectile-profile="${profileId}">${options.map((option) => `<option value="${option}">${option}</option>`).join('')}</select>`;
+    row.innerHTML = `<label>${profile.name ?? profileId}</label><select data-mission-projectile-profile="${profileId}">${options.map((option) => `<option value="${option}">${option}</option>`).join('')}</select><select data-mission-charge-mode-profile="${profileId}"><option value="auto">${t('missionChargeModeAuto')}</option><option value="manual">${t('missionChargeModeManual')}</option></select><select data-mission-charge-profile="${profileId}" disabled><option value="">${t('missionChargeLoading')}</option></select>`;
     missionProjectileSelectors.append(row);
-    const select = row.querySelector(`[data-mission-projectile-profile="${profileId}"]`);
-    if (select) select.value = options.includes(saved[profileId]) ? saved[profileId] : options[0];
+    const projectileSelect = row.querySelector(`[data-mission-projectile-profile="${profileId}"]`);
+    if (projectileSelect) projectileSelect.value = options.includes(savedProjectiles[profileId]) ? savedProjectiles[profileId] : options[0];
+    const modeSelect = row.querySelector(`[data-mission-charge-mode-profile="${profileId}"]`);
+    if (modeSelect) modeSelect.value = savedChargeMode[profileId] === 'manual' ? 'manual' : 'auto';
   });
   syncTrajectoryControls();
+  hydrateMissionChargeSelectors();
 }
 
 function renderMissionSelectors() {
@@ -1624,10 +1683,45 @@ function getGunsForMissionEnv() {
     const projectile = document.querySelector(`[data-mission-projectile-profile="${profileId}"]`)?.value || parseProjectileOptions(profile)[0];
     return {
       id: String(gunId),
+      profileId,
+      profileName: profile?.name ?? profileId,
+      projectile,
       pos: { x: gunPos?.x ?? 0, y: gunPos?.y ?? 0, z: batteryHeight },
       weaponId: `${profileId}/${projectile}`,
     };
   });
+}
+
+
+async function buildChargeContextForMission(guns) {
+  const byGun = {};
+  for (const gun of guns) {
+    const mode = getChargeModeForProfile(gun.profileId);
+    const manualChargeId = getManualChargeForProfile(gun.profileId);
+    const availableCharges = await getChargeOptionsForWeapon(gun.weaponId);
+    byGun[gun.id] = {
+      mode,
+      selectedChargeId: mode === 'manual' && manualChargeId ? manualChargeId : null,
+      availableCharges,
+      profileName: gun.profileName,
+      projectile: gun.projectile,
+    };
+  }
+  return byGun;
+}
+
+function buildManualChargeErrorRows(solutionsByGun, chargeContextByGun) {
+  const lines = [];
+  Object.entries(solutionsByGun).forEach(([gunId, rows]) => {
+    const context = chargeContextByGun[gunId];
+    if (!context || context.mode !== 'manual') return;
+    const hasMissing = (rows ?? []).some((row) => !row?.solution || !Number.isFinite(row.solution?.elevMil));
+    if (!hasMissing) return;
+    const alternatives = context.availableCharges.filter((chargeId) => chargeId !== context.selectedChargeId);
+    const altText = alternatives.length ? alternatives.join(', ') : '—';
+    lines.push(`Gun ${gunId} (${context.profileName}, ${context.projectile}): выбран ${context.selectedChargeId || '—'}, доступно ${altText}`);
+  });
+  return lines;
 }
 
 function evaluateGunEngagementConstraints({ batteryId, gunId, point }) {
@@ -1694,9 +1788,15 @@ async function showNextFirePackage() {
     return;
   }
   const guns = getGunsForMissionEnv();
+  const chargeContextByGun = await buildChargeContextForMission(guns);
   const env = {
     gunPositions: Object.fromEntries(guns.map((g) => [g.id, g.pos])),
     weaponByGunId: Object.fromEntries(guns.map((g) => [g.id, g.weaponId])),
+    preferredChargeByGunId: Object.fromEntries(
+      Object.entries(chargeContextByGun)
+        .filter(([, ctx]) => ctx?.mode === 'manual' && ctx.selectedChargeId)
+        .map(([gunId, ctx]) => [gunId, ctx.selectedChargeId]),
+    ),
     computeFireSolution,
     computeFireSolutionsMulti,
     wind: getMissionWindSettings(),
@@ -1745,11 +1845,15 @@ async function showNextFirePackage() {
     }
     return base;
   }));
+  const manualChargeErrors = buildManualChargeErrorRows(pkg.solutions.perGunSolutions, chargeContextByGun);
   adjustmentSession = activeAimPlan.runtime?.adjustment ?? adjustmentSession;
   const firstShot = Object.values(pkg.solutions.perGunSolutions).flat()[0];
   if (firstShot?.solution) adjustmentSession = { ...(adjustmentSession ?? {}), lastTofSec: Number(firstShot.solution.tofSec || 0) };
   updateAdjustmentHud();
-  fireOutput.textContent = `Фаза ${pkg.phase.phaseIndex + 1}/${activeAimPlan.phases.length} (${pkg.phase.label})\n${rows.join('\n')}`;
+  const manualChargeHint = manualChargeErrors.length
+    ? `\n\n${t('manualChargeErrorHeader')}\n${t('manualChargeErrorChooseAnother')}\n${manualChargeErrors.join('\n')}`
+    : '';
+  fireOutput.textContent = `Фаза ${pkg.phase.phaseIndex + 1}/${activeAimPlan.phases.length} (${pkg.phase.label})\n${rows.join('\n')}${manualChargeHint}`;
   activeAimPlan = advancePlanCursor(activeAimPlan);
   return pkg;
 }
@@ -3341,7 +3445,21 @@ missionGunSelect?.addEventListener('change', () => {
 
 document.addEventListener('change', (event) => {
   if (!(event.target instanceof HTMLSelectElement) || !event.target.matches('[data-mission-projectile-profile]')) return;
+  hydrateMissionChargeSelectors();
   syncTrajectoryControls();
+  persistLauncherSettings();
+});
+
+document.addEventListener('change', (event) => {
+  if (!(event.target instanceof HTMLSelectElement) || !event.target.matches('[data-mission-charge-mode-profile]')) return;
+  const profileId = event.target.dataset.missionChargeModeProfile;
+  const chargeSelect = document.querySelector(`[data-mission-charge-profile="${profileId}"]`);
+  if (chargeSelect) chargeSelect.disabled = event.target.value !== 'manual' || !chargeSelect.options.length || !chargeSelect.options[0].value;
+  persistLauncherSettings();
+});
+
+document.addEventListener('change', (event) => {
+  if (!(event.target instanceof HTMLSelectElement) || !event.target.matches('[data-mission-charge-profile]')) return;
   persistLauncherSettings();
 });
 
