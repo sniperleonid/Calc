@@ -2453,6 +2453,12 @@ function resetPatternDrawState() {
   mapPatternDrawState = null;
 }
 
+function cancelPatternDrawing(statusText = 'Рисование паттерна отменено.') {
+  resetPatternDrawState();
+  refreshMapOverlay();
+  if (mapToolsOutput) mapToolsOutput.textContent = statusText;
+}
+
 function updateDrawPatternUi() {
   if (drawPatternControls) drawPatternControls.classList.toggle('hidden', markerToolSelect?.value !== 'target');
   if (drawPatternButton) {
@@ -3884,7 +3890,7 @@ document.querySelector('#clear-map-image')?.addEventListener('click', clearMapIm
 document.querySelector('#apply-manual-markers')?.addEventListener('click', applyManualMarkers);
 document.querySelector('#clear-manual-markers')?.addEventListener('click', clearManualMarkers);
 markerToolSelect?.addEventListener('change', () => {
-  resetPatternDrawState();
+  cancelPatternDrawing();
   isPatternDrawMode = false;
   updateDrawPatternUi();
   syncMarkerTargetOptions();
@@ -3898,8 +3904,8 @@ drawPatternButton?.addEventListener('click', () => {
     if (mapToolsOutput) mapToolsOutput.textContent = targetType === 'CIRCLE'
       ? 'Паттерн: зажмите ЛКМ и потяните для радиуса круга.'
       : 'Паттерн: рисуйте фигуру кликами по карте.';
-  } else if (mapToolsOutput) {
-    mapToolsOutput.textContent = 'Режим рисования паттерна выключен.';
+  } else {
+    cancelPatternDrawing('Режим рисования паттерна выключен. Черновик паттерна отменён.');
   }
 });
 mapImageUploadInput?.addEventListener('change', async (event) => {
