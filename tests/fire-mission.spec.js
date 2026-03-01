@@ -28,7 +28,10 @@ test('generateAimPoints supports POINT/LINE/RECTANGLE/CIRCLE', () => {
   assert.equal(rectPlan.aimPoints.length, 9);
 
   const circlePlan = buildAimPlan({ targetType: 'CIRCLE', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, center: { x: 0, y: 0 }, radiusM: 40, aimpointCount: 8 }, guns);
-  assert.equal(circlePlan.aimPoints.length, 9);
+  assert.equal(circlePlan.aimPoints.length, 8);
+  const distances = circlePlan.aimPoints.map((point) => Math.hypot(point.x, point.y));
+  assert.equal(Math.max(...distances) <= 40.000001, true);
+  assert.equal(distances.some((distance) => distance > 0 && distance < 39), true);
 });
 
 test('PARALLEL offsets are applied along right vector sign', () => {

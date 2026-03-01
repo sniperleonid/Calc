@@ -117,15 +117,22 @@ function rectPoints(config) {
 function circlePoints(config) {
   const center = config.center;
   const radius = Math.max(1, toFinite(config.radiusM, 100));
-  const count = Math.max(3, Math.round(toFinite(config.aimpointCount, 10)));
-  const points = [clonePoint(center, { localIndex: 0, role: 'CENTER' })];
-  for (let i = 0; i < count; i += 1) {
-    const angle = (Math.PI * 2 * i) / count;
-    const dx = Math.sin(angle) * radius;
-    const dy = Math.cos(angle) * radius;
-    points.push(clonePoint({ x: center.x + dx, y: center.y + dy, z: center.z }, { localIndex: i + 1, role: 'RING', offsetRightM: dx, offsetForwardM: dy }));
-  }
-  return points;
+  const count = Math.max(1, Math.round(toFinite(config.aimpointCount, 10)));
+  const goldenAngleRad = Math.PI * (3 - Math.sqrt(5));
+
+  return Array.from({ length: count }, (_, i) => {
+    if (i === 0) return clonePoint(center, { localIndex: 0, role: 'CENTER' });
+
+    const normalized = i / (count - 1);
+    const pointRadius = radius * Math.sqrt(normalized);
+    const angle = i * goldenAngleRad;
+    const dx = Math.cos(angle) * pointRadius;
+    const dy = Math.sin(angle) * pointRadius;
+    return clonePoint(
+      { x: center.x + dx, y: center.y + dy, z: center.z },
+      { localIndex: i, role: 'AREA', offsetRightM: dx, offsetForwardM: dy },
+    );
+  });
 }
 
 function generateBaseAimPoints(config) {
