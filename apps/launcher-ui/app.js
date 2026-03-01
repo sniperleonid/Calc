@@ -1924,6 +1924,7 @@ function initializeMap() {
   leafletMap.on('click', onMapClick);
   leafletMap.on('mousedown', startCirclePatternDraw);
   leafletMap.on('mousemove', updateCirclePatternDraw);
+  leafletMap.on('mousemove', updatePointPatternDraw);
   leafletMap.on('mouseup', finishCirclePatternDraw);
   leafletMap.on('mousedown', updateGunHeadingDrag);
   leafletMap.on('mousemove', updateGunHeadingDrag);
@@ -2327,6 +2328,15 @@ function updateCirclePatternDraw(event) {
   const radius = Math.hypot(edge.x - mapPatternDrawState.center.x, edge.y - mapPatternDrawState.center.y);
   if (fmRadiusInput) fmRadiusInput.value = String(Math.max(1, Math.round(radius)));
   setMissionTargetFromPoint(mapPatternDrawState.center);
+  refreshMapOverlay();
+}
+
+function updatePointPatternDraw(event) {
+  if (!event?.latlng) return;
+  if (mapPatternDrawState?.type !== 'LINE' && mapPatternDrawState?.type !== 'RECTANGLE') return;
+  const imagePoint = latLngToMapPoint(event.latlng.lat, event.latlng.lng);
+  const cursorPoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
+  mapPatternDrawState = { ...mapPatternDrawState, cursorPoint };
   refreshMapOverlay();
 }
 
@@ -3150,6 +3160,25 @@ function drawFirePatternOverlay(pattern, markerStyle) {
     if (center) overlays.push(window.L.circle(center, { color, radius: geometry.radius, weight: 2, fillOpacity: 0.05 }).addTo(leafletMap));
   }
   if (Array.isArray(geometry.points)) {
+    if (geometry.connectLines && geometry.points.length >= 2) {
+      const vertices = geometry.points.map(toLatLng).filter(Boolean);
+      if (vertices.length >= 2) {
+        if (geometry.closed && vertices.length >= 3) {
+          overlays.push(window.L.polygon(vertices, {
+            color,
+            weight: 2,
+            fillOpacity: geometry.preview ? 0.04 : 0.08,
+            dashArray: geometry.preview ? '6 6' : undefined,
+          }).addTo(leafletMap));
+        } else {
+          overlays.push(window.L.polyline(vertices, {
+            color,
+            weight: 2,
+            dashArray: geometry.preview ? '6 6' : undefined,
+          }).addTo(leafletMap));
+        }
+      }
+    }
     geometry.points.forEach((point) => {
       const latLng = toLatLng(point);
       if (latLng) overlays.push(window.L.circleMarker(latLng, { color, radius: 4, weight: 1, fillOpacity: 0.7 }).addTo(leafletMap));
@@ -3162,10 +3191,27 @@ function drawFirePatternOverlay(pattern, markerStyle) {
 function getDraftPatternOverlay() {
   if (!mapPatternDrawState) return null;
   if (mapPatternDrawState.type === 'LINE') {
-    return { mode: FIRE_MODE_IDS.LINEAR, geometry: { type: 'point-cloud', points: mapPatternDrawState.points ?? [] } };
+    const points = [...(mapPatternDrawState.points ?? [])];
+    if (mapPatternDrawState.cursorPoint) points.push(mapPatternDrawState.cursorPoint);
+    return {
+      mode: FIRE_MODE_IDS.LINEAR,
+      geometry: { type: 'point-cloud', points, connectLines: true, preview: true },
+    };
   }
   if (mapPatternDrawState.type === 'RECTANGLE') {
-    return { mode: FIRE_MODE_IDS.RECT_AREA, geometry: { type: 'point-cloud', points: mapPatternDrawState.points ?? [] } };
+    const committedPoints = mapPatternDrawState.points ?? [];
+    const points = [...committedPoints];
+    if (mapPatternDrawState.cursorPoint && committedPoints.length < 4) points.push(mapPatternDrawState.cursorPoint);
+    return {
+      mode: FIRE_MODE_IDS.RECT_AREA,
+      geometry: {
+        type: 'point-cloud',
+        points,
+        connectLines: true,
+        closed: points.length >= 3,
+        preview: true,
+      },
+    };
   }
   if (mapPatternDrawState.type === 'CIRCLE') {
     const center = mapPatternDrawState.center;
