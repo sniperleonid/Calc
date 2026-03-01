@@ -1532,7 +1532,7 @@ function buildRectangleVerticesFromConfig(config = {}, fallbackCenterPoint = nul
   const customVertices = Array.isArray(config?.geometry?.customVertices)
     ? config.geometry.customVertices.filter((point) => point && Number.isFinite(point.x) && Number.isFinite(point.y))
     : [];
-  if (customVertices.length >= 3) return customVertices;
+  if (customVertices.length >= 4) return customVertices.slice(0, 4);
   const center = config?.geometry?.center ?? config?.geometry?.point ?? fallbackCenterPoint;
   if (!center || !Number.isFinite(center.x) || !Number.isFinite(center.y)) return [];
   const width = Math.max(1, toFiniteNumber(config?.geometry?.widthM, 200));
@@ -2516,7 +2516,7 @@ function applyLinePatternFromPoints(startPoint, endPoint) {
 }
 
 function applyRectanglePatternFromPoints(points = []) {
-  if (points.length < 3) return;
+  if (points.length < 4) return;
   const p1 = points[0];
   const p2 = points[1] ?? points[0];
   const center = {
@@ -2540,7 +2540,7 @@ function applyRectanglePatternFromPoints(points = []) {
   const width = Math.max(...lateralValues) - Math.min(...lateralValues);
   const length = Math.max(...depthValues) - Math.min(...depthValues);
   if (!Number.isFinite(width) || !Number.isFinite(length) || width < 1 || length < 1) return;
-  customRectAreaVertices = points.slice(0, 6).map((point) => ({ ...point }));
+  customRectAreaVertices = points.slice(0, 4).map((point) => ({ ...point }));
   setMissionTargetFromPoint(center);
   if (fmWidthInput) fmWidthInput.value = String(Math.max(1, Math.round(width)));
   if (fmLengthInput) fmLengthInput.value = String(Math.max(1, Math.round(length)));
@@ -2588,10 +2588,10 @@ function onMapClick(event) {
       return;
     }
     if (targetType === 'RECTANGLE') {
-      const points = (mapPatternDrawState?.type === 'RECTANGLE' ? mapPatternDrawState.points : []).concat(gamePoint).slice(0, 6);
+      const points = (mapPatternDrawState?.type === 'RECTANGLE' ? mapPatternDrawState.points : []).concat(gamePoint).slice(0, 4);
       mapPatternDrawState = { type: 'RECTANGLE', points };
-      if (points.length < 6) {
-        if (mapToolsOutput) mapToolsOutput.textContent = `Шестиугольник: точек ${points.length}/6.`;
+      if (points.length < 4) {
+        if (mapToolsOutput) mapToolsOutput.textContent = `Прямоугольник: точек ${points.length}/4.`;
       } else {
         applyRectanglePatternFromPoints(points);
         resetPatternDrawState();
@@ -3220,7 +3220,7 @@ function getDraftPatternOverlay() {
   if (mapPatternDrawState.type === 'RECTANGLE') {
     const committedPoints = mapPatternDrawState.points ?? [];
     const points = [...committedPoints];
-    if (mapPatternDrawState.cursorPoint && committedPoints.length < 6) points.push(mapPatternDrawState.cursorPoint);
+    if (mapPatternDrawState.cursorPoint && committedPoints.length < 4) points.push(mapPatternDrawState.cursorPoint);
     return {
       mode: FIRE_MODE_IDS.RECT_AREA,
       geometry: {
