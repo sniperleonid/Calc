@@ -784,9 +784,9 @@ function persistLauncherSettings() {
       acc[select.dataset.missionProjectileProfile] = select.value || '';
       return acc;
     }, {}),
-    chargeModeByProfile: Array.from(document.querySelectorAll('[data-mission-charge-mode-profile]')).reduce((acc, select) => {
-      if (!select.dataset.missionChargeModeProfile) return acc;
-      acc[select.dataset.missionChargeModeProfile] = select.value === 'manual' ? 'manual' : 'auto';
+    chargeModeByProfile: Array.from(document.querySelectorAll('[data-mission-charge-profile]')).reduce((acc, select) => {
+      if (!select.dataset.missionChargeProfile) return acc;
+      acc[select.dataset.missionChargeProfile] = select.value && select.value !== 'auto' ? 'manual' : 'auto';
       return acc;
     }, {}),
     chargeByProfile: Array.from(document.querySelectorAll('[data-mission-charge-profile]')).reduce((acc, select) => {
@@ -1071,12 +1071,9 @@ async function getChargeOptionsForWeapon(weaponId) {
   }
 }
 
-function getChargeModeForProfile(profileId) {
-  return document.querySelector(`[data-mission-charge-mode-profile="${profileId}"]`)?.value || 'auto';
-}
-
 function getManualChargeForProfile(profileId) {
-  return document.querySelector(`[data-mission-charge-profile="${profileId}"]`)?.value || '';
+  const selected = document.querySelector(`[data-mission-charge-profile="${profileId}"]`)?.value || '';
+  return selected && selected !== 'auto' ? selected : '';
 }
 
 async function hydrateMissionChargeSelectors() {
@@ -1087,17 +1084,22 @@ async function hydrateMissionChargeSelectors() {
     const weaponId = `${profileId}/${projectile}`;
     const charges = await getChargeOptionsForWeapon(weaponId);
     const savedCharge = state.settings.mission?.chargeByProfile?.[profileId] ?? '';
+    const savedMode = state.settings.mission?.chargeModeByProfile?.[profileId] ?? 'auto';
     select.innerHTML = charges.length
-      ? charges.map((chargeId) => `<option value="${chargeId}">${chargeId}</option>`).join('')
+      ? `<option value="auto">${t('missionChargeModeAuto')}</option>${charges.map((chargeId) => `<option value="${chargeId}">${chargeId}</option>`).join('')}`
       : `<option value="">${t('missionChargeUnavailable')}</option>`;
     if (charges.length) {
-      select.value = charges.includes(savedCharge) ? savedCharge : charges[0];
+      if (savedMode === 'manual' && charges.includes(savedCharge)) {
+        select.value = savedCharge;
+      } else if (charges.includes(savedCharge)) {
+        select.value = savedCharge;
+      } else {
+        select.value = 'auto';
+      }
     } else {
       select.value = '';
     }
-    const modeSelect = document.querySelector(`[data-mission-charge-mode-profile="${profileId}"]`);
-    const mode = modeSelect?.value ?? 'auto';
-    select.disabled = mode !== 'manual' || !charges.length;
+    select.disabled = !charges.length;
   }));
 }
 
@@ -1207,19 +1209,16 @@ function renderMissionProjectileSelectors() {
   });
 
   const savedProjectiles = state.settings.mission?.projectileByProfile ?? {};
-  const savedChargeMode = state.settings.mission?.chargeModeByProfile ?? {};
   missionProjectileSelectors.innerHTML = '';
   usedProfiles.forEach((profileId) => {
     const profile = profiles[profileId] ?? { name: profileId };
     const options = parseProjectileOptions(profile);
     const row = document.createElement('div');
     row.className = 'pair';
-    row.innerHTML = `<label>${profile.name ?? profileId}</label><select data-mission-projectile-profile="${profileId}">${options.map((option) => `<option value="${option}">${option}</option>`).join('')}</select><select data-mission-charge-mode-profile="${profileId}"><option value="auto">${t('missionChargeModeAuto')}</option><option value="manual">${t('missionChargeModeManual')}</option></select><select data-mission-charge-profile="${profileId}" disabled><option value="">${t('missionChargeLoading')}</option></select>`;
+    row.innerHTML = `<label>${profile.name ?? profileId}</label><select data-mission-projectile-profile="${profileId}">${options.map((option) => `<option value="${option}">${option}</option>`).join('')}</select><select data-mission-charge-profile="${profileId}" disabled><option value="">${t('missionChargeLoading')}</option></select>`;
     missionProjectileSelectors.append(row);
     const projectileSelect = row.querySelector(`[data-mission-projectile-profile="${profileId}"]`);
     if (projectileSelect) projectileSelect.value = options.includes(savedProjectiles[profileId]) ? savedProjectiles[profileId] : options[0];
-    const modeSelect = row.querySelector(`[data-mission-charge-mode-profile="${profileId}"]`);
-    if (modeSelect) modeSelect.value = savedChargeMode[profileId] === 'manual' ? 'manual' : 'auto';
   });
   syncTrajectoryControls();
   hydrateMissionChargeSelectors();
@@ -1696,9 +1695,9 @@ function getGunsForMissionEnv() {
 async function buildChargeContextForMission(guns) {
   const byGun = {};
   for (const gun of guns) {
-    const mode = getChargeModeForProfile(gun.profileId);
     const manualChargeId = getManualChargeForProfile(gun.profileId);
     const availableCharges = await getChargeOptionsForWeapon(gun.weaponId);
+    const mode = manualChargeId ? 'manual' : 'auto';
     byGun[gun.id] = {
       mode,
       selectedChargeId: mode === 'manual' && manualChargeId ? manualChargeId : null,
@@ -3447,14 +3446,6 @@ document.addEventListener('change', (event) => {
   if (!(event.target instanceof HTMLSelectElement) || !event.target.matches('[data-mission-projectile-profile]')) return;
   hydrateMissionChargeSelectors();
   syncTrajectoryControls();
-  persistLauncherSettings();
-});
-
-document.addEventListener('change', (event) => {
-  if (!(event.target instanceof HTMLSelectElement) || !event.target.matches('[data-mission-charge-mode-profile]')) return;
-  const profileId = event.target.dataset.missionChargeModeProfile;
-  const chargeSelect = document.querySelector(`[data-mission-charge-profile="${profileId}"]`);
-  if (chargeSelect) chargeSelect.disabled = event.target.value !== 'manual' || !chargeSelect.options.length || !chargeSelect.options[0].value;
   persistLauncherSettings();
 });
 
