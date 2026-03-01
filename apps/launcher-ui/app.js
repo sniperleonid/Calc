@@ -2604,6 +2604,13 @@ function onMapDoubleClick(event) {
     if (isFdcTargetDrawingEnabled()) {
       const targetType = fmTargetTypeSelect?.value || 'POINT';
       const gamePoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
+      if (targetType === 'POINT') {
+        setMissionTargetFromPoint(gamePoint);
+        recalculateMissionAfterPatternDraw('Точечная цель обновлена по карте.');
+        resetPatternDrawState();
+        refreshMapOverlay();
+        return;
+      }
       if (targetType === 'LINE') {
         if (!mapPatternDrawState || mapPatternDrawState.type !== 'LINE') {
           mapPatternDrawState = { type: 'LINE', points: [gamePoint] };
