@@ -28,10 +28,10 @@ test('generateAimPoints supports POINT/LINE/RECTANGLE/CIRCLE', () => {
   assert.equal(rectPlan.aimPoints.length, 9);
 
   const circlePlan = buildAimPlan({ targetType: 'CIRCLE', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1, center: { x: 0, y: 0 }, radiusM: 40, aimpointCount: 8 }, guns);
-  assert.equal(circlePlan.aimPoints.length, 8);
+  assert.equal(circlePlan.aimPoints.length, 9);
   const distances = circlePlan.aimPoints.map((point) => Math.hypot(point.x, point.y));
   assert.equal(Math.max(...distances) <= 40.000001, true);
-  assert.equal(distances.some((distance) => distance > 0 && distance < 39), true);
+  assert.equal(distances.filter((distance) => distance === 0).length, 1);
 });
 
 test('PARALLEL offsets are applied along right vector sign', () => {
@@ -113,16 +113,17 @@ test('SEQUENCE creates one phase per aim point', () => {
   assert.equal(plan.phases.length, plan.aimPoints.length);
 });
 
-test('LINE with multiple guns is distributed from edges toward center', () => {
+test('LINE with multiple guns uses interleaving without duplicate points in phase', () => {
   const plan = buildAimPlan({
-    targetType: 'LINE', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1,
-    start: { x: 0, y: 0 }, end: { x: 0, y: 100 }, spacingM: 25,
+    targetType: 'LINE', sheafType: 'PARALLEL', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1,
+    start: { x: 0, y: 0 }, end: { x: 0, y: 100 }, spacingM: 25, sheafWidthM: 100,
   }, guns);
   const [gun1, gun2] = getPhaseAssignments(plan, 0);
   const gun1Y = gun1.commands.map((cmd) => plan.aimPoints[cmd.aimPointIndex].y);
   const gun2Y = gun2.commands.map((cmd) => plan.aimPoints[cmd.aimPointIndex].y);
-  assert.deepEqual(gun1Y, [0, 25, 50]);
-  assert.deepEqual(gun2Y, [100, 75]);
+  assert.deepEqual(gun1Y, [0]);
+  assert.deepEqual(gun2Y, [25]);
+  assert.notEqual(gun1.commands[0].aimPointIndex, gun2.commands[0].aimPointIndex);
 });
 
 test('POINT keeps same target for all guns in converged sheaf', () => {
@@ -134,6 +135,18 @@ test('POINT keeps same target for all guns in converged sheaf', () => {
   assert.equal(gun1.commands.length, 1);
   assert.equal(gun2.commands.length, 1);
   assert.equal(gun1.commands[0].aimPointIndex, gun2.commands[0].aimPointIndex);
+});
+
+test('POINT PARALLEL expands to per-gun offsets so aim points do not duplicate', () => {
+  const plan = buildAimPlan({
+    targetType: 'POINT', sheafType: 'PARALLEL', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1,
+    point: { x: 100, y: 100 }, sheafWidthM: 120, bearingDeg: 0,
+  }, guns);
+  const [gun1, gun2] = getPhaseAssignments(plan, 0);
+  assert.notEqual(gun1.commands[0].aimPointIndex, gun2.commands[0].aimPointIndex);
+  const p1 = plan.aimPoints[gun1.commands[0].aimPointIndex];
+  const p2 = plan.aimPoints[gun2.commands[0].aimPointIndex];
+  assert.equal(p1.x < p2.x, true);
 });
 
 test('TOT computes delay=maxTOF-tof', async () => {
