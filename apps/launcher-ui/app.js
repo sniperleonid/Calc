@@ -1733,7 +1733,8 @@ async function showNextFirePackage() {
     if (!solution || !Number.isFinite(solution.azimuthDeg) || !Number.isFinite(solution.elevMil)) {
       return `Gun ${assignment.gunId}: недоступно (нет баллистического решения в таблицах)`;
     }
-    const base = `Gun ${assignment.gunId}: Aim X=${point.x.toFixed(1)} Y=${point.y.toFixed(1)} Az=${Number(solution?.azimuthDeg || 0).toFixed(2)} Elev=${Number(solution?.elevMil || 0).toFixed(1)} TOF=${Number(solution?.tofSec || 0).toFixed(2)}`;
+    const chargePart = solution?.chargeId ? ` Charge=${solution.chargeId}` : '';
+    const base = `Gun ${assignment.gunId}: Aim X=${point.x.toFixed(1)} Y=${point.y.toFixed(1)} Az=${Number(solution?.azimuthDeg || 0).toFixed(2)} Elev=${Number(solution?.elevMil || 0).toFixed(1)} TOF=${Number(solution?.tofSec || 0).toFixed(2)}${chargePart}`;
     if (command.mrsiShotPlan?.length) {
       return `${base} | MRSI ${command.mrsiShotPlan.map((shot) => `#${shot.shotIndex} d=${shot.fireDelaySec.toFixed(1)}s ch=${shot.chargeId}`).join(', ')}`;
     }
