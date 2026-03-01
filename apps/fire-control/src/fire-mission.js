@@ -74,6 +74,10 @@ function clonePoint(point, meta = {}) {
   return { x: point.x, y: point.y, ...(Number.isFinite(point.z) ? { z: point.z } : {}), meta };
 }
 
+function withMeta(point, extraMeta = {}) {
+  return clonePoint(point, { ...(point.meta ?? {}), ...extraMeta });
+}
+
 function linePoints(start, end, spacingM) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -101,41 +105,41 @@ function rectPoints(config) {
   const yCells = Math.max(1, Math.floor(length / spacing));
   const points = [];
   for (let yi = 0; yi <= yCells; yi += 1) {
+    const row = [];
     for (let xi = 0; xi <= xCells; xi += 1) {
       const lateral = -width / 2 + (width * xi) / xCells;
       const depth = -length / 2 + (length * yi) / yCells;
-      points.push(clonePoint({
+      row.push(clonePoint({
         x: center.x + right.x * lateral + forward.x * depth,
         y: center.y + right.y * lateral + forward.y * depth,
         z: center.z,
-      }, { localIndex: points.length, role: 'GRID', offsetRightM: lateral, offsetForwardM: depth }));
+      }, { gridX: xi, gridY: yi, role: 'GRID', offsetRightM: lateral, offsetForwardM: depth }));
     }
+    if (yi % 2 === 1) row.reverse();
+    points.push(...row);
   }
-  return points;
+  return points.map((point, index) => withMeta(point, { localIndex: index }));
 }
 
 function circlePoints(config) {
   const center = config.center;
   const radius = Math.max(1, toFinite(config.radiusM, 100));
-  const count = Math.max(1, Math.round(toFinite(config.aimpointCount, 10)));
-  const goldenAngleRad = Math.PI * (3 - Math.sqrt(5));
-
-  return Array.from({ length: count }, (_, i) => {
-    if (i === 0) return clonePoint(center, { localIndex: 0, role: 'CENTER' });
-
-    const normalized = i / (count - 1);
-    const pointRadius = radius * Math.sqrt(normalized);
-    const angle = i * goldenAngleRad;
-    const dx = Math.cos(angle) * pointRadius;
-    const dy = Math.sin(angle) * pointRadius;
-    return clonePoint(
+  const ringCount = Math.max(3, Math.round(toFinite(config.aimpointCount, 8)));
+  const points = [clonePoint(center, { localIndex: 0, role: 'CENTER' })];
+  for (let i = 0; i < ringCount; i += 1) {
+    const angle = (Math.PI * 2 * i) / ringCount;
+    const dx = Math.sin(angle) * radius;
+    const dy = Math.cos(angle) * radius;
+    points.push(clonePoint(
       { x: center.x + dx, y: center.y + dy, z: center.z },
-      { localIndex: i, role: 'AREA', offsetRightM: dx, offsetForwardM: dy },
-    );
-  });
+      { localIndex: i + 1, role: 'RING', thetaRad: angle, offsetRightM: dx, offsetForwardM: dy },
+    ));
+  }
+  return points;
 }
 
-function generateBaseAimPoints(config) {
+export function generateBaseAimPoints(targetType, geometry = {}) {
+  const config = { ...geometry, targetType };
   if (config.targetType === 'POINT') {
     if (!config.point) throw new Error('POINT requires point');
     return [clonePoint(config.point, { localIndex: 0, role: 'CENTER' })];
@@ -163,6 +167,15 @@ function generateBaseAimPoints(config) {
   return [];
 }
 
+export function orderAimPoints(targetType, aimPoints) {
+  if (targetType === 'CIRCLE' && aimPoints.length > 1) {
+    const [center, ...ring] = aimPoints;
+    const orderedRing = [...ring].sort((a, b) => toFinite(a.meta?.thetaRad, 0) - toFinite(b.meta?.thetaRad, 0));
+    return [center, ...orderedRing].map((point, index) => withMeta(point, { localIndex: index }));
+  }
+  return aimPoints.map((point, index) => withMeta(point, { localIndex: index }));
+}
+
 function resolveBearing(config, guns, phasePoints) {
   if (Number.isFinite(Number(config.bearingDeg))) return normalizeBearing(config.bearingDeg);
   if (config.targetType === 'POINT' && guns.length) {
@@ -186,29 +199,72 @@ function spreadOffsets(count, width) {
   return Array.from({ length: count }, (_, i) => -width / 2 + (width * i) / (count - 1));
 }
 
-function lineIndicesFromEdges(indices) {
-  const ordered = [];
-  let left = 0;
-  let right = indices.length - 1;
-  while (left <= right) {
-    ordered.push(indices[left]);
-    if (left !== right) ordered.push(indices[right]);
-    left += 1;
-    right -= 1;
-  }
-  return ordered;
-}
-
-function distributeAimPointsByGun(aimPointIndices, gunCount, targetType) {
+function interleaveIndices(aimPointIndices, gunCount) {
   const perGun = Array.from({ length: gunCount }, () => []);
-  if (!aimPointIndices.length || gunCount <= 0) return perGun;
-  const orderedIndices = targetType === 'LINE'
-    ? lineIndicesFromEdges(aimPointIndices)
-    : aimPointIndices;
-  orderedIndices.forEach((aimPointIndex, sequenceIndex) => {
+  aimPointIndices.forEach((aimPointIndex, sequenceIndex) => {
     perGun[sequenceIndex % gunCount].push(aimPointIndex);
   });
   return perGun;
+}
+
+function createExpandedPointIndices({ planAimPoints, phasePointIndices, gunsCount, config, bearingDeg, phaseIndex }) {
+  if (
+    gunsCount === 1
+    && config.targetType === 'POINT'
+    && config.sheafType !== 'CONVERGED'
+    && String(config.singleGunEffect || 'NONE').toUpperCase() === 'MICRO_OPEN'
+  ) {
+    const sourcePoint = planAimPoints[phasePointIndices[0]];
+    if (!sourcePoint) return phasePointIndices;
+    const microCount = Math.max(4, Math.round(toFinite(config.singleGunPoints, 6)));
+    const radius = Math.max(15, toFinite(config.singleGunRadiusM, 20));
+    return Array.from({ length: microCount }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / microCount;
+      const microPoint = withMeta({
+        x: sourcePoint.x + Math.sin(angle) * radius,
+        y: sourcePoint.y + Math.cos(angle) * radius,
+        z: sourcePoint.z,
+      }, {
+        ...(sourcePoint.meta ?? {}),
+        role: 'MICRO_OPEN',
+        phaseIndex,
+        microIndex: index,
+      });
+      return planAimPoints.push(microPoint) - 1;
+    });
+  }
+  if (config.sheafType === 'CONVERGED' || phasePointIndices.length >= gunsCount || gunsCount <= 1) return phasePointIndices;
+  const width = sheafWidth(config);
+  const offsets = spreadOffsets(gunsCount, width);
+  const { right } = forwardRight(bearingDeg);
+  const sourcePoint = planAimPoints[phasePointIndices[0]];
+  if (!sourcePoint) return phasePointIndices;
+  console.warn(`Паттерн распределения: создано ${phasePointIndices.length} точек на фазу при ${gunsCount} орудиях — расширяю точки.`);
+  return offsets.map((offset, index) => {
+    const expandedPoint = withMeta(offsetPoint(sourcePoint, right, offset), {
+      ...(sourcePoint.meta ?? {}),
+      phaseIndex,
+      role: 'SHEAF_EXPANDED',
+      expandedFromAimPointIndex: phasePointIndices[0],
+      offsetRightM: offset,
+      expandedIndex: index,
+    });
+    return planAimPoints.push(expandedPoint) - 1;
+  });
+}
+
+function validateNoDuplicateAssignments(config, perGunIndices, phasePointCount) {
+  if (config.sheafType === 'CONVERGED') return;
+  if (phasePointCount < perGunIndices.length) return;
+  const unique = new Set();
+  for (const indices of perGunIndices) {
+    for (const index of indices) {
+      if (unique.has(index)) {
+        throw new Error('Недопустимое дублирование точек при PARALLEL/OPEN sheaf');
+      }
+      unique.add(index);
+    }
+  }
 }
 
 export function getFdcUiSchema(missionFdc = {}) {
@@ -334,11 +390,20 @@ function validateMissionFdc(missionFdc, config) {
   if ((missionFdc.targetType === 'RECTANGLE' || missionFdc.targetType === 'CIRCLE') && !config.center) throw new Error('Выберите режим огня и заполните параметры');
 }
 
-function buildPhases(config, baseAimPoints) {
-  if (config.controlType === 'SEQUENCE') {
+export function buildPhases(controlType, baseAimPoints, config, gunsCount) {
+  const packageSize = Math.max(1, Math.round(toFinite(config.packageSize, gunsCount >= 5 ? gunsCount * 2 : gunsCount)));
+  if (controlType === 'SEQUENCE') {
     return { aimPoints: baseAimPoints, phases: baseAimPoints.map((_, i) => ({ phaseIndex: i, label: `#${i + 1}`, aimPointIndices: [i] })) };
   }
-  if (config.controlType === 'CREEPING') {
+  if (controlType === 'SIMULTANEOUS' || controlType === 'TOT' || controlType === 'MRSI') {
+    const phases = [];
+    for (let i = 0; i < baseAimPoints.length; i += packageSize) {
+      const chunk = baseAimPoints.slice(i, i + packageSize).map((_, localIndex) => i + localIndex);
+      phases.push({ phaseIndex: phases.length, label: `Pkg ${phases.length + 1}`, aimPointIndices: chunk });
+    }
+    return { aimPoints: baseAimPoints, phases };
+  }
+  if (controlType === 'CREEPING') {
     const stepM = Math.max(1, toFinite(config.stepM, 50));
     const stepsCount = Math.max(1, Math.round(toFinite(config.stepsCount, 1)));
     const interval = Math.max(0, toFinite(config.stepIntervalSec, 0));
@@ -359,18 +424,38 @@ function buildPhases(config, baseAimPoints) {
   return { aimPoints: baseAimPoints, phases: [{ phaseIndex: 0, label: 'Main', aimPointIndices: baseAimPoints.map((_, i) => i) }] };
 }
 
+export function allocatePhasePointsToGuns(phasePoints, guns, targetType, sheafType, config, context = {}) {
+  if (!guns.length) return [];
+  if (sheafType === 'CONVERGED') {
+    return guns.map((gun) => ({ gunId: gun.id, aimPointIndices: [...phasePoints] }));
+  }
+  const perGun = interleaveIndices(phasePoints, guns.length);
+  validateNoDuplicateAssignments({ sheafType }, perGun, phasePoints.length);
+  return perGun.map((indices, index) => ({ gunId: guns[index].id, aimPointIndices: indices, context: { targetType, ...context } }));
+}
+
 function buildAssignments(plan, guns) {
   const assignments = guns.map((gun) => ({ gunId: gun.id, commands: [] }));
   if (!assignments.length) return assignments;
   for (const phase of plan.phases) {
     const phasePoints = phase.aimPointIndices.map((index) => plan.aimPoints[index]);
     const bearingDeg = resolveBearing(plan.config, guns, phasePoints);
-    const { right } = forwardRight(bearingDeg);
-    const width = sheafWidth(plan.config);
-    const offsets = spreadOffsets(guns.length, width);
-    const perGunAimPointIndices = plan.config.targetType === 'POINT'
-      ? assignments.map(() => phase.aimPointIndices)
-      : distributeAimPointsByGun(phase.aimPointIndices, assignments.length, plan.config.targetType);
+    const expandedIndices = createExpandedPointIndices({
+      planAimPoints: plan.aimPoints,
+      phasePointIndices: phase.aimPointIndices,
+      gunsCount: guns.length,
+      config: plan.config,
+      bearingDeg,
+      phaseIndex: phase.phaseIndex,
+    });
+    const perGunAimPointIndices = allocatePhasePointsToGuns(
+      expandedIndices,
+      guns,
+      plan.config.targetType,
+      plan.config.sheafType,
+      plan.config,
+      { phaseIndex: phase.phaseIndex },
+    ).map((row) => row.aimPointIndices);
 
     assignments.forEach((assignment, gunIndex) => {
       const assignedIndices = perGunAimPointIndices[gunIndex] ?? [];
@@ -383,17 +468,8 @@ function buildAssignments(plan, guns) {
 
       for (const aimPointIndex of assignedIndices) {
         const point = plan.aimPoints[aimPointIndex];
-        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
-          throw new Error('Не заполнены координаты цели');
-        }
-        const shifted = clonePoint(offsetPoint(point, right, offsets[gunIndex]), {
-          ...point.meta,
-          offsetRightM: offsets[gunIndex],
-          role: 'LINE',
-          phaseIndex: phase.phaseIndex,
-        });
-        const shiftedIndex = plan.aimPoints.push(shifted) - 1;
-        assignment.commands.push({ phaseIndex: phase.phaseIndex, aimPointIndex: shiftedIndex, rounds: plan.config.roundsPerGun });
+        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) throw new Error('Не заполнены координаты цели');
+        assignment.commands.push({ phaseIndex: phase.phaseIndex, aimPointIndex, rounds: plan.config.roundsPerGun });
       }
     });
   }
@@ -405,8 +481,8 @@ export function buildAimPlanFromFdc(rawMissionFdc, guns = [], context = {}) {
   const config = flattenFdcConfig(missionFdc);
   validateMissionFdc(missionFdc, config);
   const gunList = (config.guns === 'ALL' ? guns : guns.filter((gun) => config.guns.includes(gun.id))).map((gun) => ({ id: String(gun.id), pos: gun.pos }));
-  const baseAimPoints = generateBaseAimPoints(config);
-  const phaseData = buildPhases(config, baseAimPoints);
+  const baseAimPoints = orderAimPoints(config.targetType, generateBaseAimPoints(config.targetType, config));
+  const phaseData = buildPhases(config.controlType, baseAimPoints, config, gunList.length);
   const plan = {
     config,
     aimPoints: phaseData.aimPoints,
@@ -479,6 +555,20 @@ export async function computePhaseSolutions(plan, phaseIndex, env) {
   return { perGunSolutions };
 }
 
+export function buildFirePackage(plan, phaseIndex = plan.cursor?.phaseIndex ?? 0) {
+  const phase = plan.phases[phaseIndex];
+  if (!phase) return null;
+  return {
+    phase,
+    phasePoints: phase.aimPointIndices.map((index) => plan.aimPoints[index]),
+    perGunTargets: getPhaseAssignments(plan, phase.phaseIndex),
+  };
+}
+
+export async function computeSolutionsForPackage(plan, phaseIndex, env) {
+  return computePhaseSolutions(plan, phaseIndex, env);
+}
+
 export function applyTOT(plan, phaseIndex, perGunSolutions) {
   const assignments = getPhaseAssignments(plan, phaseIndex);
   const all = Object.values(perGunSolutions).flat();
@@ -495,6 +585,11 @@ export function applyTOT(plan, phaseIndex, perGunSolutions) {
     });
   });
   return assignments;
+}
+
+export function applyTOTIfNeeded(plan, phaseIndex, perGunSolutions) {
+  if (plan.config.controlType !== 'TOT') return getPhaseAssignments(plan, phaseIndex);
+  return applyTOT(plan, phaseIndex, perGunSolutions);
 }
 
 function pickMrsiShots(candidates, desiredRounds, minSep) {
@@ -550,16 +645,22 @@ export async function applyMRSI(plan, phaseIndex, env) {
   return assignments;
 }
 
+export async function applyMRSIIfNeeded(plan, assignment, env) {
+  if (plan.config.controlType !== 'MRSI') return assignment;
+  const phaseIndex = assignment?.commands?.[0]?.phaseIndex ?? plan.cursor?.phaseIndex ?? 0;
+  const result = await applyMRSI(plan, phaseIndex, env);
+  return result.find((item) => item.gunId === assignment.gunId) ?? assignment;
+}
+
 export async function getNextFirePackage(plan, env) {
-  const phase = getCurrentPhase(plan);
-  if (!phase) return null;
-  let assignments = getPhaseAssignments(plan, phase.phaseIndex);
-  const solutions = await computePhaseSolutions(plan, phase.phaseIndex, env);
-  if (plan.config.controlType === 'TOT') assignments = applyTOT(plan, phase.phaseIndex, solutions.perGunSolutions);
-  if (plan.config.controlType === 'MRSI') assignments = await applyMRSI(plan, phase.phaseIndex, env);
+  const payload = buildFirePackage(plan, plan.cursor?.phaseIndex ?? 0);
+  if (!payload) return null;
+  const solutions = await computeSolutionsForPackage(plan, payload.phase.phaseIndex, env);
+  let assignments = applyTOTIfNeeded(plan, payload.phase.phaseIndex, solutions.perGunSolutions);
+  if (plan.config.controlType === 'MRSI') assignments = await applyMRSI(plan, payload.phase.phaseIndex, env);
   return {
-    phase,
-    aimPoints: phase.aimPointIndices.map((index) => plan.aimPoints[index]),
+    phase: payload.phase,
+    aimPoints: payload.phasePoints,
     assignments,
     solutions,
   };
