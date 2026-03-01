@@ -410,6 +410,7 @@ let manualMarkerDragState = null;
 let gunHeadingDragState = null;
 let pendingGunHeading = null;
 let mapPatternDrawState = null;
+let customRectAreaVertices = null;
 let isPatternDrawMode = false;
 let rightMousePanState = null;
 let lastOverlayBoundsKey = '';
@@ -1528,6 +1529,10 @@ function toRadians(value) {
 }
 
 function buildRectangleVerticesFromConfig(config = {}, fallbackCenterPoint = null) {
+  const customVertices = Array.isArray(config?.geometry?.customVertices)
+    ? config.geometry.customVertices.filter((point) => point && Number.isFinite(point.x) && Number.isFinite(point.y))
+    : [];
+  if (customVertices.length >= 3) return customVertices;
   const center = config?.geometry?.center ?? config?.geometry?.point ?? fallbackCenterPoint;
   if (!center || !Number.isFinite(center.x) || !Number.isFinite(center.y)) return [];
   const width = Math.max(1, toFiniteNumber(config?.geometry?.widthM, 200));
@@ -1671,6 +1676,7 @@ function getFireMissionConfigFromUI() {
       widthM: toNum('#fm-width', 200),
       radiusM: toNum('#fm-radius', 100),
       aimpointCount: Math.max(3, Math.round(toNum('#fm-aimpoint-count', 8))),
+      customVertices: Array.isArray(customRectAreaVertices) ? customRectAreaVertices.map((point) => ({ ...point })) : undefined,
     },
     sheaf: {
       sheafWidthM: toNum('#fm-sheaf-width', 180),
@@ -2501,6 +2507,7 @@ function applyLinePatternFromPoints(startPoint, endPoint) {
   if (!Number.isFinite(length) || length < 1) return;
   const center = { x: (startPoint.x + endPoint.x) / 2, y: (startPoint.y + endPoint.y) / 2 };
   const bearingDeg = normalizeAzimuth((Math.atan2(dx, dy) * 180) / Math.PI);
+  customRectAreaVertices = null;
   setMissionTargetFromPoint(center);
   if (fmLengthInput) fmLengthInput.value = String(Math.max(1, Math.round(length)));
   const bearingInput = document.querySelector('#fm-bearing');
@@ -2509,32 +2516,44 @@ function applyLinePatternFromPoints(startPoint, endPoint) {
 }
 
 function applyRectanglePatternFromPoints(points = []) {
-  if (points.length < 4) return;
-  const [p1, p2, p3, p4] = points;
+  if (points.length < 3) return;
+  const p1 = points[0];
+  const p2 = points[1] ?? points[0];
   const center = {
-    x: (p1.x + p2.x + p3.x + p4.x) / 4,
-    y: (p1.y + p2.y + p3.y + p4.y) / 4,
+    x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+    y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
   };
-  const widthA = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-  const widthB = Math.hypot(p3.x - p4.x, p3.y - p4.y);
-  const lengthA = Math.hypot(p3.x - p2.x, p3.y - p2.y);
-  const lengthB = Math.hypot(p4.x - p1.x, p4.y - p1.y);
-  const width = (widthA + widthB) / 2;
-  const length = (lengthA + lengthB) / 2;
-  if (!Number.isFinite(width) || !Number.isFinite(length) || width < 1 || length < 1) return;
   const bearingDeg = normalizeAzimuth((Math.atan2(p2.x - p1.x, p2.y - p1.y) * 180) / Math.PI);
+  const bearingRad = toRadians(bearingDeg);
+  const right = { x: Math.sin(bearingRad + Math.PI / 2), y: Math.cos(bearingRad + Math.PI / 2) };
+  const forward = { x: Math.sin(bearingRad), y: Math.cos(bearingRad) };
+  const projected = points.map((point) => {
+    const dx = point.x - center.x;
+    const dy = point.y - center.y;
+    return {
+      lateral: dx * right.x + dy * right.y,
+      depth: dx * forward.x + dy * forward.y,
+    };
+  });
+  const lateralValues = projected.map((point) => point.lateral);
+  const depthValues = projected.map((point) => point.depth);
+  const width = Math.max(...lateralValues) - Math.min(...lateralValues);
+  const length = Math.max(...depthValues) - Math.min(...depthValues);
+  if (!Number.isFinite(width) || !Number.isFinite(length) || width < 1 || length < 1) return;
+  customRectAreaVertices = points.slice(0, 6).map((point) => ({ ...point }));
   setMissionTargetFromPoint(center);
   if (fmWidthInput) fmWidthInput.value = String(Math.max(1, Math.round(width)));
   if (fmLengthInput) fmLengthInput.value = String(Math.max(1, Math.round(length)));
   const bearingInput = document.querySelector('#fm-bearing');
   if (bearingInput) bearingInput.value = String(Number(bearingDeg.toFixed(1)));
-  recalculateMissionAfterPatternDraw('Прямоугольный паттерн обновлён из карты.');
+  recalculateMissionAfterPatternDraw('Паттерн по вершинам обновлён из карты.');
 }
 
 function applyCirclePatternFromPoints(centerPoint, edgePoint) {
   if (!centerPoint || !edgePoint) return;
   const radius = Math.hypot(edgePoint.x - centerPoint.x, edgePoint.y - centerPoint.y);
   if (!Number.isFinite(radius) || radius < 1) return;
+  customRectAreaVertices = null;
   setMissionTargetFromPoint(centerPoint);
   if (fmRadiusInput) fmRadiusInput.value = String(Math.max(1, Math.round(radius)));
   recalculateMissionAfterPatternDraw('Круговой паттерн обновлён из карты.');
@@ -2569,10 +2588,10 @@ function onMapClick(event) {
       return;
     }
     if (targetType === 'RECTANGLE') {
-      const points = (mapPatternDrawState?.type === 'RECTANGLE' ? mapPatternDrawState.points : []).concat(gamePoint).slice(0, 4);
+      const points = (mapPatternDrawState?.type === 'RECTANGLE' ? mapPatternDrawState.points : []).concat(gamePoint).slice(0, 6);
       mapPatternDrawState = { type: 'RECTANGLE', points };
-      if (points.length < 4) {
-        if (mapToolsOutput) mapToolsOutput.textContent = `Прямоугольник: точек ${points.length}/4.`;
+      if (points.length < 6) {
+        if (mapToolsOutput) mapToolsOutput.textContent = `Шестиугольник: точек ${points.length}/6.`;
       } else {
         applyRectanglePatternFromPoints(points);
         resetPatternDrawState();
@@ -3201,7 +3220,7 @@ function getDraftPatternOverlay() {
   if (mapPatternDrawState.type === 'RECTANGLE') {
     const committedPoints = mapPatternDrawState.points ?? [];
     const points = [...committedPoints];
-    if (mapPatternDrawState.cursorPoint && committedPoints.length < 4) points.push(mapPatternDrawState.cursorPoint);
+    if (mapPatternDrawState.cursorPoint && committedPoints.length < 6) points.push(mapPatternDrawState.cursorPoint);
     return {
       mode: FIRE_MODE_IDS.RECT_AREA,
       geometry: {
@@ -3753,6 +3772,7 @@ correctionObserverSelect?.addEventListener('change', () => {
 
 fmTargetTypeSelect?.addEventListener('change', () => {
   resetPatternDrawState();
+  if ((fmTargetTypeSelect?.value || 'POINT') !== 'RECTANGLE') customRectAreaVertices = null;
   syncFdcSettingsVisibility();
   persistLauncherSettings();
 });
