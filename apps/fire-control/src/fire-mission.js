@@ -443,6 +443,7 @@ export async function computePhaseSolutions(plan, phaseIndex, env) {
         weaponId: env.weaponByGunId?.[assignment.gunId],
         wind,
         arc: env.arc ?? 'AUTO',
+        preferredChargeId: env.preferredChargeByGunId?.[assignment.gunId],
       });
       perGunSolutions[assignment.gunId].push({ commandRef: command, aimPoint: point, wind, solution });
     }
@@ -498,6 +499,9 @@ export async function applyMRSI(plan, phaseIndex, env) {
       wind: env.wind ?? { speedMps: 0, fromDeg: 0 },
     }, {
       allowedArcs: plan.config.mrsiAllowedArcs,
+      chargesToTry: env.preferredChargeByGunId?.[assignment.gunId]
+        ? [env.preferredChargeByGunId[assignment.gunId]]
+        : undefined,
       maxSolutions: Math.max(rounds * 3, toFinite(plan.config.mrsiMaxRounds, rounds * 3)),
     });
     const desiredRounds = Math.min(rounds, maxRounds);
