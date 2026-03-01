@@ -117,7 +117,7 @@ const i18n = {
     invalidCoordinates: 'Ошибка координат: разрешены только цифры и допустимые пределы',
     mapToolsTitle: 'Инструменты меток', mapImageUpload: 'Загрузить свою карту (PNG/JPG)', pasteMapImage: 'Вставить карту из буфера', applyMapImage: 'Применить карту', clearMapImage: 'Убрать карту', mapImageTooLarge: 'Файл карты больше 150 МБ. Уменьшите файл и попробуйте снова.', mapImageUploadFailed: 'Не удалось загрузить изображение карты на сервер.', mapImageClipboardUnsupported: 'Буфер обмена не поддерживается браузером или недоступен без HTTPS/localhost.', mapImageClipboardEmpty: 'В буфере обмена не найдено изображение.',
     calibrationHint: 'Калибровка: включите режим, двойным щелчком ставьте метки P0/P1/P2 циклично. Введите только координаты P0 и длину P1-P2 в метрах.', applyCalibration: 'Применить калибровку', resetCalibration: 'Сбросить калибровку', calibrationApplied: 'Калибровка обновлена', calibrationResetDone: 'Калибровка сброшена', mapImageApplied: 'Пользовательская карта применена', mapImageCleared: 'Пользовательская карта убрана', invalidCalibration: 'Заполните корректные точки калибровки', calibrationRequiredBeforeWork: 'Сначала выполните калибровку карты. Пока калибровка не завершена, расчёты и рабочие инструменты заблокированы.', lastCalibrationLabel: 'Последняя калибровка', lastCalibrationMissing: 'Последняя калибровка отсутствует',
-    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolTarget: 'Цель', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки', markerEditorTitle: 'Параметры метки', markerNameLabel: 'Название', markerAzimuthLabel: 'Азимут', markerEditorSaved: 'Параметры метки обновлены', markerDeleted: 'Метка удалена',
+    markerToolLabel: 'Тип метки', markerToolGun: 'Активное орудие', markerToolTarget: 'Цель', markerToolPattern: 'Паттерн огня', markerToolObserver: 'Наблюдатель', markerToolRuler: 'Линейка', markerToolCoords: 'Снятие координат', markerPlaced: 'Метка добавлена', markerTargetLabel: 'Активная цель метки', markerEditorTitle: 'Параметры метки', markerNameLabel: 'Название', markerAzimuthLabel: 'Азимут', markerEditorSaved: 'Параметры метки обновлены', markerDeleted: 'Метка удалена',
     rulerPointSet: 'Точка линейки установлена', rulerMeasurement: 'Линейка', rulerCleared: 'Линейка удалена', coordsCaptured: 'Координаты точки',
     calibrationMode: 'Режим калибровки', calibrationModeToggle: 'Калибровка: выкл', calibrationModeToggleActive: 'Калибровка: вкл', calibrationScaleLabel: 'Масштаб P1-P2 (м)', calibrationKnownP0X: 'Известные координаты P0 X', calibrationKnownP0Y: 'Известные координаты P0 Y', calibrationPointSet: 'Калибровочная точка установлена', calibrationNeedThreePoints: 'Поставьте P0, P1 и P2', applyManualMarkers: 'Применить ручные метки', mapSettingsTitle: 'Настройки карты', mapSettingsHint: 'Настройки карты скрыты и не мешают работе с метками.', markerLocked: 'Постоянную метку нельзя перемещать или менять', clearManualMarkers: 'Очистить ручные метки', profilesTitle: 'Профили орудий и боеприпасов', profilesHint: 'Профили загружаются из tables/<gun>/profile.json и редактируются вручную в файлах.', profileTraverseDeg: 'Сектор наведения (°)', profileMinRange: 'Минимальная дальность (м)', profileMaxRange: 'Максимальная дальность (м)', profileProjectiles: 'Привязанные снаряды', profileTables: 'Баллистические таблицы', mapRotationHint: 'Левая кнопка мыши по орудию: задать азимут', mapWarningPrefix: 'Предупреждение'
   },
@@ -155,7 +155,7 @@ const i18n = {
     invalidCoordinates: 'Coordinate error: only digits and allowed limits are accepted',
     mapToolsTitle: 'Marker tools', mapImageUpload: 'Upload your map (PNG/JPG)', pasteMapImage: 'Paste map from clipboard', applyMapImage: 'Apply map image', clearMapImage: 'Clear map image', mapImageTooLarge: 'Map image is larger than 150 MB. Reduce file size and try again.', mapImageUploadFailed: 'Failed to upload map image to server.', mapImageClipboardUnsupported: 'Clipboard image read is not available in this browser or without HTTPS/localhost.', mapImageClipboardEmpty: 'No image found in clipboard.',
     calibrationHint: 'Calibration: enable mode, double-click to place P0/P1/P2 cyclically, then enter only P0 coordinates and P1-P2 distance in meters.', applyCalibration: 'Apply calibration', resetCalibration: 'Reset calibration', calibrationApplied: 'Calibration updated', calibrationResetDone: 'Calibration reset', mapImageApplied: 'Custom map image applied', mapImageCleared: 'Custom map image cleared', invalidCalibration: 'Fill valid calibration points', calibrationRequiredBeforeWork: 'Complete map calibration first. Calculations and map tools are locked until calibration is applied.', lastCalibrationLabel: 'Last calibration', lastCalibrationMissing: 'No saved calibration yet',
-    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolTarget: 'Target', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target', markerEditorTitle: 'Marker parameters', markerNameLabel: 'Name', markerAzimuthLabel: 'Azimuth', markerEditorSaved: 'Marker parameters updated', markerDeleted: 'Marker deleted',
+    markerToolLabel: 'Marker type', markerToolGun: 'Active gun', markerToolTarget: 'Target', markerToolPattern: 'Fire pattern', markerToolObserver: 'Observer', markerToolRuler: 'Ruler', markerToolCoords: 'Coordinate pick', markerPlaced: 'Marker added', markerTargetLabel: 'Active marker target', markerEditorTitle: 'Marker parameters', markerNameLabel: 'Name', markerAzimuthLabel: 'Azimuth', markerEditorSaved: 'Marker parameters updated', markerDeleted: 'Marker deleted',
     rulerPointSet: 'Ruler point set', rulerMeasurement: 'Ruler', rulerCleared: 'Ruler removed', coordsCaptured: 'Picked coordinates',
     calibrationMode: 'Calibration mode', calibrationModeToggle: 'Calibration: off', calibrationModeToggleActive: 'Calibration: on', calibrationScaleLabel: 'P1-P2 scale (m)', calibrationKnownP0X: 'Known P0 X', calibrationKnownP0Y: 'Known P0 Y', calibrationPointSet: 'Calibration point set', calibrationNeedThreePoints: 'Set P0, P1 and P2', applyManualMarkers: 'Apply manual markers', mapSettingsTitle: 'Map settings', mapSettingsHint: 'Map settings are collapsible so they do not interfere with marker work.', markerLocked: 'Permanent marker cannot be moved or edited', clearManualMarkers: 'Clear manual markers', profilesTitle: 'Gun and ammo profiles', profilesHint: 'Profiles are loaded from tables/<gun>/profile.json and should be edited manually in files.', profileTraverseDeg: 'Traverse sector (°)', profileMinRange: 'Min range (m)', profileMaxRange: 'Max range (m)', profileProjectiles: 'Linked projectiles', profileTables: 'Ballistic tables', mapRotationHint: 'Left mouse on gun: point gun azimuth', mapWarningPrefix: 'Warning' 
   },
@@ -2481,7 +2481,8 @@ function applyCirclePatternFromPoints(centerPoint, edgePoint) {
 function isFdcTargetDrawingEnabled() {
   const tools = getMapToolsSettings();
   if (tools.calibrationMode || !hasCalibrationConfigured(tools)) return false;
-  return (markerToolSelect?.value || '') === 'target';
+  const selectedTool = markerToolSelect?.value || '';
+  return selectedTool === 'target' || selectedTool === 'pattern';
 }
 
 function onMapClick(event) {
@@ -2544,6 +2545,13 @@ function onMapDoubleClick(event) {
     if (toolType === 'coords') {
       const gamePoint = imagePointToGamePoint(imagePoint.x, imagePoint.y);
       if (mapToolsOutput) mapToolsOutput.textContent = `${t('coordsCaptured')}: X=${gamePoint.x.toFixed(2)}, Y=${gamePoint.y.toFixed(2)}`;
+      return;
+    }
+    if (toolType === 'pattern') {
+      const targetType = fmTargetTypeSelect?.value || 'POINT';
+      if (mapToolsOutput) mapToolsOutput.textContent = targetType === 'CIRCLE'
+        ? 'Паттерн: зажмите ЛКМ и потяните для радиуса круга.'
+        : 'Паттерн: рисуйте фигуру обычными кликами на карте.';
       return;
     }
     if (toolType === 'ruler') {
@@ -3040,6 +3048,7 @@ function getMarkerTypeName(type) {
   if (type === 'gun') return t('gun');
   if (type === 'observer') return t('observer');
   if (type === 'target') return t('target');
+  if (type === 'pattern') return t('markerToolPattern');
   if (type === 'ruler') return t('markerToolRuler');
   if (type === 'coords') return t('markerToolCoords');
   return type;
