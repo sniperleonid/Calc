@@ -95,7 +95,7 @@ const i18n = {
     batteryHeight: 'Высота (м)', gunsPerBattery: 'Кол-во орудий', batteryName: 'Название', coordinatesTitle: 'Координаты и наблюдатели', gunsHint: 'Для каждого орудия укажите координаты карты.',
     observerTitle: 'Наблюдатели и привязки', observerCount: 'Количество наблюдателей (до 5)', observerBinding: 'Привязка наблюдателя', observerMode: 'Режим',
     bindToGun: 'К орудию', bindToBattery: 'К батарее', gunnerHint: 'Все расчёты выполняются на основе глобальных настроек.',
-    actionsTitle: 'Действия', calculate: 'Рассчитать', showMto: 'Показать MTO', logMission: 'Сохранить миссию',
+    actionsTitle: 'Действия', showMto: 'Показать MTO', logMission: 'Сохранить миссию',
     correctionTabTitle: 'Корректировка по активной цели', correctionTabHint: 'Используются активная цель и выбранные орудия из вкладки «Огневые задачи».', correctionTitle: 'Корректировка', correctionObserver: 'Наблюдатель корректировки', saveCorrection: 'Сохранить поправку', resetCorrection: 'Сбросить поправку',
     correctionAnchorObserver: 'Привязан к наблюдателю', correctionAnchorGun: 'Корректировка от орудия (наблюдатель не привязан)',
     observerTargetingTitle: 'Наведение наблюдателем', observerTargetingHint: 'Если координаты цели неизвестны, задайте дальность и азимут. Угол/высота — опционально.', applyObserverTargeting: 'Рассчитать цель от наблюдателя',
@@ -133,7 +133,7 @@ const i18n = {
     batteryHeight: 'Height (m)', gunsPerBattery: 'Guns count', batteryName: 'Name', coordinatesTitle: 'Coordinates and observers', gunsHint: 'Set map coordinates for each gun.',
     observerTitle: 'Observers and bindings', observerCount: 'Observers count (up to 5)', observerBinding: 'Observer binding', observerMode: 'Mode',
     bindToGun: 'To gun', bindToBattery: 'To battery', gunnerHint: 'All calculations use data from global settings.',
-    actionsTitle: 'Actions', calculate: 'Calculate', showMto: 'Show MTO', logMission: 'Save mission',
+    actionsTitle: 'Actions', showMto: 'Show MTO', logMission: 'Save mission',
     correctionTabTitle: 'Correction for active target', correctionTabHint: 'Uses active target and selected guns from the Fire Missions tab.', correctionTitle: 'Correction', correctionObserver: 'Correction observer', saveCorrection: 'Save correction', resetCorrection: 'Reset correction',
     correctionAnchorObserver: 'Anchored to observer', correctionAnchorGun: 'Correction from gun (observer not linked)',
     observerTargetingTitle: 'Observer targeting', observerTargetingHint: 'If target coordinates are unknown, enter distance and azimuth. Angle/height are optional.', applyObserverTargeting: 'Compute target from observer',
@@ -3348,7 +3348,6 @@ clearBrowserCacheBtn?.addEventListener('click', () => {
 openLogsBtn?.addEventListener('click', openLogs);
 exportDataBtn?.addEventListener('click', exportData);
 document.querySelector('#open-map')?.addEventListener('click', openMap);
-document.querySelector('#calculate-btn')?.addEventListener('click', () => { calculateFire(); });
 document.querySelector('#show-mto')?.addEventListener('click', () => { showMto(); });
 document.querySelector('#save-mission')?.addEventListener('click', () => { saveMission(); });
 document.querySelector('#build-fire-mission')?.addEventListener('click', () => { buildFireMissionPlan(); });
