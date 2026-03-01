@@ -186,6 +186,31 @@ function spreadOffsets(count, width) {
   return Array.from({ length: count }, (_, i) => -width / 2 + (width * i) / (count - 1));
 }
 
+function lineIndicesFromEdges(indices) {
+  const ordered = [];
+  let left = 0;
+  let right = indices.length - 1;
+  while (left <= right) {
+    ordered.push(indices[left]);
+    if (left !== right) ordered.push(indices[right]);
+    left += 1;
+    right -= 1;
+  }
+  return ordered;
+}
+
+function distributeAimPointsByGun(aimPointIndices, gunCount, targetType) {
+  const perGun = Array.from({ length: gunCount }, () => []);
+  if (!aimPointIndices.length || gunCount <= 0) return perGun;
+  const orderedIndices = targetType === 'LINE'
+    ? lineIndicesFromEdges(aimPointIndices)
+    : aimPointIndices;
+  orderedIndices.forEach((aimPointIndex, sequenceIndex) => {
+    perGun[sequenceIndex % gunCount].push(aimPointIndex);
+  });
+  return perGun;
+}
+
 export function getFdcUiSchema(missionFdc = {}) {
   const targetType = TARGET_TYPES.includes(missionFdc.targetType) ? missionFdc.targetType : null;
   const sheafType = SHEAF_TYPES.includes(missionFdc.sheafType) ? missionFdc.sheafType : null;
@@ -336,31 +361,27 @@ function buildPhases(config, baseAimPoints) {
 
 function buildAssignments(plan, guns) {
   const assignments = guns.map((gun) => ({ gunId: gun.id, commands: [] }));
+  if (!assignments.length) return assignments;
   for (const phase of plan.phases) {
     const phasePoints = phase.aimPointIndices.map((index) => plan.aimPoints[index]);
     const bearingDeg = resolveBearing(plan.config, guns, phasePoints);
     const { right } = forwardRight(bearingDeg);
     const width = sheafWidth(plan.config);
     const offsets = spreadOffsets(guns.length, width);
+    const perGunAimPointIndices = plan.config.targetType === 'POINT'
+      ? assignments.map(() => phase.aimPointIndices)
+      : distributeAimPointsByGun(phase.aimPointIndices, assignments.length, plan.config.targetType);
 
     assignments.forEach((assignment, gunIndex) => {
+      const assignedIndices = perGunAimPointIndices[gunIndex] ?? [];
       if (plan.config.sheafType === 'CONVERGED') {
-        for (const aimPointIndex of phase.aimPointIndices) {
+        for (const aimPointIndex of assignedIndices) {
           assignment.commands.push({ phaseIndex: phase.phaseIndex, aimPointIndex, rounds: plan.config.roundsPerGun });
         }
         return;
       }
 
-      if (plan.config.targetType === 'CIRCLE') {
-        phase.aimPointIndices.forEach((aimPointIndex, index) => {
-          if (index % assignments.length === gunIndex) {
-            assignment.commands.push({ phaseIndex: phase.phaseIndex, aimPointIndex, rounds: plan.config.roundsPerGun });
-          }
-        });
-        return;
-      }
-
-      for (const aimPointIndex of phase.aimPointIndices) {
+      for (const aimPointIndex of assignedIndices) {
         const point = plan.aimPoints[aimPointIndex];
         if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
           throw new Error('Не заполнены координаты цели');

@@ -113,6 +113,29 @@ test('SEQUENCE creates one phase per aim point', () => {
   assert.equal(plan.phases.length, plan.aimPoints.length);
 });
 
+test('LINE with multiple guns is distributed from edges toward center', () => {
+  const plan = buildAimPlan({
+    targetType: 'LINE', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1,
+    start: { x: 0, y: 0 }, end: { x: 0, y: 100 }, spacingM: 25,
+  }, guns);
+  const [gun1, gun2] = getPhaseAssignments(plan, 0);
+  const gun1Y = gun1.commands.map((cmd) => plan.aimPoints[cmd.aimPointIndex].y);
+  const gun2Y = gun2.commands.map((cmd) => plan.aimPoints[cmd.aimPointIndex].y);
+  assert.deepEqual(gun1Y, [0, 25, 50]);
+  assert.deepEqual(gun2Y, [100, 75]);
+});
+
+test('POINT keeps same target for all guns in converged sheaf', () => {
+  const plan = buildAimPlan({
+    targetType: 'POINT', sheafType: 'CONVERGED', control: 'SIMULTANEOUS', guns: 'ALL', roundsPerGun: 1,
+    point: { x: 100, y: 100 },
+  }, guns);
+  const [gun1, gun2] = getPhaseAssignments(plan, 0);
+  assert.equal(gun1.commands.length, 1);
+  assert.equal(gun2.commands.length, 1);
+  assert.equal(gun1.commands[0].aimPointIndex, gun2.commands[0].aimPointIndex);
+});
+
 test('TOT computes delay=maxTOF-tof', async () => {
   const plan = buildAimPlan({ targetType: 'POINT', sheafType: 'CONVERGED', control: 'TOT', guns: 'ALL', roundsPerGun: 1, point: { x: 100, y: 100 } }, guns);
   const env = {
